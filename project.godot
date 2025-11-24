@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Chaos"
-run/main_scene="uid://ihkhyc7g62ye"
+run/main_scene="uid://dk43727mj1esl"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 

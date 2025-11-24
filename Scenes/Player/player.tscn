@@ -1,5 +1,6 @@
-[gd_scene load_steps=4 format=3 uid="uid://ihkhyc7g62ye"]
+[gd_scene load_steps=5 format=3 uid="uid://ihkhyc7g62ye"]
 
+[ext_resource type="Script" uid="uid://dsmf6w5yegfc" path="res://Scripts/Player/Player.gd" id="1_ft8w5"]
 [ext_resource type="Texture2D" uid="uid://dq20hol0fbldv" path="res://icon.svg" id="1_uvnfx"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_uvnfx"]
@@ -10,6 +11,7 @@ size = Vector2(14, 14)
 
 [node name="Player" type="CharacterBody2D"]
 collision_mask = 8
+script = ExtResource("1_ft8w5")
 
 [node name="VisualsPivot" type="Node2D" parent="."]
 
