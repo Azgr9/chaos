@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://dk43727mj1esl"]
+
+[ext_resource type="PackedScene" uid="uid://cputkgt8et483" path="res://Scenes/Game/Arena.tscn" id="1_gwu2e"]
+[ext_resource type="PackedScene" uid="uid://ihkhyc7g62ye" path="res://Scenes/Player/Player.tscn" id="2_xbxml"]
+
+[node name="Game" type="Node2D"]
+
+[node name="Arena" parent="." instance=ExtResource("1_gwu2e")]
+
+[node name="Player" parent="." instance=ExtResource("2_xbxml")]
+position = Vector2(320, 180)
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+process_callback = 0
+position_smoothing_enabled = true

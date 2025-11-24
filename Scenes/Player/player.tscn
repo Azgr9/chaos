@@ -1,8 +1,37 @@
-[gd_scene load_steps=2 format=3 uid="uid://ihkhyc7g62ye"]
+[gd_scene load_steps=4 format=3 uid="uid://ihkhyc7g62ye"]
 
 [ext_resource type="Texture2D" uid="uid://dq20hol0fbldv" path="res://icon.svg" id="1_uvnfx"]
 
-[node name="Player" type="Node2D"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_uvnfx"]
+size = Vector2(12, 12)
 
-[node name="Icon" type="Sprite2D" parent="."]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_a3d8c"]
+size = Vector2(14, 14)
+
+[node name="Player" type="CharacterBody2D"]
+collision_mask = 8
+
+[node name="VisualsPivot" type="Node2D" parent="."]
+
+[node name="Icon" type="Sprite2D" parent="VisualsPivot"]
 texture = ExtResource("1_uvnfx")
+
+[node name="CollisionShape" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_uvnfx")
+
+[node name="WeaponPivot" type="Node2D" parent="."]
+
+[node name="WeaponHolder" type="Marker2D" parent="WeaponPivot"]
+position = Vector2(12, 0)
+
+[node name="StaffPivot" type="Node2D" parent="."]
+
+[node name="StaffHolder" type="Marker2D" parent="StaffPivot"]
+position = Vector2(-12, 0)
+
+[node name="HurtBox" type="Area2D" parent="."]
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HurtBox"]
+shape = SubResource("RectangleShape2D_a3d8c")
