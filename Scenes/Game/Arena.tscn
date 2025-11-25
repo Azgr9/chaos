@@ -18,7 +18,7 @@ size = Vector2(16, 360)
 offset_top = -1.0
 offset_right = 640.0
 offset_bottom = 359.0
-color = Color(0.101960786, 0.101960786, 0.18039216, 1)
+color = Color(0.60648185, 0.5469635, 0.43646276, 1)
 
 [node name="Walls" type="StaticBody2D" parent="."]
 collision_layer = 8

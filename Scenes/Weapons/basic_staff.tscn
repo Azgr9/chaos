@@ -1,13 +1,15 @@
-[gd_scene load_steps=3 format=3 uid="uid://dn16fj6ro42m1"]
+[gd_scene load_steps=4 format=3 uid="uid://dn16fj6ro42m1"]
 
 [ext_resource type="Script" uid="uid://cq73vimtkgj0y" path="res://Scripts/Weapons/BasicStaff.gd" id="1_33077"]
 [ext_resource type="PackedScene" uid="uid://dej7hxr2yknk" path="res://Scenes/Spells/BasicProjectile.tscn" id="2_oaq23"]
+[ext_resource type="Texture2D" uid="uid://b68jjcu26gtj2" path="res://temp/Ekran_görüntüsü_2025-11-25_125409-removebg-preview.png" id="3_ieq3p"]
 
 [node name="BasicStaff" type="Node2D"]
 script = ExtResource("1_33077")
 projectile_scene = ExtResource("2_oaq23")
 
 [node name="Sprite" type="ColorRect" parent="."]
+visible = false
 offset_top = -2.0
 offset_right = 16.0
 offset_bottom = 2.0
@@ -28,3 +30,9 @@ offset_top = -6.0
 offset_right = 24.0
 offset_bottom = 6.0
 color = Color(0, 1, 1, 1)
+
+[node name="EkranGörüntüsü20251125125409RemovebgPreview" type="Sprite2D" parent="."]
+position = Vector2(2, -11.000001)
+rotation = 0.108435236
+scale = Vector2(0.04917311, 0.035777662)
+texture = ExtResource("3_ieq3p")
