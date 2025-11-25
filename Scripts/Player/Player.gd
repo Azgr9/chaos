@@ -71,6 +71,40 @@ func _physics_process(delta):
 	update_animation()
 
 func handle_input():
+	if Input.is_action_just_pressed("melee_attack"):
+		print("MELEE ATTACK pressed")
+	if Input.is_action_just_pressed("magic_attack"):
+		print("MAGIC ATTACK pressed")
+	# Movement input
+	input_vector = Vector2.ZERO
+	
+	if not is_attacking:  # Can't change movement during attack
+		input_vector.x = Input.get_axis("move_left", "move_right")
+		input_vector.y = Input.get_axis("move_up", "move_down")
+		
+		# Normalize diagonal movement
+		if input_vector.length() > 1.0:
+			input_vector = input_vector.normalized()
+		
+		# Track last direction for aiming
+		if input_vector.length() > 0:
+			last_direction = input_vector.normalized()
+			is_moving = true
+		else:
+			is_moving = false
+	
+	# Attack inputs - CHECK THESE ARE CORRECT
+	if Input.is_action_just_pressed("melee_attack") and not is_attacking:
+		perform_melee_attack()
+		return  # Important: return early so we don't check other attacks
+	
+	if Input.is_action_just_pressed("magic_attack") and not is_attacking:
+		perform_magic_attack()
+		return
+	
+	# Weapon switching
+	if Input.is_action_just_pressed("swap_weapon"):
+		switch_weapon()
 	# Movement input
 	input_vector = Vector2.ZERO
 	
@@ -160,6 +194,7 @@ func update_animation():
 		visuals_pivot.scale.y = 1.0
 
 func perform_melee_attack():
+	# Make sure we're using current_weapon, NOT current_staff
 	if current_weapon and current_weapon.has_method("attack") and not is_attacking:
 		# Get attack direction from mouse
 		var mouse_pos = get_global_mouse_position()
@@ -172,25 +207,31 @@ func perform_melee_attack():
 		# Face the attack direction immediately
 		facing_direction = attack_direction
 		weapon_pivot.rotation = attack_direction.angle()
-		staff_pivot.rotation = attack_direction.angle()
-		# Perform the attack
+		
+		# Perform the SWORD attack
 		current_weapon.attack(attack_direction, stats.melee_damage_multiplier)
-		current_staff.attack(attack_direction, stats.magic_damage_multiplier)
+		
 		# Connect to attack finished signal if not already connected
-		if not current_weapon.attack_finished.is_connected(_on_attack_finished):
-			current_weapon.attack_finished.connect(_on_attack_finished)
+		if current_weapon.has_signal("attack_finished"):
+			if not current_weapon.attack_finished.is_connected(_on_attack_finished):
+				current_weapon.attack_finished.connect(_on_attack_finished)
 
 func _on_attack_finished():
 	is_attacking = false
 	visuals_pivot.scale.y = 1.0
 
 func perform_magic_attack():
-	if current_staff and current_staff.has_method("attack") and not is_attacking:
+	# Make sure we're using current_staff, NOT current_weapon
+	if current_staff and current_staff.has_method("attack"):
 		# Get attack direction from mouse
 		var mouse_pos = get_global_mouse_position()
 		var attack_direction = (mouse_pos - global_position).normalized()
 		
-
+		# Face the attack direction
+		staff_pivot.rotation = attack_direction.angle()
+		
+		# Perform the STAFF attack
+		current_staff.attack(attack_direction, stats.magic_damage_multiplier)
 func _spawn_and_equip_weapon(weapon_scene: PackedScene):
 	# Remove current weapon if exists
 	if current_weapon:
