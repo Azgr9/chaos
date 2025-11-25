@@ -9,7 +9,6 @@ script = ExtResource("1_33077")
 projectile_scene = ExtResource("2_oaq23")
 
 [node name="Sprite" type="ColorRect" parent="."]
-visible = false
 offset_top = -2.0
 offset_right = 16.0
 offset_bottom = 2.0
