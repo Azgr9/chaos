@@ -26,6 +26,8 @@ var last_direction: Vector2 = Vector2.RIGHT
 var facing_direction: Vector2 = Vector2.RIGHT
 var is_moving: bool = false
 var is_attacking: bool = false
+var is_melee_attacking: bool = false
+var is_magic_attacking: bool = false
 var current_staff: Node2D = null
 var staff_inventory: Array = []
 # Weapons
@@ -168,9 +170,11 @@ func update_facing_direction():
 	# During attack, face mouse direction
 	if is_attacking:
 		facing_direction = to_mouse
-		# Rotate weapons toward mouse during attack
-		weapon_pivot.rotation = facing_direction.angle()
-		staff_pivot.rotation = facing_direction.angle()
+		# Only rotate the weapon being used
+		if is_melee_attacking:
+			weapon_pivot.rotation = facing_direction.angle()
+		elif is_magic_attacking:
+			staff_pivot.rotation = facing_direction.angle()
 	# While moving, face movement direction
 	elif is_moving:
 		facing_direction = last_direction
@@ -187,8 +191,9 @@ func update_facing_direction():
 	staff_pivot.position = Vector2(-12, 0)
 
 	# Keep weapons horizontal when not attacking
-	if not is_attacking:
+	if not is_melee_attacking:
 		weapon_pivot.rotation = 0
+	if not is_magic_attacking:
 		staff_pivot.rotation = 0
 
 func update_animation():
@@ -210,18 +215,19 @@ func perform_melee_attack():
 		# Get attack direction from mouse
 		var mouse_pos = get_global_mouse_position()
 		var attack_direction = (mouse_pos - global_position).normalized()
-		
+
 		# Lock player during attack
 		is_attacking = true
+		is_melee_attacking = true
 		input_vector = Vector2.ZERO
-		
+
 		# Face the attack direction immediately
 		facing_direction = attack_direction
 		weapon_pivot.rotation = attack_direction.angle()
-		
+
 		# Perform the SWORD attack
 		current_weapon.attack(attack_direction, stats.melee_damage_multiplier)
-		
+
 		# Connect to attack finished signal if not already connected
 		if current_weapon.has_signal("attack_finished"):
 			if not current_weapon.attack_finished.is_connected(_on_attack_finished):
@@ -229,20 +235,32 @@ func perform_melee_attack():
 
 func _on_attack_finished():
 	is_attacking = false
+	is_melee_attacking = false
 	visuals_pivot.scale.y = 1.0
 
 func perform_magic_attack():
 	# Make sure we're using current_staff, NOT current_weapon
-	if current_staff and current_staff.has_method("attack"):
+	if current_staff and current_staff.has_method("attack") and not is_attacking:
 		# Get attack direction from mouse
 		var mouse_pos = get_global_mouse_position()
 		var attack_direction = (mouse_pos - global_position).normalized()
-		
+
+		# Lock player during attack
+		is_attacking = true
+		is_magic_attacking = true
+		input_vector = Vector2.ZERO
+
 		# Face the attack direction
+		facing_direction = attack_direction
 		staff_pivot.rotation = attack_direction.angle()
-		
+
 		# Perform the STAFF attack
 		current_staff.attack(attack_direction, stats.magic_damage_multiplier)
+
+		# Magic attacks are instant, so reset immediately after cooldown
+		await get_tree().create_timer(0.3).timeout
+		is_attacking = false
+		is_magic_attacking = false
 func _spawn_and_equip_weapon(weapon_scene: PackedScene):
 	# Remove current weapon if exists
 	if current_weapon:
