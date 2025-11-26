@@ -20,14 +20,10 @@ extends Node2D
 
 # State
 var can_attack: bool = true
-var current_mana: float = 100.0
-var max_mana: float = 100.0
 var damage_multiplier: float = 1.0
 
 # Signals
 signal projectile_fired(projectile: Area2D)
-signal mana_changed(current: float, max: float)
-signal out_of_mana
 
 func _ready():
 	cooldown_timer.timeout.connect(_on_cooldown_finished)
@@ -40,17 +36,11 @@ func _ready():
 		projectile_scene = preload("res://scenes/spells/BasicProjectile.tscn")
 
 func attack(direction: Vector2, magic_damage_multiplier: float = 1.0) -> bool:
-	if not can_attack or current_mana < mana_cost:
-		if current_mana < mana_cost:
-			emit_signal("out_of_mana")
+	if not can_attack:
 		return false
-	
+
 	damage_multiplier = magic_damage_multiplier
-	
-	# Use mana
-	current_mana -= mana_cost
-	emit_signal("mana_changed", current_mana, max_mana)
-	
+
 	# Fire projectile(s)
 	_fire_projectiles(direction)
 	

@@ -179,14 +179,12 @@ func update_facing_direction():
 	# Update visual facing (flip sprite if needed)
 	if facing_direction.x < 0:
 		visuals_pivot.scale.x = -1
-		# When facing left: sword on left, staff on right
-		weapon_pivot.position = Vector2(-12, 0)
-		staff_pivot.position = Vector2(12, 0)
 	else:
 		visuals_pivot.scale.x = 1
-		# When facing right: sword on right, staff on left
-		weapon_pivot.position = Vector2(12, 0)
-		staff_pivot.position = Vector2(-12, 0)
+
+	# Weapons always stay in same position - sword right, staff left
+	weapon_pivot.position = Vector2(12, 0)
+	staff_pivot.position = Vector2(-12, 0)
 
 	# Keep weapons horizontal when not attacking
 	if not is_attacking:
