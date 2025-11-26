@@ -14,7 +14,7 @@ extends CharacterBody2D
 
 # Nodes
 @onready var visuals_pivot: Node2D = $VisualsPivot
-@onready var sprite: ColorRect = $VisualsPivot/Sprite
+@onready var sprite: Sprite2D = $VisualsPivot/Icon
 @onready var weapon_pivot: Node2D = $WeaponPivot
 @onready var weapon_holder: Marker2D = $WeaponPivot/WeaponHolder
 @onready var staff_pivot: Node2D = $StaffPivot
@@ -277,12 +277,12 @@ func _on_weapon_broke():
 func take_damage(amount: float):
 	var is_dead = stats.take_damage(amount)
 	emit_signal("health_changed", stats.current_health, stats.max_health)
-	
+
 	# Visual feedback - flash red
-	sprite.color = Color.RED
+	sprite.modulate = Color.RED
 	await get_tree().create_timer(0.1).timeout
-	sprite.color = Color("#3b5dc9")  # Back to blue
-	
+	sprite.modulate = Color.WHITE
+
 	if is_dead:
 		emit_signal("player_died")
 		queue_free()
