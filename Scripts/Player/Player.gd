@@ -164,24 +164,34 @@ func update_facing_direction():
 	# Get attack direction based on mouse position
 	var mouse_pos = get_global_mouse_position()
 	var to_mouse = (mouse_pos - global_position).normalized()
-	
+
 	# During attack, face mouse direction
 	if is_attacking:
 		facing_direction = to_mouse
+		# Rotate weapons toward mouse during attack
+		weapon_pivot.rotation = facing_direction.angle()
+		staff_pivot.rotation = facing_direction.angle()
 	# While moving, face movement direction
 	elif is_moving:
 		facing_direction = last_direction
 	# When idle, keep last facing direction
-	
+
 	# Update visual facing (flip sprite if needed)
 	if facing_direction.x < 0:
 		visuals_pivot.scale.x = -1
+		# When facing left: sword on left, staff on right
+		weapon_pivot.position = Vector2(-12, 0)
+		staff_pivot.position = Vector2(12, 0)
 	else:
 		visuals_pivot.scale.x = 1
-	
-	# Update weapon pivot rotation
-	weapon_pivot.rotation = facing_direction.angle()
-	staff_pivot.rotation = facing_direction.angle()
+		# When facing right: sword on right, staff on left
+		weapon_pivot.position = Vector2(12, 0)
+		staff_pivot.position = Vector2(-12, 0)
+
+	# Keep weapons horizontal when not attacking
+	if not is_attacking:
+		weapon_pivot.rotation = 0
+		staff_pivot.rotation = 0
 
 func update_animation():
 	# Simple animation - pulse when moving, squash when attacking
