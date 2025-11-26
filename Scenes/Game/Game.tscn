@@ -1,11 +1,12 @@
-[gd_scene load_steps=8 format=3 uid="uid://dk43727mj1esl"]
+[gd_scene load_steps=9 format=3 uid="uid://dk43727mj1esl"]
 
 [ext_resource type="PackedScene" uid="uid://cputkgt8et483" path="res://Scenes/Game/Arena.tscn" id="1_gwu2e"]
 [ext_resource type="PackedScene" uid="uid://ihkhyc7g62ye" path="res://Scenes/Player/Player.tscn" id="2_xbxml"]
 [ext_resource type="Script" uid="uid://qh02i550hrbk" path="res://Scripts/Player/PlayerStats.gd" id="3_ln2h6"]
 [ext_resource type="Script" uid="uid://yhlbvdhwd02s" path="res://Scripts/Game/WaveManager.gd" id="4_y3kpf"]
 [ext_resource type="Script" uid="uid://bacwjgc8d7km3" path="res://Scripts/Game/GameManager.gd" id="5_3k6gv"]
-[ext_resource type="PackedScene" path="res://Scenes/Ui/HUD.tscn" id="6_3k6gv"]
+[ext_resource type="PackedScene" uid="uid://bwx8h5j2k3n4p" path="res://Scenes/Ui/HUD.tscn" id="6_3k6gv"]
+[ext_resource type="PackedScene" uid="uid://c8yay203a4b5c" path="res://Scenes/Ui/UpgradeMenu.tscn" id="7_1q8bt"]
 
 [sub_resource type="Resource" id="Resource_3k6gv"]
 script = ExtResource("3_ln2h6")
@@ -30,3 +31,5 @@ script = ExtResource("4_y3kpf")
 script = ExtResource("5_3k6gv")
 
 [node name="HUD" parent="." instance=ExtResource("6_3k6gv")]
+
+[node name="UpgradeMenu" parent="." instance=ExtResource("7_1q8bt")]

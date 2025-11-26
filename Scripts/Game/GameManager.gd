@@ -55,9 +55,30 @@ func _on_wave_completed(wave_number: int):
 	waves_completed = wave_number
 	score += wave_number * 100
 	emit_signal("score_changed", score)
-	
-	# Here we would show upgrade menu
-	# For now, just continue to next wave
+
+	# Show upgrade menu after wave (except last wave)
+	if wave_number < 5:
+		_show_upgrade_menu()
+
+func _show_upgrade_menu():
+	# Get upgrade menu (it's a sibling in the Game scene)
+	var upgrade_menu = get_node_or_null("../UpgradeMenu")
+
+	if not upgrade_menu:
+		# Load and instance upgrade menu if it doesn't exist
+		var menu_scene = load("res://Scenes/Ui/UpgradeMenu.tscn")
+		upgrade_menu = menu_scene.instantiate()
+		get_parent().add_child(upgrade_menu)
+		print("Created new UpgradeMenu instance")
+	else:
+		print("Found existing UpgradeMenu")
+
+	# Show upgrades
+	if upgrade_menu and upgrade_menu.has_method("show_upgrades"):
+		print("Calling show_upgrades on menu")
+		upgrade_menu.show_upgrades(player_reference)
+	else:
+		print("ERROR: Could not show upgrades - menu or method missing")
 
 func _on_all_waves_completed():
 	# Victory!

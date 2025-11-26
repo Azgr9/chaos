@@ -305,6 +305,21 @@ func _on_weapon_broke():
 		print("No weapons left!")
 
 func take_damage(amount: float):
+	# Check dodge
+	if stats.should_dodge():
+		# Dodged! Show visual feedback
+		var dodge_label = Label.new()
+		dodge_label.text = "DODGE!"
+		dodge_label.modulate = Color.CYAN
+		add_child(dodge_label)
+		dodge_label.position = Vector2(0, -30)
+
+		var tween = create_tween()
+		tween.tween_property(dodge_label, "position:y", -50, 0.5)
+		tween.parallel().tween_property(dodge_label, "modulate:a", 0.0, 0.5)
+		tween.tween_callback(dodge_label.queue_free)
+		return
+
 	var is_dead = stats.take_damage(amount)
 	emit_signal("health_changed", stats.current_health, stats.max_health)
 
@@ -323,6 +338,28 @@ func _on_hurt_box_area_entered(_area: Area2D):
 func heal(amount: float):
 	stats.heal(amount)
 	emit_signal("health_changed", stats.current_health, stats.max_health)
+
+func on_enemy_killed():
+	# Lifesteal healing
+	if stats.lifesteal_amount > 0:
+		heal(stats.lifesteal_amount)
+
+		# Visual feedback for lifesteal
+		var heal_label = Label.new()
+		heal_label.text = "+%d HP" % int(stats.lifesteal_amount)
+		heal_label.modulate = Color.GREEN
+		add_child(heal_label)
+		heal_label.position = Vector2(0, -30)
+
+		var tween = create_tween()
+		tween.tween_property(heal_label, "position:y", -50, 0.5)
+		tween.parallel().tween_property(heal_label, "modulate:a", 0.0, 0.5)
+		tween.tween_callback(heal_label.queue_free)
+
+		# Green flash on player
+		sprite.modulate = Color.GREEN
+		var flash_tween = create_tween()
+		flash_tween.tween_property(sprite, "modulate", Color.WHITE, 0.3)
 
 func _spawn_and_equip_staff(staff_scene: PackedScene):
 	if current_staff:

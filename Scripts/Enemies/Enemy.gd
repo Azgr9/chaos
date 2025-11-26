@@ -96,6 +96,11 @@ func _on_damage_taken():
 func die():
 	is_dead = true
 	emit_signal("enemy_died", self)
+
+	# Notify player for lifesteal
+	if player_reference and player_reference.has_method("on_enemy_killed"):
+		player_reference.on_enemy_killed()
+
 	_on_death()
 
 func _on_death():
