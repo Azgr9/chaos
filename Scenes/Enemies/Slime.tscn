@@ -1,3 +1,63 @@
-[gd_scene format=3 uid="uid://cqy13nrt4obnn"]
+[gd_scene load_steps=4 format=3 uid="uid://cqy13nrt4obnn"]
 
-[node name="Slime" type="Node2D"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_physics"]
+radius = 6.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hurtbox"]
+radius = 8.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_attackbox"]
+radius = 10.0
+
+[node name="Slime" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 9
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_physics")
+
+[node name="VisualsPivot" type="Node2D" parent="."]
+
+[node name="Sprite" type="ColorRect" parent="VisualsPivot"]
+offset_left = -8.0
+offset_top = -8.0
+offset_right = 8.0
+offset_bottom = 8.0
+pivot_offset = Vector2(8, 8)
+color = Color(0, 1, 0, 1)
+
+[node name="HurtBox" type="Area2D" parent="."]
+collision_layer = 16
+collision_mask = 96
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HurtBox"]
+shape = SubResource("CircleShape2D_hurtbox")
+
+[node name="AttackBox" type="Area2D" parent="."]
+collision_layer = 128
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackBox"]
+shape = SubResource("CircleShape2D_attackbox")
+
+[node name="HealthBar" type="Node2D" parent="."]
+
+[node name="Background" type="ColorRect" parent="HealthBar"]
+offset_left = -10.0
+offset_top = -20.0
+offset_right = 10.0
+offset_bottom = -17.0
+color = Color(0.2, 0, 0, 1)
+
+[node name="Fill" type="ColorRect" parent="HealthBar"]
+offset_left = -10.0
+offset_top = -20.0
+offset_right = 10.0
+offset_bottom = -17.0
+color = Color(1, 0, 0, 1)
+
+[node name="AnimationTimer" type="Timer" parent="."]
+wait_time = 0.5
+autostart = true
