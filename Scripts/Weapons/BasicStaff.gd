@@ -113,17 +113,3 @@ func _play_attack_animation():
 
 func _on_cooldown_finished():
 	can_attack = true
-
-func restore_mana(amount: float):
-	current_mana = min(current_mana + amount, max_mana)
-	emit_signal("mana_changed", current_mana, max_mana)
-
-func set_max_mana(value: float):
-	max_mana = value
-	current_mana = min(current_mana, max_mana)
-	emit_signal("mana_changed", current_mana, max_mana)
-
-# Passive mana regeneration
-func _process(delta):
-	if current_mana < max_mana:
-		restore_mana(10.0 * delta)  # 10 mana per second
