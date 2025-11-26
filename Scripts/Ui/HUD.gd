@@ -110,16 +110,16 @@ func _process(delta):
 	if player and player.current_weapon:
 		_update_weapon_durability_visual()
 
-func _on_player_health_changed(current: float, max: float):
-	target_health_percent = current / max if max > 0 else 0
-	health_label.text = "%d/%d" % [current, max]
+func _on_player_health_changed(current: float, max_health: float):
+	target_health_percent = current / max_health if max_health > 0 else 0.0
+	health_label.text = "%d/%d" % [current, max_health]
 
 	# Pulse animation on damage
 	if target_health_percent < current_health_percent:
 		_pulse_bar(health_fill)
 
-func _on_weapon_durability_changed(current: int, max: int):
-	var durability_percent = float(current) / float(max) if max > 0 else 0
+func _on_weapon_durability_changed(current: int, max_durability: int):
+	var durability_percent = float(current) / float(max_durability) if max_durability > 0 else 0.0
 	weapon_durability_fill.size.x = durability_max_width * durability_percent
 
 	# Change color based on durability
@@ -148,7 +148,7 @@ func _on_wave_started(wave_number: int):
 	tween.tween_property(wave_label, "scale", original_scale, 0.3).set_trans(Tween.TRANS_ELASTIC)
 	tween.parallel().tween_property(wave_label, "modulate", Color.WHITE, 0.5)
 
-func _on_wave_completed(wave_number: int):
+func _on_wave_completed(_wave_number: int):
 	# Flash completion
 	wave_label.modulate = Color.GREEN
 	var tween = create_tween()

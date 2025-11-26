@@ -52,7 +52,7 @@ func _ready():
 		stats = PlayerStats.new()
 
 	stats.reset_health()
-	emit_signal("health_changed", stats.current_health, stats.max_health)
+	health_changed.emit(stats.current_health, stats.max_health)
 
 	# Connect hurt box for enemy attacks
 	hurt_box.area_entered.connect(_on_hurt_box_area_entered)
@@ -285,7 +285,7 @@ func _spawn_and_equip_weapon(weapon_scene: PackedScene):
 	if not weapon_instance in weapon_inventory:
 		weapon_inventory.append(weapon_instance)
 	
-	emit_signal("weapon_switched", weapon_instance)
+	weapon_switched.emit(weapon_instance)
 
 func switch_weapon():
 	if weapon_inventory.size() <= 1:
@@ -321,7 +321,7 @@ func take_damage(amount: float):
 		return
 
 	var is_dead = stats.take_damage(amount)
-	emit_signal("health_changed", stats.current_health, stats.max_health)
+	health_changed.emit(stats.current_health, stats.max_health)
 
 	# Visual feedback - flash red
 	sprite.modulate = Color.RED
@@ -329,7 +329,7 @@ func take_damage(amount: float):
 	sprite.modulate = Color.WHITE
 
 	if is_dead:
-		emit_signal("player_died")
+		player_died.emit()
 		queue_free()
 
 func _on_hurt_box_area_entered(_area: Area2D):
@@ -337,7 +337,7 @@ func _on_hurt_box_area_entered(_area: Area2D):
 
 func heal(amount: float):
 	stats.heal(amount)
-	emit_signal("health_changed", stats.current_health, stats.max_health)
+	health_changed.emit(stats.current_health, stats.max_health)
 
 func on_enemy_killed():
 	# Lifesteal healing

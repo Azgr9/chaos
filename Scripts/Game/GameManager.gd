@@ -1,24 +1,34 @@
-# SCRIPT: GameManager.gd
-# ATTACH TO: A new Node in Game.tscn (we'll create it)
+# SCRIPT: GameManager.gd (Enhanced)
+# ATTACH TO: GameManager node in Game.tscn
 # LOCATION: res://scripts/game/GameManager.gd
 
 class_name GameManager
 extends Node
 
 # Game state
-enum GameState { MENU, PLAYING, PAUSED, UPGRADE, GAME_OVER }
+enum GameState { MENU, PLAYING, PAUSED, UPGRADE, GAME_OVER, VICTORY }
 var current_state: GameState = GameState.PLAYING
+
+# Stats tracking
 var score: int = 0
 var waves_completed: int = 0
+var enemies_killed_total: int = 0
+var time_played: float = 0.0
+var damage_dealt: float = 0.0
+var damage_taken: float = 0.0
 
 # References
 @onready var wave_manager: WaveManager = $"../WaveManager"
 var player_reference: Node2D = null
+var game_over_screen: GameOverScreen = null
+var pause_menu: PauseMenu = null
 
 # Signals
 signal game_started()
 signal game_over()
+@warning_ignore("unused_signal")
 signal game_paused()
+@warning_ignore("unused_signal")
 signal game_resumed()
 signal score_changed(new_score: int)
 
@@ -28,37 +38,112 @@ func _ready():
 	if players.size() > 0:
 		player_reference = players[0]
 		player_reference.player_died.connect(_on_player_died)
-	
+		player_reference.health_changed.connect(_on_player_damaged)
+
 	# Connect wave manager signals
 	if wave_manager:
 		wave_manager.wave_completed.connect(_on_wave_completed)
 		wave_manager.all_waves_completed.connect(_on_all_waves_completed)
 		wave_manager.enemy_killed.connect(_on_enemy_killed)
-	
+
+	# Create game over screen and pause menu
+	await _create_game_over_screen()
+	await _create_pause_menu()
+
 	# Start game
 	start_game()
+
+func _process(delta):
+	if current_state == GameState.PLAYING:
+		time_played += delta
 
 func start_game():
 	current_state = GameState.PLAYING
 	score = 0
 	waves_completed = 0
-	emit_signal("game_started")
+	enemies_killed_total = 0
+	time_played = 0.0
+	damage_dealt = 0.0
+	damage_taken = 0.0
+	game_started.emit()
+
+func _create_game_over_screen():
+	var game_over_scene = load("res://Scenes/Ui/GameOverScreen.tscn")
+	game_over_screen = game_over_scene.instantiate()
+	get_parent().add_child.call_deferred(game_over_screen)
+	# Wait for it to be ready
+	await get_tree().process_frame
+
+func _create_pause_menu():
+	var pause_scene = load("res://Scenes/Ui/PauseMenu.tscn")
+	pause_menu = pause_scene.instantiate()
+	get_parent().add_child.call_deferred(pause_menu)
+	# Wait for it to be ready
+	await get_tree().process_frame
 
 func _on_player_died():
+	if current_state == GameState.GAME_OVER:
+		return
+
 	current_state = GameState.GAME_OVER
-	emit_signal("game_over")
-	
-	# Show game over screen (simple version for now)
-	_show_game_over()
+	game_over.emit()
+
+	# Prepare stats for game over screen
+	var stats = {
+		"waves": waves_completed,
+		"enemies_killed": enemies_killed_total,
+		"score": score,
+		"time": time_played,
+		"damage_dealt": damage_dealt,
+		"damage_taken": damage_taken
+	}
+
+	# Show game over with delay for drama
+	await get_tree().create_timer(1.0).timeout
+
+	if game_over_screen:
+		game_over_screen.show_game_over(stats)
 
 func _on_wave_completed(wave_number: int):
+	if current_state != GameState.PLAYING:
+		return
+
 	waves_completed = wave_number
 	score += wave_number * 100
-	emit_signal("score_changed", score)
+	score_changed.emit(score)
 
 	# Show upgrade menu after wave (except last wave)
 	if wave_number < 5:
+		current_state = GameState.UPGRADE
 		_show_upgrade_menu()
+
+	# Achievement check
+	_check_achievements()
+
+func _on_all_waves_completed():
+	current_state = GameState.VICTORY
+	score += 1000  # Victory bonus
+	score_changed.emit(score)
+
+	# Show victory screen
+	_show_victory_screen()
+
+func _on_enemy_killed(enemies_remaining: int):
+	if current_state != GameState.PLAYING and current_state != GameState.UPGRADE:
+		return
+
+	enemies_killed_total += 1
+	score += 10
+
+	# Combo bonus for quick kills
+	if enemies_remaining > 0:
+		score += 5  # Combo points
+
+	score_changed.emit(score)
+
+func _on_player_damaged(_current_health: float, _max_health: float):
+	# Track damage taken (could be expanded for more complex tracking)
+	pass
 
 func _show_upgrade_menu():
 	# Get upgrade menu (it's a sibling in the Game scene)
@@ -73,6 +158,10 @@ func _show_upgrade_menu():
 	else:
 		print("Found existing UpgradeMenu")
 
+	# Connect to menu closed signal
+	if upgrade_menu and not upgrade_menu.menu_closed.is_connected(_on_upgrade_menu_closed):
+		upgrade_menu.menu_closed.connect(_on_upgrade_menu_closed)
+
 	# Show upgrades
 	if upgrade_menu and upgrade_menu.has_method("show_upgrades"):
 		print("Calling show_upgrades on menu")
@@ -80,51 +169,45 @@ func _show_upgrade_menu():
 	else:
 		print("ERROR: Could not show upgrades - menu or method missing")
 
-func _on_all_waves_completed():
-	# Victory!
-	score += 1000
-	emit_signal("score_changed", score)
-	_show_victory_screen()
-
-func _on_enemy_killed(enemies_remaining: int):
-	score += 10
-	emit_signal("score_changed", score)
-
-func _show_game_over():
-	# Create simple game over message
-	var game_over_label = Label.new()
-	game_over_label.text = "GAME OVER\nWaves Survived: %d\nScore: %d\n\nPress R to Restart" % [waves_completed, score]
-	game_over_label.add_theme_font_size_override("font_size", 24)
-	game_over_label.modulate = Color.RED
-	
-	get_parent().add_child(game_over_label)
-	game_over_label.global_position = Vector2(320, 180) - game_over_label.size / 2
+func _on_upgrade_menu_closed():
+	current_state = GameState.PLAYING
 
 func _show_victory_screen():
-	var victory_label = Label.new()
-	victory_label.text = "VICTORY!\nAll Waves Completed!\nScore: %d\n\nPress R to Restart" % score
-	victory_label.add_theme_font_size_override("font_size", 24)
-	victory_label.modulate = Color.GOLD
-	
-	get_parent().add_child(victory_label)
-	victory_label.global_position = Vector2(320, 180) - victory_label.size / 2
+	# Similar to game over but with victory message
+	var stats = {
+		"waves": 5,
+		"enemies_killed": enemies_killed_total,
+		"score": score,
+		"time": time_played
+	}
 
-func _input(event):
-	if event.is_action_pressed("ui_cancel"):
-		toggle_pause()
-	
-	if current_state == GameState.GAME_OVER and event.is_action_pressed("restart"):
-		restart_game()
+	if game_over_screen:
+		game_over_screen.title_label.text = "VICTORY!"
+		game_over_screen.title_label.modulate = Color.GOLD
+		game_over_screen.show_game_over(stats)
 
-func toggle_pause():
-	if current_state == GameState.PLAYING:
-		current_state = GameState.PAUSED
-		get_tree().paused = true
-		emit_signal("game_paused")
-	elif current_state == GameState.PAUSED:
-		current_state = GameState.PLAYING
-		get_tree().paused = false
-		emit_signal("game_resumed")
+func _check_achievements():
+	# Check for various achievements
+	if waves_completed == 1 and player_reference.stats.current_health == player_reference.stats.max_health:
+		_unlock_achievement("Untouchable Wave 1")
 
-func restart_game():
-	get_tree().reload_current_scene()
+	if enemies_killed_total >= 50:
+		_unlock_achievement("Slime Slayer")
+
+	if score >= 1000:
+		_unlock_achievement("High Scorer")
+
+func _unlock_achievement(achievement_name: String):
+	# Show achievement notification
+	var achievement_label = Label.new()
+	achievement_label.text = "Achievement: " + achievement_name
+	achievement_label.add_theme_font_size_override("font_size", 20)
+	achievement_label.modulate = Color.GOLD
+	get_parent().add_child(achievement_label)
+	achievement_label.position = Vector2(320, 200)
+
+	var tween = create_tween()
+	tween.tween_property(achievement_label, "position:y", 180, 0.5)
+	tween.tween_interval(2.0)
+	tween.tween_property(achievement_label, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(achievement_label.queue_free)

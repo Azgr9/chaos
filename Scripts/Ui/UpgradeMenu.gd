@@ -28,6 +28,9 @@ func _ready():
 	# Hide initially
 	visible = false
 
+	# Set to process when paused so menu works during pause
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
 	# Create upgrade system instance
 	upgrade_system = UpgradeSystem.new()
 	add_child(upgrade_system)
@@ -129,7 +132,7 @@ func _on_card_selected(index: int):
 		upgrade_system.apply_upgrade(player_reference, selected_upgrade)
 
 	# Emit signal
-	emit_signal("upgrade_selected", selected_upgrade)
+	upgrade_selected.emit(selected_upgrade)
 
 	# Animate selection
 	var selected_card = card_panels[index]
@@ -158,5 +161,5 @@ func _close_menu():
 	tween.tween_callback(func():
 		visible = false
 		get_tree().paused = false
-		emit_signal("menu_closed")
+		menu_closed.emit()
 	)

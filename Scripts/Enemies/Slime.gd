@@ -63,7 +63,7 @@ func _physics_process(delta):
 
 	super._physics_process(delta)
 
-func _update_movement(delta):
+func _update_movement(_delta):
 	if not player_reference:
 		# Find player if we don't have reference
 		var players = get_tree().get_nodes_in_group("player")
@@ -168,7 +168,7 @@ func _on_attack_box_area_entered(area: Area2D):
 	# Deal damage to player when they touch us
 	if area.get_parent().has_method("take_damage"):
 		area.get_parent().take_damage(damage)
-		emit_signal("damage_dealt", damage)
+		damage_dealt.emit(damage)
 
 		# Small visual feedback when hitting player
 		sprite.color = Color("#ffff00")  # Yellow flash

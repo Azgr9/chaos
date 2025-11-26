@@ -53,10 +53,10 @@ func _ready():
 	visible = false
 	modulate.a = 0.0
 
-func attack(direction: Vector2, player_damage_multiplier: float = 1.0):
+func attack(_direction: Vector2, player_damage_multiplier: float = 1.0):
 	if not can_attack or is_attacking:
 		return false
-	
+
 	damage_multiplier = player_damage_multiplier
 	is_attacking = true
 	can_attack = false
@@ -78,7 +78,7 @@ func attack(direction: Vector2, player_damage_multiplier: float = 1.0):
 	update_durability_visual()
 	
 	if current_durability <= 0:
-		emit_signal("weapon_broke")
+		weapon_broke.emit()
 		queue_free()
 	
 	return true
@@ -224,7 +224,7 @@ func finish_attack():
 	visible = false
 	pivot.rotation = 0
 	pivot.position = Vector2.ZERO
-	emit_signal("attack_finished")
+	attack_finished.emit()
 
 func _on_attack_cooldown_finished():
 	can_attack = true
@@ -240,7 +240,7 @@ func _on_hit_box_area_entered(area: Area2D):
 		hits_this_swing.append(parent)
 		var final_damage = damage * damage_multiplier
 		parent.take_damage(final_damage)
-		emit_signal("dealt_damage", parent, final_damage)
+		dealt_damage.emit(parent, final_damage)
 		
 		# Visual feedback on hit
 		_create_hit_effect()
@@ -258,7 +258,7 @@ func _on_hit_box_body_entered(body: Node2D):
 		hits_this_swing.append(body)
 		var final_damage = damage * damage_multiplier
 		body.take_damage(final_damage)
-		emit_signal("dealt_damage", body, final_damage)
+		dealt_damage.emit(body, final_damage)
 		_create_hit_effect()
 
 func _create_hit_effect():

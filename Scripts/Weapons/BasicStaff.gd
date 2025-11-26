@@ -82,8 +82,8 @@ func _fire_projectiles(direction: Vector2):
 			final_direction,
 			damage_multiplier
 		)
-		
-		emit_signal("projectile_fired", projectile)
+
+		projectile_fired.emit(projectile)
 
 func _play_attack_animation():
 	# Muzzle flash

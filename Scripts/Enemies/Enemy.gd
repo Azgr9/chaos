@@ -46,7 +46,7 @@ func _physics_process(delta):
 	_apply_knockback(delta)
 	move_and_slide()
 
-func _update_movement(delta):
+func _update_movement(_delta):
 	# Override in child classes for specific movement patterns
 	pass
 
@@ -72,7 +72,7 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback
 		return
 
 	current_health -= amount
-	emit_signal("health_changed", current_health, max_health)
+	health_changed.emit(current_health, max_health)
 
 	# Apply knockback
 	if from_position != Vector2.ZERO:
@@ -95,7 +95,7 @@ func _on_damage_taken():
 
 func die():
 	is_dead = true
-	emit_signal("enemy_died", self)
+	enemy_died.emit(self)
 
 	# Notify player for lifesteal
 	if player_reference and player_reference.has_method("on_enemy_killed"):

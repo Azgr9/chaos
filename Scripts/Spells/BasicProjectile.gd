@@ -76,7 +76,7 @@ func _on_area_entered(area: Area2D):
 		# Deal damage with knockback position
 		var final_damage = damage * damage_multiplier
 		parent.take_damage(final_damage, global_position, knockback_power, hitstun_duration)
-		emit_signal("projectile_hit", parent, final_damage)
+		projectile_hit.emit(parent, final_damage)
 
 		# Visual feedback
 		_create_hit_effect()

@@ -57,7 +57,7 @@ func _process(delta):
 
 func start_next_wave():
 	if current_wave >= wave_configs.size():
-		emit_signal("all_waves_completed")
+		all_waves_completed.emit()
 		return
 	
 	current_wave += 1
@@ -68,8 +68,8 @@ func start_next_wave():
 	enemies_alive = 0
 	wave_active = true
 	spawn_timer = 0.0
-	
-	emit_signal("wave_started", current_wave)
+
+	wave_started.emit(current_wave)
 	
 	# Show wave notification
 	_show_wave_notification()
@@ -100,8 +100,8 @@ func spawn_enemy():
 	enemies_to_spawn -= 1
 	enemies_spawned += 1
 	enemies_alive += 1
-	
-	emit_signal("enemy_spawned", enemy)
+
+	enemy_spawned.emit(enemy)
 	
 	# Visual spawn effect
 	_create_spawn_effect(spawn_pos)
@@ -125,17 +125,17 @@ func _get_spawn_position() -> Vector2:
 	
 	return spawn_pos
 
-func _on_enemy_died(enemy: Enemy):
+func _on_enemy_died(_enemy: Enemy):
 	enemies_alive -= 1
-	emit_signal("enemy_killed", enemies_alive)
-	
+	enemy_killed.emit(enemies_alive)
+
 	# Check if wave is complete
 	if enemies_alive <= 0 and enemies_to_spawn <= 0:
 		_complete_wave()
 
 func _complete_wave():
 	wave_active = false
-	emit_signal("wave_completed", current_wave)
+	wave_completed.emit(current_wave)
 	
 	# Wait before starting next wave
 	await get_tree().create_timer(time_between_waves).timeout
@@ -143,21 +143,21 @@ func _complete_wave():
 
 func _show_wave_notification():
 	# Create a simple wave notification (we'll make this prettier later)
-	var notification = Label.new()
-	notification.text = "WAVE %d" % current_wave
-	notification.add_theme_font_size_override("font_size", 32)
-	notification.modulate = Color.YELLOW
-	
+	var wave_notification = Label.new()
+	wave_notification.text = "WAVE %d" % current_wave
+	wave_notification.add_theme_font_size_override("font_size", 32)
+	wave_notification.modulate = Color.YELLOW
+
 	# Center on screen
-	get_parent().add_child(notification)
-	notification.global_position = Vector2(320, 100) - notification.size / 2
+	get_parent().add_child(wave_notification)
+	wave_notification.global_position = Vector2(320, 100) - wave_notification.size / 2
 	
 	# Animate
 	var tween = create_tween()
-	tween.tween_property(notification, "scale", Vector2(1.2, 1.2), 0.3)
-	tween.tween_property(notification, "scale", Vector2(1.0, 1.0), 0.2)
-	tween.tween_property(notification, "modulate:a", 0.0, 1.0)
-	tween.tween_callback(notification.queue_free)
+	tween.tween_property(wave_notification, "scale", Vector2(1.2, 1.2), 0.3)
+	tween.tween_property(wave_notification, "scale", Vector2(1.0, 1.0), 0.2)
+	tween.tween_property(wave_notification, "modulate:a", 0.0, 1.0)
+	tween.tween_callback(wave_notification.queue_free)
 
 func _create_spawn_effect(position: Vector2):
 	# Create a simple spawn indicator
