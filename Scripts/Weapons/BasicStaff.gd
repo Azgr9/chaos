@@ -7,7 +7,8 @@ extends Node2D
 
 # Staff stats
 @export var projectile_scene: PackedScene
-@export var mana_cost: float = 5.0
+@export var knockback_power: float = 250.0
+@export var hitstun_duration: float = 0.15
 @export var attack_cooldown: float = 0.3
 @export var projectile_spread: float = 5.0  # Degrees of random spread
 @export var multi_shot: int = 1  # Number of projectiles per shot
@@ -20,14 +21,10 @@ extends Node2D
 
 # State
 var can_attack: bool = true
-var current_mana: float = 100.0
-var max_mana: float = 100.0
 var damage_multiplier: float = 1.0
 
 # Signals
 signal projectile_fired(projectile: Area2D)
-signal mana_changed(current: float, max: float)
-signal out_of_mana
 
 func _ready():
 	cooldown_timer.timeout.connect(_on_cooldown_finished)
@@ -40,27 +37,21 @@ func _ready():
 		projectile_scene = preload("res://scenes/spells/BasicProjectile.tscn")
 
 func attack(direction: Vector2, magic_damage_multiplier: float = 1.0) -> bool:
-	if not can_attack or current_mana < mana_cost:
-		if current_mana < mana_cost:
-			emit_signal("out_of_mana")
+	if not can_attack:
 		return false
-	
+
 	damage_multiplier = magic_damage_multiplier
-	
-	# Use mana
-	current_mana -= mana_cost
-	emit_signal("mana_changed", current_mana, max_mana)
-	
+
 	# Fire projectile(s)
 	_fire_projectiles(direction)
-	
+
 	# Visual effects
 	_play_attack_animation()
-	
+
 	# Start cooldown
 	can_attack = false
 	cooldown_timer.start(attack_cooldown)
-	
+
 	return true
 
 func _fire_projectiles(direction: Vector2):
@@ -86,11 +77,13 @@ func _fire_projectiles(direction: Vector2):
 		# Apply spread to direction
 		var final_direction = direction.rotated(spread_angle)
 		
-		# Initialize projectile
+		# Initialize projectile with staff's knockback values
 		projectile.initialize(
 			projectile_spawn.global_position,
 			final_direction,
-			damage_multiplier
+			damage_multiplier,
+			knockback_power,
+			hitstun_duration
 		)
 		
 		emit_signal("projectile_fired", projectile)
@@ -113,17 +106,3 @@ func _play_attack_animation():
 
 func _on_cooldown_finished():
 	can_attack = true
-
-func restore_mana(amount: float):
-	current_mana = min(current_mana + amount, max_mana)
-	emit_signal("mana_changed", current_mana, max_mana)
-
-func set_max_mana(value: float):
-	max_mana = value
-	current_mana = min(current_mana, max_mana)
-	emit_signal("mana_changed", current_mana, max_mana)
-
-# Passive mana regeneration
-func _process(delta):
-	if current_mana < max_mana:
-		restore_mana(10.0 * delta)  # 10 mana per second

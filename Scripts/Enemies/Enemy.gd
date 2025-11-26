@@ -17,6 +17,8 @@ var current_health: float
 var player_reference: Node2D = null
 var is_dead: bool = false
 var knockback_velocity: Vector2 = Vector2.ZERO
+var hitstun_timer: float = 0.0
+var is_stunned: bool = false
 
 # Signals
 signal enemy_died(enemy: Enemy)
@@ -36,7 +38,11 @@ func _physics_process(delta):
 	if is_dead:
 		return
 
-	_update_movement(delta)
+	_update_hitstun(delta)
+
+	if not is_stunned:
+		_update_movement(delta)
+
 	_apply_knockback(delta)
 	move_and_slide()
 
@@ -44,12 +50,24 @@ func _update_movement(delta):
 	# Override in child classes for specific movement patterns
 	pass
 
+func _update_hitstun(delta):
+	if hitstun_timer > 0:
+		hitstun_timer -= delta
+		is_stunned = true
+		if hitstun_timer <= 0:
+			hitstun_timer = 0
+			is_stunned = false
+	else:
+		is_stunned = false
+
 func _apply_knockback(delta):
 	if knockback_velocity.length() > 0:
-		velocity += knockback_velocity
+		velocity = knockback_velocity
 		knockback_velocity = knockback_velocity.lerp(Vector2.ZERO, 10 * delta)
+		if knockback_velocity.length() < 5:
+			knockback_velocity = Vector2.ZERO
 
-func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO):
+func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback_power: float = 150.0, stun_duration: float = 0.0):
 	if is_dead:
 		return
 
@@ -59,7 +77,11 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO):
 	# Apply knockback
 	if from_position != Vector2.ZERO:
 		var knockback_direction = (global_position - from_position).normalized()
-		knockback_velocity = knockback_direction * (100 * (1.0 - knockback_resistance))
+		knockback_velocity = knockback_direction * (knockback_power * (1.0 - knockback_resistance))
+
+	# Apply hitstun
+	if stun_duration > 0:
+		hitstun_timer = stun_duration
 
 	# Visual feedback
 	_on_damage_taken()
