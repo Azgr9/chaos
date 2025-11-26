@@ -42,13 +42,16 @@ signal player_died
 signal weapon_switched(weapon: Node2D)
 
 func _ready():
+	# Add to player group so enemies can find us
+	add_to_group("player")
+
 	# Create default stats if not assigned
 	if not stats:
 		stats = PlayerStats.new()
-	
+
 	stats.reset_health()
 	emit_signal("health_changed", stats.current_health, stats.max_health)
-	
+
 	# Connect hurt box for enemy attacks
 	hurt_box.area_entered.connect(_on_hurt_box_area_entered)
 	
