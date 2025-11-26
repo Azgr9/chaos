@@ -1,0 +1,207 @@
+# SCRIPT: HUD.gd
+# ATTACH TO: Control node (child of HUD CanvasLayer) in HUD.tscn
+# LOCATION: res://scripts/ui/HUD.gd
+
+class_name HUD
+extends Control
+
+# Health Bar
+@onready var health_fill: ColorRect = $PlayerBars/HealthBar/Fill
+@onready var health_label: Label = $PlayerBars/HealthBar/Label
+@onready var health_background: ColorRect = $PlayerBars/HealthBar/Background
+
+# Weapon Info
+@onready var weapon_durability_fill: ColorRect = $WeaponInfo/WeaponDurability/Fill
+@onready var weapon_icon: ColorRect = $WeaponInfo/WeaponDurability/Icon
+
+# Game Info
+@onready var wave_label: Label = $GameInfo/WaveLabel
+@onready var enemies_label: Label = $GameInfo/EnemiesLabel
+@onready var score_label: Label = $GameInfo/ScoreLabel
+
+# References
+var player: Node2D = null
+var wave_manager: Node = null
+var game_manager: Node = null
+
+# Bar animation
+var health_max_width: float = 146
+var durability_max_width: float = 78
+
+# Smooth bar animation
+var target_health_percent: float = 1.0
+var current_health_percent: float = 1.0
+
+func _ready():
+	# Find references
+	_find_references()
+
+	# Connect signals
+	_connect_signals()
+
+	# Initialize UI
+	_initialize_ui()
+
+func _find_references():
+	# Find player
+	var players = get_tree().get_nodes_in_group("player")
+	if players.size() > 0:
+		player = players[0]
+
+	# Find managers
+	var game_node = get_node_or_null("/root/Game")
+	if game_node:
+		wave_manager = game_node.get_node_or_null("WaveManager")
+		game_manager = game_node.get_node_or_null("GameManager")
+
+func _connect_signals():
+	# Player signals
+	if player:
+		player.health_changed.connect(_on_player_health_changed)
+
+		# Connect to weapon if it exists
+		if player.current_weapon:
+			_connect_weapon_signals(player.current_weapon)
+
+		# Listen for weapon switches
+		if player.has_signal("weapon_switched"):
+			player.weapon_switched.connect(_on_weapon_switched)
+
+	# Wave manager signals
+	if wave_manager:
+		if wave_manager.has_signal("wave_started"):
+			wave_manager.wave_started.connect(_on_wave_started)
+		if wave_manager.has_signal("enemy_killed"):
+			wave_manager.enemy_killed.connect(_on_enemy_killed)
+		if wave_manager.has_signal("wave_completed"):
+			wave_manager.wave_completed.connect(_on_wave_completed)
+
+	# Game manager signals
+	if game_manager:
+		if game_manager.has_signal("score_changed"):
+			game_manager.score_changed.connect(_on_score_changed)
+
+func _initialize_ui():
+	# Set initial values
+	wave_label.text = "Wave: 0/5"
+	enemies_label.text = "Enemies: 0"
+	score_label.text = "Score: 0"
+
+	# Set initial health
+	if player and player.stats:
+		_on_player_health_changed(player.stats.current_health, player.stats.max_health)
+
+func _process(delta):
+	# Smooth bar animations
+	current_health_percent = lerp(current_health_percent, target_health_percent, 10 * delta)
+
+	health_fill.size.x = health_max_width * current_health_percent
+
+	# Flash low health
+	if current_health_percent < 0.3:
+		var flash = abs(sin(Time.get_ticks_msec() * 0.005))
+		health_fill.color = Color.RED.lerp(Color.YELLOW, flash * 0.3)
+		health_background.color = Color("#1a0000").lerp(Color.RED, flash * 0.2)
+	else:
+		health_fill.color = Color.RED
+		health_background.color = Color("#1a0000")
+
+	# Update weapon durability color
+	if player and player.current_weapon:
+		_update_weapon_durability_visual()
+
+func _on_player_health_changed(current: float, max: float):
+	target_health_percent = current / max if max > 0 else 0
+	health_label.text = "%d/%d" % [current, max]
+
+	# Pulse animation on damage
+	if target_health_percent < current_health_percent:
+		_pulse_bar(health_fill)
+
+func _on_weapon_durability_changed(current: int, max: int):
+	var durability_percent = float(current) / float(max) if max > 0 else 0
+	weapon_durability_fill.size.x = durability_max_width * durability_percent
+
+	# Change color based on durability
+	if durability_percent > 0.5:
+		weapon_durability_fill.color = Color("#c0c0c0")
+		weapon_icon.color = Color("#c0c0c0")
+	elif durability_percent > 0.25:
+		weapon_durability_fill.color = Color("#ffaa00")
+		weapon_icon.color = Color("#ffaa00")
+	else:
+		weapon_durability_fill.color = Color("#ff0000")
+		weapon_icon.color = Color("#ff0000")
+		# Flash when critical
+		var flash = abs(sin(Time.get_ticks_msec() * 0.01))
+		weapon_icon.modulate.a = 0.5 + flash * 0.5
+
+func _on_wave_started(wave_number: int):
+	wave_label.text = "Wave: %d/5" % wave_number
+
+	# Animate wave start
+	var original_scale = wave_label.scale
+	wave_label.scale = Vector2(1.5, 1.5)
+	wave_label.modulate = Color.YELLOW
+
+	var tween = create_tween()
+	tween.tween_property(wave_label, "scale", original_scale, 0.3).set_trans(Tween.TRANS_ELASTIC)
+	tween.parallel().tween_property(wave_label, "modulate", Color.WHITE, 0.5)
+
+func _on_wave_completed(wave_number: int):
+	# Flash completion
+	wave_label.modulate = Color.GREEN
+	var tween = create_tween()
+	tween.tween_property(wave_label, "modulate", Color.WHITE, 1.0)
+
+func _on_enemy_killed(enemies_remaining: int):
+	enemies_label.text = "Enemies: %d" % enemies_remaining
+
+	# Small pulse
+	enemies_label.scale = Vector2(1.1, 1.1)
+	var tween = create_tween()
+	tween.tween_property(enemies_label, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK)
+
+func _on_score_changed(new_score: int):
+	score_label.text = "Score: %d" % new_score
+
+	# Grow animation
+	score_label.scale = Vector2(1.2, 1.2)
+	score_label.modulate = Color.GOLD
+	var tween = create_tween()
+	tween.tween_property(score_label, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
+	tween.parallel().tween_property(score_label, "modulate", Color.WHITE, 0.5)
+
+func _on_weapon_switched(weapon: Node2D):
+	_connect_weapon_signals(weapon)
+
+func _connect_weapon_signals(weapon: Node2D):
+	if weapon and weapon.has_method("get_durability_percentage"):
+		# Update durability display
+		var durability_percent = weapon.get_durability_percentage()
+		weapon_durability_fill.size.x = durability_max_width * durability_percent
+
+func _pulse_bar(bar: ColorRect):
+	var original_scale = bar.scale
+	bar.scale = Vector2(1.0, 1.3)
+	var tween = create_tween()
+	tween.tween_property(bar, "scale", original_scale, 0.2).set_trans(Tween.TRANS_ELASTIC)
+
+func _update_weapon_durability_visual():
+	if not player.current_weapon:
+		weapon_icon.visible = false
+		weapon_durability_fill.visible = false
+		return
+
+	weapon_icon.visible = true
+	weapon_durability_fill.visible = true
+
+	if player.current_weapon.has_method("get_durability_percentage"):
+		var percent = player.current_weapon.get_durability_percentage()
+		weapon_durability_fill.size.x = durability_max_width * percent
+
+		# Update colors based on durability
+		if percent < 0.25:
+			# Critical - flash red
+			var flash = abs(sin(Time.get_ticks_msec() * 0.005))
+			weapon_durability_fill.color = Color.RED.lerp(Color.YELLOW, flash)

@@ -5,7 +5,7 @@
 [ext_resource type="Script" uid="uid://qh02i550hrbk" path="res://Scripts/Player/PlayerStats.gd" id="3_ln2h6"]
 [ext_resource type="Script" uid="uid://yhlbvdhwd02s" path="res://Scripts/Game/WaveManager.gd" id="4_y3kpf"]
 [ext_resource type="Script" uid="uid://bacwjgc8d7km3" path="res://Scripts/Game/GameManager.gd" id="5_3k6gv"]
-[ext_resource type="PackedScene" uid="uid://cxviqpgxi6y7t" path="res://Scenes/Ui/WaveHUD.tscn" id="6_3k6gv"]
+[ext_resource type="PackedScene" path="res://Scenes/Ui/HUD.tscn" id="6_3k6gv"]
 
 [sub_resource type="Resource" id="Resource_3k6gv"]
 script = ExtResource("3_ln2h6")
@@ -29,4 +29,4 @@ script = ExtResource("4_y3kpf")
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("5_3k6gv")
 
-[node name="CanvasLayer" parent="." instance=ExtResource("6_3k6gv")]
+[node name="HUD" parent="." instance=ExtResource("6_3k6gv")]

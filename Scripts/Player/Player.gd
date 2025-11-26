@@ -170,11 +170,13 @@ func update_facing_direction():
 	# During attack, face mouse direction
 	if is_attacking:
 		facing_direction = to_mouse
-		# Only rotate the weapon being used
+		# Only rotate the weapon being used - limit rotation to 45 degrees
 		if is_melee_attacking:
-			weapon_pivot.rotation = facing_direction.angle()
+			var target_angle = facing_direction.angle()
+			weapon_pivot.rotation = clamp(target_angle, -PI/4, PI/4)
 		elif is_magic_attacking:
-			staff_pivot.rotation = facing_direction.angle()
+			var target_angle = facing_direction.angle()
+			staff_pivot.rotation = clamp(target_angle, -PI/4, PI/4)
 	# While moving, face movement direction
 	elif is_moving:
 		facing_direction = last_direction
@@ -183,12 +185,14 @@ func update_facing_direction():
 	# Update visual facing (flip sprite if needed)
 	if facing_direction.x < 0:
 		visuals_pivot.scale.x = -1
+		# When facing left, flip weapon positions
+		weapon_pivot.position = Vector2(-12, 0)  # Sword goes to left
+		staff_pivot.position = Vector2(12, 0)    # Staff goes to right
 	else:
 		visuals_pivot.scale.x = 1
-
-	# Weapons always stay in same position - sword right, staff left
-	weapon_pivot.position = Vector2(12, 0)
-	staff_pivot.position = Vector2(-12, 0)
+		# When facing right, normal positions
+		weapon_pivot.position = Vector2(12, 0)   # Sword on right
+		staff_pivot.position = Vector2(-12, 0)   # Staff on left
 
 	# Keep weapons horizontal when not attacking
 	if not is_melee_attacking:

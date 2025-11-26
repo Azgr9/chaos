@@ -1,0 +1,110 @@
+[gd_scene load_steps=2 format=3 uid="uid://bwx8h5j2k3n4p"]
+
+[ext_resource type="Script" path="res://Scripts/Ui/HUD.gd" id="1_hud"]
+
+[node name="HUD" type="CanvasLayer"]
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_hud")
+
+[node name="PlayerBars" type="Control" parent="Control"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 210.0
+offset_bottom = 70.0
+
+[node name="HealthBar" type="Control" parent="Control/PlayerBars"]
+layout_mode = 0
+offset_right = 150.0
+offset_bottom = 20.0
+
+[node name="Background" type="ColorRect" parent="Control/PlayerBars/HealthBar"]
+layout_mode = 0
+offset_right = 150.0
+offset_bottom = 20.0
+color = Color(0.101961, 0, 0, 1)
+
+[node name="Fill" type="ColorRect" parent="Control/PlayerBars/HealthBar"]
+layout_mode = 0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = 148.0
+offset_bottom = 18.0
+color = Color(1, 0, 0, 1)
+
+[node name="Label" type="Label" parent="Control/PlayerBars/HealthBar"]
+layout_mode = 0
+offset_right = 150.0
+offset_bottom = 20.0
+text = "100/100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WeaponInfo" type="Control" parent="Control"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 320.0
+offset_right = 210.0
+offset_bottom = 350.0
+
+[node name="WeaponDurability" type="Control" parent="Control/WeaponInfo"]
+layout_mode = 0
+offset_right = 80.0
+offset_bottom = 10.0
+
+[node name="Background" type="ColorRect" parent="Control/WeaponInfo/WeaponDurability"]
+layout_mode = 0
+offset_right = 80.0
+offset_bottom = 10.0
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Fill" type="ColorRect" parent="Control/WeaponInfo/WeaponDurability"]
+layout_mode = 0
+offset_left = 1.0
+offset_top = 1.0
+offset_right = 79.0
+offset_bottom = 9.0
+color = Color(0.752941, 0.752941, 0.752941, 1)
+
+[node name="Icon" type="ColorRect" parent="Control/WeaponInfo/WeaponDurability"]
+layout_mode = 0
+offset_left = -15.0
+offset_top = -3.0
+offset_right = -3.0
+offset_bottom = 13.0
+color = Color(0.752941, 0.752941, 0.752941, 1)
+
+[node name="GameInfo" type="Control" parent="Control"]
+layout_mode = 0
+offset_left = 540.0
+offset_top = 10.0
+offset_right = 630.0
+offset_bottom = 70.0
+
+[node name="WaveLabel" type="Label" parent="Control/GameInfo"]
+layout_mode = 0
+offset_right = 90.0
+offset_bottom = 20.0
+text = "Wave 1/5"
+
+[node name="EnemiesLabel" type="Label" parent="Control/GameInfo"]
+layout_mode = 0
+offset_top = 20.0
+offset_right = 90.0
+offset_bottom = 40.0
+text = "Enemies: 0"
+
+[node name="ScoreLabel" type="Label" parent="Control/GameInfo"]
+layout_mode = 0
+offset_top = 40.0
+offset_right = 90.0
+offset_bottom = 60.0
+text = "Score: 0"
