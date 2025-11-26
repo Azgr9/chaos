@@ -9,7 +9,8 @@ extends Area2D
 @export var speed: float = 250.0
 @export var damage: float = 5.0
 @export var pierce_count: int = 0  # How many enemies it can pass through
-@export var knockback_force: float = 50.0
+@export var knockback_power: float = 100.0
+@export var hitstun_duration: float = 0.1
 
 # Nodes
 @onready var sprite: ColorRect = $Sprite
@@ -35,12 +36,14 @@ func _ready():
 	# Visual setup
 	_create_spawn_effect()
 
-func initialize(start_position: Vector2, dir: Vector2, magic_damage_multiplier: float = 1.0):
+func initialize(start_position: Vector2, dir: Vector2, magic_damage_multiplier: float = 1.0, kb_power: float = 100.0, stun_dur: float = 0.1):
 	global_position = start_position
 	direction = dir.normalized()
 	velocity = direction * speed
 	damage_multiplier = magic_damage_multiplier
-	
+	knockback_power = kb_power
+	hitstun_duration = stun_dur
+
 	# Rotate projectile to face direction
 	rotation = direction.angle()
 
