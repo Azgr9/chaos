@@ -1,4 +1,6 @@
-[gd_scene load_steps=4 format=3 uid="uid://cqy13nrt4obnn"]
+[gd_scene load_steps=5 format=3 uid="uid://cqy13nrt4obnn"]
+
+[ext_resource type="Script" uid="uid://c7k4n9p2vxm1q" path="res://Scripts/Enemies/Slime.gd" id="1_slime"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_physics"]
 radius = 6.0
@@ -12,6 +14,7 @@ radius = 10.0
 [node name="Slime" type="CharacterBody2D"]
 collision_layer = 4
 collision_mask = 9
+script = ExtResource("1_slime")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_physics")
