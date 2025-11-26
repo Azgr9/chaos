@@ -287,7 +287,7 @@ func take_damage(amount: float):
 		emit_signal("player_died")
 		queue_free()
 
-func _on_hurt_box_area_entered(area: Area2D):
+func _on_hurt_box_area_entered(_area: Area2D):
 	pass
 
 func heal(amount: float):

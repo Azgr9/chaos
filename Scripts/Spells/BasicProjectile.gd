@@ -69,19 +69,15 @@ func _on_area_entered(area: Area2D):
 	# Check if it's an enemy hurtbox
 	if not parent in hit_enemies and parent.has_method("take_damage"):
 		hit_enemies.append(parent)
-		
-		# Deal damage
+
+		# Deal damage with knockback position
 		var final_damage = damage * damage_multiplier
-		parent.take_damage(final_damage)
+		parent.take_damage(final_damage, global_position, knockback_power, hitstun_duration)
 		emit_signal("projectile_hit", parent, final_damage)
-		
-		# Apply knockback if the target has velocity
-		if parent.has_property("velocity"):
-			parent.velocity += direction * knockback_force
-		
+
 		# Visual feedback
 		_create_hit_effect()
-		
+
 		# Check pierce
 		hits_count += 1
 		if hits_count > pierce_count:
