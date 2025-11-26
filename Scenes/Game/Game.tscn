@@ -22,4 +22,10 @@ process_callback = 0
 position_smoothing_enabled = true
 
 [node name="Slime" parent="." instance=ExtResource("4_ln2h6")]
-position = Vector2(445, 140)
+position = Vector2(434, 211)
+
+[node name="Slime2" parent="." instance=ExtResource("4_ln2h6")]
+position = Vector2(408, 137)
+
+[node name="Slime3" parent="." instance=ExtResource("4_ln2h6")]
+position = Vector2(460, 128)
