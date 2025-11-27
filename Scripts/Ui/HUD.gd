@@ -11,8 +11,7 @@ extends Control
 @onready var health_background: ColorRect = $PlayerBars/HealthBar/Background
 
 # Weapon Info
-@onready var weapon_durability_fill: ColorRect = $WeaponInfo/WeaponDurability/Fill
-@onready var weapon_icon: ColorRect = $WeaponInfo/WeaponDurability/Icon
+@onready var weapon_icon: ColorRect = $WeaponInfo/WeaponIcon
 
 # Game Info
 @onready var wave_label: Label = $GameInfo/WaveLabel
@@ -31,7 +30,6 @@ var time_alive: float = 0.0
 
 # Bar animation
 var health_max_width: float = 146
-var durability_max_width: float = 78
 
 # Smooth bar animation
 var target_health_percent: float = 1.0
@@ -63,14 +61,6 @@ func _connect_signals():
 	# Player signals
 	if player:
 		player.health_changed.connect(_on_player_health_changed)
-
-		# Connect to weapon if it exists
-		if player.current_weapon:
-			_connect_weapon_signals(player.current_weapon)
-
-		# Listen for weapon switches
-		if player.has_signal("weapon_switched"):
-			player.weapon_switched.connect(_on_weapon_switched)
 
 	# Wave manager signals
 	if wave_manager:
@@ -116,10 +106,6 @@ func _process(delta):
 		health_fill.color = Color.RED
 		health_background.color = Color("#1a0000")
 
-	# Update weapon durability color
-	if player and player.current_weapon:
-		_update_weapon_durability_visual()
-
 	# Animate crystal icon
 	_animate_crystal_icon()
 
@@ -130,24 +116,6 @@ func _on_player_health_changed(current: float, max_health: float):
 	# Pulse animation on damage
 	if target_health_percent < current_health_percent:
 		_pulse_bar(health_fill)
-
-func _on_weapon_durability_changed(current: int, max_durability: int):
-	var durability_percent = float(current) / float(max_durability) if max_durability > 0 else 0.0
-	weapon_durability_fill.size.x = durability_max_width * durability_percent
-
-	# Change color based on durability
-	if durability_percent > 0.5:
-		weapon_durability_fill.color = Color("#c0c0c0")
-		weapon_icon.color = Color("#c0c0c0")
-	elif durability_percent > 0.25:
-		weapon_durability_fill.color = Color("#ffaa00")
-		weapon_icon.color = Color("#ffaa00")
-	else:
-		weapon_durability_fill.color = Color("#ff0000")
-		weapon_icon.color = Color("#ff0000")
-		# Flash when critical
-		var flash = abs(sin(Time.get_ticks_msec() * 0.01))
-		weapon_icon.modulate.a = 0.5 + flash * 0.5
 
 func _on_wave_started(wave_number: int):
 	wave_label.text = "Wave: %d/5" % wave_number
@@ -185,39 +153,11 @@ func _on_score_changed(new_score: int):
 	tween.tween_property(score_label, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
 	tween.parallel().tween_property(score_label, "modulate", Color.WHITE, 0.5)
 
-func _on_weapon_switched(weapon: Node2D):
-	_connect_weapon_signals(weapon)
-
-func _connect_weapon_signals(weapon: Node2D):
-	if weapon and weapon.has_method("get_durability_percentage"):
-		# Update durability display
-		var durability_percent = weapon.get_durability_percentage()
-		weapon_durability_fill.size.x = durability_max_width * durability_percent
-
 func _pulse_bar(bar: ColorRect):
 	var original_scale = bar.scale
 	bar.scale = Vector2(1.0, 1.3)
 	var tween = create_tween()
 	tween.tween_property(bar, "scale", original_scale, 0.2).set_trans(Tween.TRANS_ELASTIC)
-
-func _update_weapon_durability_visual():
-	if not player.current_weapon:
-		weapon_icon.visible = false
-		weapon_durability_fill.visible = false
-		return
-
-	weapon_icon.visible = true
-	weapon_durability_fill.visible = true
-
-	if player.current_weapon.has_method("get_durability_percentage"):
-		var percent = player.current_weapon.get_durability_percentage()
-		weapon_durability_fill.size.x = durability_max_width * percent
-
-		# Update colors based on durability
-		if percent < 0.25:
-			# Critical - flash red
-			var flash = abs(sin(Time.get_ticks_msec() * 0.005))
-			weapon_durability_fill.color = Color.RED.lerp(Color.YELLOW, flash)
 
 func _on_crystals_changed(current_crystals: int, _total_collected: int):
 	crystal_label.text = "Crystals: %d" % current_crystals

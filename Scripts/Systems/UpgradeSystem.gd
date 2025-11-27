@@ -95,16 +95,6 @@ var all_upgrades = [
 
 	# Weapon upgrades
 	{
-		"id": "repair_weapon",
-		"name": "Repair Kit",
-		"description": "Restore weapon durability",
-		"icon_color": Color.GRAY,
-		"type": "instant",
-		"apply_to": "repair_weapon",
-		"value": 25,
-		"weight": 0.9
-	},
-	{
 		"id": "extra_projectile",
 		"name": "Multi-Shot",
 		"description": "+1 Projectile per cast",
@@ -192,9 +182,6 @@ func apply_upgrade(player: Node2D, upgrade: Dictionary):
 			player.stats.apply_upgrade("attack_speed", upgrade.value)
 		"heal_full":
 			player.heal(9999)  # Full heal
-		"repair_weapon":
-			if player.current_weapon and player.current_weapon.has_method("repair"):
-				player.current_weapon.repair(upgrade.value)
 		"multi_shot":
 			if player.current_staff:
 				player.current_staff.multi_shot += int(upgrade.value)

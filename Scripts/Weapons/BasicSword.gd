@@ -9,7 +9,6 @@ extends Node2D
 @export var damage: float = 10.0
 @export var attack_duration: float = 0.25
 @export var attack_cooldown: float = 0.35
-@export var max_durability: int = 50
 @export var swing_arc: float = 150.0  # Total arc of swing
 
 # Visual settings
@@ -24,7 +23,6 @@ extends Node2D
 @onready var attack_timer: Timer = $AttackTimer
 
 # State
-var current_durability: int
 var is_attacking: bool = false
 var can_attack: bool = true
 var damage_multiplier: float = 1.0
@@ -32,23 +30,20 @@ var hits_this_swing: Array = []  # Track what we hit this swing
 
 # Signals
 signal attack_finished
-signal weapon_broke
 signal dealt_damage(target: Node2D, damage: float)
 
 func _ready():
-	current_durability = max_durability
-	
 	# Connect hit detection
 	hit_box.area_entered.connect(_on_hit_box_area_entered)
 	hit_box.body_entered.connect(_on_hit_box_body_entered)
 	attack_timer.timeout.connect(_on_attack_cooldown_finished)
-	
+
 	# Start with hitbox disabled
 	hit_box_collision.disabled = true
-	
+
 	# Visual setup
-	update_durability_visual()
-	
+	sprite.color = Color("#c0c0c0")  # Silver
+
 	# Start hidden
 	visible = false
 	modulate.a = 0.0
@@ -61,7 +56,7 @@ func attack(_direction: Vector2, player_damage_multiplier: float = 1.0):
 	is_attacking = true
 	can_attack = false
 	hits_this_swing.clear()
-	
+
 	# Perform the appropriate swing style
 	match swing_style:
 		"overhead":
@@ -72,15 +67,7 @@ func attack(_direction: Vector2, player_damage_multiplier: float = 1.0):
 			_perform_stab_attack()
 		_:
 			_perform_overhead_swing()
-	
-	# Use durability
-	current_durability -= 1
-	update_durability_visual()
-	
-	if current_durability <= 0:
-		weapon_broke.emit()
-		queue_free()
-	
+
 	return true
 
 func _perform_overhead_swing():
@@ -265,21 +252,4 @@ func _create_hit_effect():
 	# Flash white on hit
 	sprite.color = Color.WHITE
 	await get_tree().create_timer(0.05).timeout
-	update_durability_visual()
-
-func update_durability_visual():
-	var durability_percent = float(current_durability) / float(max_durability)
-	
-	if durability_percent > 0.5:
-		sprite.color = Color("#c0c0c0")  # Silver
-	elif durability_percent > 0.25:
-		sprite.color = Color("#ffaa00")  # Orange
-	else:
-		sprite.color = Color("#ff0000")  # Red
-
-func repair(amount: int):
-	current_durability = min(current_durability + amount, max_durability)
-	update_durability_visual()
-
-func get_durability_percentage() -> float:
-	return float(current_durability) / float(max_durability)
+	sprite.color = Color("#c0c0c0")  # Silver

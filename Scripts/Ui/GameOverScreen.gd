@@ -32,13 +32,13 @@ var best_score: int = 0
 # Death messages
 var death_tips = [
 	"Tip: Keep your distance from enemies!",
-	"Tip: Save weapon durability for tough waves!",
 	"Tip: Magic attacks can hit multiple enemies!",
 	"Tip: Health upgrades also heal you!",
 	"Tip: Movement is key to survival!",
 	"Tip: Each wave gets progressively harder!",
 	"Tip: Lifesteal helps sustain through waves!",
-	"Tip: Repair your weapon between waves!"
+	"Tip: Use dash to avoid enemy attacks!",
+	"Tip: Collect crystals for future upgrades!"
 ]
 
 func _ready():
