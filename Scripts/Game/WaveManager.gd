@@ -12,14 +12,19 @@ extends Node
 @export var time_between_spawns: float = 0.5
 @export var time_between_waves: float = 3.0
 
-# Wave definitions - [wave_number, enemy_count, enemy_types]
+# Wave definitions - enemies to spawn per type
 var wave_configs = [
-	{"wave": 1, "count": 3, "types": ["slime"]},
-	{"wave": 2, "count": 5, "types": ["slime"]},
-	{"wave": 3, "count": 7, "types": ["slime"]},
-	{"wave": 4, "count": 10, "types": ["slime"]},
-	{"wave": 5, "count": 15, "types": ["slime"]}
+	{"wave": 1, "slime": 3, "goblin": 0, "imp": 2},
+	{"wave": 2, "slime": 4, "goblin": 1, "imp": 3},
+	{"wave": 3, "slime": 5, "goblin": 2, "imp": 4},
+	{"wave": 4, "slime": 6, "goblin": 4, "imp": 6},
+	{"wave": 5, "slime": 8, "goblin": 7, "imp": 10}
 ]
+
+# Enemy scenes
+const SLIME_SCENE = preload("res://Scenes/Enemies/Slime.tscn")
+const GOBLIN_SCENE = preload("res://Scenes/Enemies/GoblinArcher.tscn")
+const IMP_SCENE = preload("res://Scenes/Enemies/Imp.tscn")
 
 # State
 var current_wave: int = 0
@@ -30,6 +35,11 @@ var wave_active: bool = false
 var spawn_timer: float = 0.0
 var player_reference: Node2D = null
 var arena_center: Vector2 = Vector2(320, 180)  # Center of our arena
+
+# Track remaining enemies per type for current wave
+var slimes_remaining: int = 0
+var goblins_remaining: int = 0
+var imps_remaining: int = 0
 
 # Signals
 signal wave_started(wave_number: int)
@@ -59,50 +69,80 @@ func start_next_wave():
 	if current_wave >= wave_configs.size():
 		all_waves_completed.emit()
 		return
-	
+
 	current_wave += 1
 	var config = wave_configs[current_wave - 1]
-	
-	enemies_to_spawn = config.count
+
+	# Set enemy counts from config
+	slimes_remaining = config.get("slime", 0)
+	goblins_remaining = config.get("goblin", 0)
+	imps_remaining = config.get("imp", 0)
+	enemies_to_spawn = slimes_remaining + goblins_remaining + imps_remaining
 	enemies_spawned = 0
 	enemies_alive = 0
 	wave_active = true
 	spawn_timer = 0.0
 
 	wave_started.emit(current_wave)
-	
+
 	# Show wave notification
 	_show_wave_notification()
 
 func spawn_enemy():
 	if enemies_to_spawn <= 0:
 		return
-	
+
 	# Get spawn position
 	var spawn_pos = _get_spawn_position()
-	
-	# Choose enemy type (for now just slime)
-	var enemy_scene = enemy_scenes[0] if enemy_scenes.size() > 0 else preload("res://scenes/enemies/Slime.tscn")
-	
+
+	# Choose enemy type based on what's left to spawn
+	var enemy_scene: PackedScene = null
+
+	# Build list of available enemy types
+	var available_types = []
+	if slimes_remaining > 0:
+		available_types.append("slime")
+	if goblins_remaining > 0:
+		available_types.append("goblin")
+	if imps_remaining > 0:
+		available_types.append("imp")
+
+	# Randomly choose from available types
+	if available_types.size() > 0:
+		var chosen_type = available_types[randi() % available_types.size()]
+		match chosen_type:
+			"slime":
+				enemy_scene = SLIME_SCENE
+				slimes_remaining -= 1
+			"goblin":
+				enemy_scene = GOBLIN_SCENE
+				goblins_remaining -= 1
+			"imp":
+				enemy_scene = IMP_SCENE
+				imps_remaining -= 1
+	else:
+		# Shouldn't happen, but default to slime
+		enemy_scene = SLIME_SCENE
+
 	# Spawn the enemy
 	var enemy = enemy_scene.instantiate()
 	get_parent().add_child(enemy)
 	enemy.global_position = spawn_pos
-	
+
 	# Connect enemy signals
 	if enemy.has_signal("enemy_died"):
 		enemy.enemy_died.connect(_on_enemy_died)
-	
+
 	# Set player reference if enemy has the method
 	if enemy.has_method("set_player_reference") and player_reference:
 		enemy.set_player_reference(player_reference)
-	
+
 	enemies_to_spawn -= 1
 	enemies_spawned += 1
 	enemies_alive += 1
 
 	enemy_spawned.emit(enemy)
-	
+
 	# Visual spawn effect
 	_create_spawn_effect(spawn_pos)
 
