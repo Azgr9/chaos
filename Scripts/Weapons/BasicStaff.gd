@@ -22,18 +22,89 @@ extends Node2D
 var can_attack: bool = true
 var damage_multiplier: float = 1.0
 
+# Skill system
+var skill_cooldown: float = 12.0  # 12 seconds cooldown
+var skill_ready: bool = true
+var skill_timer: float = 0.0
+var skill_active: bool = false
+var skill_duration: float = 5.0  # 5 seconds boost
+var skill_duration_timer: float = 0.0
+var base_attack_cooldown: float = 0.3
+
 # Signals
 signal projectile_fired(projectile: Area2D)
+signal skill_used(cooldown: float)
+signal skill_ready_changed(ready: bool)
 
 func _ready():
 	cooldown_timer.timeout.connect(_on_cooldown_finished)
-	
+	base_attack_cooldown = attack_cooldown
+
 	# Start with muzzle flash hidden
 	muzzle_flash.modulate.a = 0.0
-	
+
 	# Load default projectile if not set
 	if not projectile_scene:
 		projectile_scene = preload("res://scenes/spells/BasicProjectile.tscn")
+
+func _process(delta):
+	# Update skill cooldown
+	if not skill_ready:
+		skill_timer -= delta
+		if skill_timer <= 0:
+			skill_ready = true
+			skill_ready_changed.emit(true)
+
+	# Update skill duration
+	if skill_active:
+		skill_duration_timer -= delta
+		if skill_duration_timer <= 0:
+			_deactivate_skill()
+
+func use_skill() -> bool:
+	if not skill_ready:
+		return false
+
+	skill_ready = false
+	skill_timer = skill_cooldown
+	skill_used.emit(skill_cooldown)
+	skill_ready_changed.emit(false)
+
+	# Activate attack speed boost
+	_activate_skill()
+
+	return true
+
+func _activate_skill():
+	skill_active = true
+	skill_duration_timer = skill_duration
+
+	# Drastically increase attack speed (10x faster)
+	attack_cooldown = base_attack_cooldown * 0.1
+	cooldown_timer.wait_time = attack_cooldown
+
+	# Visual feedback - glow effect
+	sprite.color = Color.CYAN
+	var glow_tween = create_tween()
+	glow_tween.set_loops()
+	glow_tween.tween_property(sprite, "modulate:v", 1.5, 0.3)
+	glow_tween.tween_property(sprite, "modulate:v", 1.0, 0.3)
+
+func _deactivate_skill():
+	skill_active = false
+
+	# Reset attack speed
+	attack_cooldown = base_attack_cooldown
+	cooldown_timer.wait_time = attack_cooldown
+
+	# Reset visual
+	sprite.color = Color(0.8, 0.6, 1.0)  # Purple
+	sprite.modulate = Color.WHITE
+
+func get_skill_cooldown_percent() -> float:
+	if skill_ready:
+		return 1.0
+	return 1.0 - (skill_timer / skill_cooldown)
 
 func attack(direction: Vector2, magic_damage_multiplier: float = 1.0) -> bool:
 	if not can_attack:

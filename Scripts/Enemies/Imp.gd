@@ -39,9 +39,20 @@ func _setup_enemy():
 	# Hide health bar initially
 	health_bar.visible = false
 
+	# Enable contact damage
+	hurt_box.monitoring = true
+	hurt_box.area_entered.connect(_on_hurt_box_area_entered)
+
 	# Color variation for visual interest
 	var color_variation = Color(randf_range(0.9, 1.1), randf_range(0.9, 1.1), randf_range(0.9, 1.1))
 	sprite.color = Color(0.6, 0.1, 0.2) * color_variation
+
+func _on_hurt_box_area_entered(area: Area2D):
+	# Deal contact damage to player
+	var parent = area.get_parent()
+	if parent and parent.is_in_group("player"):
+		if parent.has_method("take_damage"):
+			parent.take_damage(damage)
 
 func _physics_process(delta):
 	if is_dead:

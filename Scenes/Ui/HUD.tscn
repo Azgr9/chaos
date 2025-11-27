@@ -63,6 +63,80 @@ offset_right = 22.0
 offset_bottom = 21.0
 color = Color(0.752941, 0.752941, 0.752941, 1)
 
+[node name="Skills" type="Control" parent="Control"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 280.0
+offset_right = 150.0
+offset_bottom = 350.0
+
+[node name="SwordSkill" type="Control" parent="Control/Skills"]
+layout_mode = 0
+offset_right = 50.0
+offset_bottom = 50.0
+
+[node name="Background" type="ColorRect" parent="Control/Skills/SwordSkill"]
+layout_mode = 0
+offset_right = 50.0
+offset_bottom = 50.0
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Cooldown" type="ColorRect" parent="Control/Skills/SwordSkill"]
+layout_mode = 0
+offset_right = 50.0
+offset_bottom = 50.0
+color = Color(0.1, 0.1, 0.1, 0.7)
+
+[node name="Icon" type="ColorRect" parent="Control/Skills/SwordSkill"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0.75, 0.75, 0.75, 1)
+
+[node name="Keybind" type="Label" parent="Control/Skills/SwordSkill"]
+layout_mode = 0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = 15.0
+offset_bottom = 15.0
+text = "Q"
+
+[node name="StaffSkill" type="Control" parent="Control/Skills"]
+layout_mode = 0
+offset_left = 60.0
+offset_right = 110.0
+offset_bottom = 50.0
+
+[node name="Background" type="ColorRect" parent="Control/Skills/StaffSkill"]
+layout_mode = 0
+offset_right = 50.0
+offset_bottom = 50.0
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Cooldown" type="ColorRect" parent="Control/Skills/StaffSkill"]
+layout_mode = 0
+offset_right = 50.0
+offset_bottom = 50.0
+color = Color(0.1, 0.1, 0.1, 0.7)
+
+[node name="Icon" type="ColorRect" parent="Control/Skills/StaffSkill"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0.8, 0.6, 1.0, 1)
+
+[node name="Keybind" type="Label" parent="Control/Skills/StaffSkill"]
+layout_mode = 0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = 15.0
+offset_bottom = 15.0
+text = "E"
+
 [node name="GameInfo" type="Control" parent="Control"]
 layout_mode = 0
 offset_left = 540.0

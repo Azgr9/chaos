@@ -13,6 +13,10 @@ extends Control
 # Weapon Info
 @onready var weapon_icon: ColorRect = $WeaponInfo/WeaponIcon
 
+# Skill UI
+@onready var sword_skill_cooldown: ColorRect = $Skills/SwordSkill/Cooldown
+@onready var staff_skill_cooldown: ColorRect = $Skills/StaffSkill/Cooldown
+
 # Game Info
 @onready var wave_label: Label = $GameInfo/WaveLabel
 @onready var enemies_label: Label = $GameInfo/EnemiesLabel
@@ -108,6 +112,28 @@ func _process(delta):
 
 	# Animate crystal icon
 	_animate_crystal_icon()
+
+	# Update skill cooldowns
+	_update_skill_cooldowns()
+
+func _update_skill_cooldowns():
+	# Update sword skill cooldown
+	if player and player.current_weapon and player.current_weapon.has_method("get_skill_cooldown_percent"):
+		var percent = player.current_weapon.get_skill_cooldown_percent()
+		sword_skill_cooldown.size.y = 50 * (1.0 - percent)
+		if percent >= 1.0:
+			sword_skill_cooldown.color = Color(0.1, 0.1, 0.1, 0.0)  # Fully transparent when ready
+		else:
+			sword_skill_cooldown.color = Color(0.1, 0.1, 0.1, 0.7)
+
+	# Update staff skill cooldown
+	if player and player.current_staff and player.current_staff.has_method("get_skill_cooldown_percent"):
+		var percent = player.current_staff.get_skill_cooldown_percent()
+		staff_skill_cooldown.size.y = 50 * (1.0 - percent)
+		if percent >= 1.0:
+			staff_skill_cooldown.color = Color(0.1, 0.1, 0.1, 0.0)  # Fully transparent when ready
+		else:
+			staff_skill_cooldown.color = Color(0.1, 0.1, 0.1, 0.7)
 
 func _on_player_health_changed(current: float, max_health: float):
 	target_health_percent = current / max_health if max_health > 0 else 0.0

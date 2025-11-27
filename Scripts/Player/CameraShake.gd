@@ -32,8 +32,10 @@ func _process(delta):
 		rotation = 0.0
 
 func add_trauma(amount: float):
-	# Add trauma (clamped to 0-1)
-	trauma = min(trauma + amount, 1.0)
+	# Add trauma but with diminishing returns to prevent stacking
+	# If trauma is already high, new trauma has less effect
+	var trauma_multiplier = 1.0 - (trauma * 0.7)  # Reduce effect when trauma is high
+	trauma = min(trauma + (amount * trauma_multiplier), 1.0)
 
 func _apply_shake():
 	# Calculate shake amount (trauma squared for better feel)

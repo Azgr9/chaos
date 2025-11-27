@@ -120,13 +120,26 @@ func handle_input():
 		perform_melee_attack()
 		return  # Important: return early so we don't check other attacks
 	
-	if Input.is_action_just_pressed("magic_attack") and not is_attacking:
+	# Magic attack - use is_action_pressed when staff skill is active for rapid fire
+	var staff_skill_active = current_staff and current_staff.get("skill_active") == true
+	var magic_input = Input.is_action_pressed("magic_attack") if staff_skill_active else Input.is_action_just_pressed("magic_attack")
+
+	if magic_input and not is_attacking:
 		perform_magic_attack()
 		return
 	
 	# Dash input
 	if Input.is_action_just_pressed("dash") and not is_dashing and not is_attacking and dash_cooldown_timer <= 0:
 		perform_dash()
+
+	# Weapon skill inputs
+	if Input.is_action_just_pressed("sword_skill") and current_weapon:
+		if current_weapon.has_method("use_skill"):
+			current_weapon.use_skill()
+
+	if Input.is_action_just_pressed("staff_skill") and current_staff:
+		if current_staff.has_method("use_skill"):
+			current_staff.use_skill()
 
 	# Weapon switching
 	if Input.is_action_just_pressed("swap_weapon"):
@@ -311,9 +324,16 @@ func take_damage(amount: float):
 	var is_dead = stats.take_damage(amount)
 	health_changed.emit(stats.current_health, stats.max_health)
 
-	# Screen shake on player damage
+	# Screen shake on player damage - scale with percentage of health lost
 	if camera and camera.has_method("add_trauma"):
-		camera.add_trauma(0.5)
+		# Calculate damage as percentage of max health
+		var damage_percent = amount / stats.max_health
+		# Use square root curve for better low-damage visibility
+		# sqrt gives: 5% = 0.22, 10% = 0.32, 20% = 0.45, 50% = 0.71
+		var trauma_base = sqrt(damage_percent) * 1.0
+		# Clamp between 0.15 and 0.85 for always noticeable but not excessive
+		var trauma_amount = clamp(trauma_base, 0.15, 0.85)
+		camera.add_trauma(trauma_amount)
 
 	# Visual feedback - flash red
 	sprite.modulate = Color.RED
