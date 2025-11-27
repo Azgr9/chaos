@@ -19,10 +19,15 @@ extends Control
 @onready var enemies_label: Label = $GameInfo/EnemiesLabel
 @onready var score_label: Label = $GameInfo/ScoreLabel
 
+# Crystal Display
+@onready var crystal_icon: ColorRect = $CrystalDisplay/CrystalIcon
+@onready var crystal_label: Label = $CrystalDisplay/CrystalLabel
+
 # References
 var player: Node2D = null
 var wave_manager: Node = null
 var game_manager: Node = null
+var time_alive: float = 0.0
 
 # Bar animation
 var health_max_width: float = 146
@@ -80,18 +85,23 @@ func _connect_signals():
 	if game_manager:
 		if game_manager.has_signal("score_changed"):
 			game_manager.score_changed.connect(_on_score_changed)
+		if game_manager.has_signal("crystals_changed"):
+			game_manager.crystals_changed.connect(_on_crystals_changed)
 
 func _initialize_ui():
 	# Set initial values
 	wave_label.text = "Wave: 0/5"
 	enemies_label.text = "Enemies: 0"
 	score_label.text = "Score: 0"
+	crystal_label.text = "Crystals: 0"
 
 	# Set initial health
 	if player and player.stats:
 		_on_player_health_changed(player.stats.current_health, player.stats.max_health)
 
 func _process(delta):
+	time_alive += delta
+
 	# Smooth bar animations
 	current_health_percent = lerp(current_health_percent, target_health_percent, 10 * delta)
 
@@ -109,6 +119,9 @@ func _process(delta):
 	# Update weapon durability color
 	if player and player.current_weapon:
 		_update_weapon_durability_visual()
+
+	# Animate crystal icon
+	_animate_crystal_icon()
 
 func _on_player_health_changed(current: float, max_health: float):
 	target_health_percent = current / max_health if max_health > 0 else 0.0
@@ -205,3 +218,23 @@ func _update_weapon_durability_visual():
 			# Critical - flash red
 			var flash = abs(sin(Time.get_ticks_msec() * 0.005))
 			weapon_durability_fill.color = Color.RED.lerp(Color.YELLOW, flash)
+
+func _on_crystals_changed(current_crystals: int, _total_collected: int):
+	crystal_label.text = "Crystals: %d" % current_crystals
+
+	# Pulse animation
+	crystal_label.scale = Vector2(1.3, 1.3)
+	crystal_icon.scale = Vector2(1.5, 1.5)
+	crystal_label.modulate = Color(0, 1, 1, 1)
+
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(crystal_label, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(crystal_icon, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(crystal_label, "modulate", Color.WHITE, 0.5)
+
+func _animate_crystal_icon():
+	# Pulse and rotate
+	var pulse = abs(sin(time_alive * 3.0)) * 0.2 + 0.8
+	crystal_icon.scale = Vector2(pulse, pulse)
+	crystal_icon.rotation += 0.02

@@ -7,6 +7,7 @@ extends CharacterBody2D
 
 # Preload damage number scene
 const DamageNumber = preload("res://Scenes/Ui/DamageNumber.tscn")
+const ChaosCrystal = preload("res://Scenes/Items/ChaosCrystal.tscn")
 
 # Base enemy stats
 @export var max_health: float = 30.0
@@ -14,6 +15,9 @@ const DamageNumber = preload("res://Scenes/Ui/DamageNumber.tscn")
 @export var damage: float = 10.0
 @export var knockback_resistance: float = 0.5
 @export var experience_value: int = 10
+@export var crystal_drop_chance: float = 0.7
+@export var min_crystals: int = 1
+@export var max_crystals: int = 3
 
 # State
 var current_health: float
@@ -117,11 +121,32 @@ func die():
 	# Screen shake on enemy death
 	_add_screen_shake(0.3)
 
+	# Spawn chaos crystals
+	_spawn_crystals()
+
 	# Notify player for lifesteal
 	if player_reference and player_reference.has_method("on_enemy_killed"):
 		player_reference.on_enemy_killed()
 
 	_on_death()
+
+func _spawn_crystals():
+	# Random chance to drop crystals
+	if randf() > crystal_drop_chance:
+		return
+
+	# Random number of crystals to drop
+	var num_crystals = randi_range(min_crystals, max_crystals)
+
+	for i in range(num_crystals):
+		var crystal = ChaosCrystal.instantiate()
+
+		# Spawn at enemy position with slight random offset
+		var offset = Vector2(randf_range(-15, 15), randf_range(-15, 15))
+		crystal.global_position = global_position + offset
+
+		# Add to scene
+		get_tree().current_scene.call_deferred("add_child", crystal)
 
 func _add_screen_shake(trauma_amount: float):
 	# Find camera and add trauma

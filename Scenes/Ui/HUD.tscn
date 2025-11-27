@@ -108,3 +108,24 @@ offset_top = 40.0
 offset_right = 90.0
 offset_bottom = 60.0
 text = "Score: 0"
+
+[node name="CrystalDisplay" type="Control" parent="Control"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 40.0
+offset_right = 160.0
+offset_bottom = 60.0
+
+[node name="CrystalIcon" type="ColorRect" parent="Control/CrystalDisplay"]
+layout_mode = 0
+offset_right = 12.0
+offset_bottom = 12.0
+color = Color(0, 0.8, 1, 1)
+
+[node name="CrystalLabel" type="Label" parent="Control/CrystalDisplay"]
+layout_mode = 0
+offset_left = 16.0
+offset_right = 100.0
+offset_bottom = 12.0
+text = "Crystals: 0"
+vertical_alignment = 1

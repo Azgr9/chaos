@@ -16,6 +16,8 @@ var enemies_killed_total: int = 0
 var time_played: float = 0.0
 var damage_dealt: float = 0.0
 var damage_taken: float = 0.0
+var chaos_crystals: int = 0
+var total_crystals_collected: int = 0
 
 # References
 @onready var wave_manager: WaveManager = $"../WaveManager"
@@ -31,6 +33,7 @@ signal game_paused()
 @warning_ignore("unused_signal")
 signal game_resumed()
 signal score_changed(new_score: int)
+signal crystals_changed(current_crystals: int, total_collected: int)
 
 func _ready():
 	# Find player
@@ -45,6 +48,9 @@ func _ready():
 		wave_manager.wave_completed.connect(_on_wave_completed)
 		wave_manager.all_waves_completed.connect(_on_all_waves_completed)
 		wave_manager.enemy_killed.connect(_on_enemy_killed)
+
+	# Add to game_manager group so crystals can find us
+	add_to_group("game_manager")
 
 	# Create game over screen and pause menu
 	await _create_game_over_screen()
@@ -65,7 +71,10 @@ func start_game():
 	time_played = 0.0
 	damage_dealt = 0.0
 	damage_taken = 0.0
+	chaos_crystals = 0
+	total_crystals_collected = 0
 	game_started.emit()
+	crystals_changed.emit(chaos_crystals, total_crystals_collected)
 
 func _create_game_over_screen():
 	var game_over_scene = load("res://Scenes/Ui/GameOverScreen.tscn")
@@ -211,3 +220,15 @@ func _unlock_achievement(achievement_name: String):
 	tween.tween_interval(2.0)
 	tween.tween_property(achievement_label, "modulate:a", 0.0, 0.5)
 	tween.tween_callback(achievement_label.queue_free)
+
+func add_crystals(amount: int):
+	chaos_crystals += amount
+	total_crystals_collected += amount
+	crystals_changed.emit(chaos_crystals, total_crystals_collected)
+
+func spend_crystals(amount: int) -> bool:
+	if chaos_crystals >= amount:
+		chaos_crystals -= amount
+		crystals_changed.emit(chaos_crystals, total_crystals_collected)
+		return true
+	return false

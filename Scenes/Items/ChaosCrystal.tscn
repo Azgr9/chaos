@@ -1,0 +1,37 @@
+[gd_scene load_steps=3 format=3 uid="uid://chaos_crystal_scene"]
+
+[ext_resource type="Script" path="res://Scripts/Items/ChaosCrystal.gd" id="1_crystal"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_crystal"]
+radius = 8.0
+
+[node name="ChaosCrystal" type="Area2D"]
+collision_layer = 256
+collision_mask = 1
+script = ExtResource("1_crystal")
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="Crystal" type="ColorRect" parent="Visual"]
+offset_left = -4.0
+offset_top = -4.0
+offset_right = 4.0
+offset_bottom = 4.0
+pivot_offset = Vector2(4, 4)
+color = Color(0, 0.8, 1, 1)
+
+[node name="Glow" type="ColorRect" parent="Visual"]
+offset_left = -6.0
+offset_top = -6.0
+offset_right = 6.0
+offset_bottom = 6.0
+pivot_offset = Vector2(6, 6)
+color = Color(0.4, 0.8, 1, 0.3)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_crystal")
+
+[node name="LifetimeTimer" type="Timer" parent="."]
+wait_time = 30.0
+one_shot = true
+autostart = true
