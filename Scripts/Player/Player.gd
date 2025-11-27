@@ -19,6 +19,7 @@ extends CharacterBody2D
 @onready var weapon_holder: Marker2D = $WeaponPivot/WeaponHolder
 @onready var staff_pivot: Node2D = $StaffPivot
 @onready var hurt_box: Area2D = $HurtBox
+@onready var camera: Camera2D = $Camera2D
 
 # State
 var input_vector: Vector2 = Vector2.ZERO
@@ -37,6 +38,14 @@ var current_weapon_index: int = 0
 
 # Pixel-perfect movement
 var accumulated_movement: Vector2 = Vector2.ZERO
+
+# Dash mechanic
+var is_dashing: bool = false
+var dash_direction: Vector2 = Vector2.ZERO
+@export var dash_speed: float = 300.0
+@export var dash_duration: float = 0.2
+@export var dash_cooldown: float = 0.5
+var dash_cooldown_timer: float = 0.0
 
 # Signals
 signal health_changed(current_health: float, max_health: float)
@@ -69,9 +78,17 @@ func _ready():
 
 
 func _physics_process(delta):
+	# Update dash cooldown
+	if dash_cooldown_timer > 0:
+		dash_cooldown_timer -= delta
+
 	handle_input()
-	if not is_attacking:  # Don't move while attacking
+
+	if is_dashing:
+		_handle_dash(delta)
+	elif not is_attacking:  # Don't move while attacking
 		move_player_pixel_perfect(delta)
+
 	update_facing_direction()
 	update_animation()
 
@@ -107,34 +124,10 @@ func handle_input():
 		perform_magic_attack()
 		return
 	
-	# Weapon switching
-	if Input.is_action_just_pressed("swap_weapon"):
-		switch_weapon()
-	# Movement input
-	input_vector = Vector2.ZERO
-	
-	if not is_attacking:  # Can't change movement during attack
-		input_vector.x = Input.get_axis("move_left", "move_right")
-		input_vector.y = Input.get_axis("move_up", "move_down")
-		
-		# Normalize diagonal movement
-		if input_vector.length() > 1.0:
-			input_vector = input_vector.normalized()
-		
-		# Track last direction for aiming
-		if input_vector.length() > 0:
-			last_direction = input_vector.normalized()
-			is_moving = true
-		else:
-			is_moving = false
-	
-	# Attack inputs
-	if Input.is_action_just_pressed("melee_attack") and not is_attacking:
-		perform_melee_attack()
-	
-	if Input.is_action_just_pressed("magic_attack") and not is_attacking:
-		perform_magic_attack()
-	
+	# Dash input
+	if Input.is_action_just_pressed("dash") and not is_dashing and not is_attacking and dash_cooldown_timer <= 0:
+		perform_dash()
+
 	# Weapon switching
 	if Input.is_action_just_pressed("swap_weapon"):
 		switch_weapon()
@@ -202,16 +195,26 @@ func update_facing_direction():
 
 func update_animation():
 	# Simple animation - pulse when moving, squash when attacking
-	if is_attacking:
+	if is_dashing:
+		# Dash stretch and fade
+		visuals_pivot.scale.y = 1.2
+		visuals_pivot.scale.x = abs(visuals_pivot.scale.x) * 0.7 * sign(visuals_pivot.scale.x)
+		sprite.modulate.a = 0.6
+	elif is_attacking:
 		# Attack squash and stretch
 		visuals_pivot.scale.y = 0.8
+		sprite.modulate.a = 1.0
 	elif is_moving:
 		# Walking bob
 		var bob = abs(sin(Time.get_ticks_msec() * 0.01)) * 0.1 + 0.9
 		visuals_pivot.scale.y = bob
+		visuals_pivot.scale.x = abs(visuals_pivot.scale.x) * sign(visuals_pivot.scale.x)
+		sprite.modulate.a = 1.0
 	else:
 		# Idle
 		visuals_pivot.scale.y = 1.0
+		visuals_pivot.scale.x = abs(visuals_pivot.scale.x) * sign(visuals_pivot.scale.x)
+		sprite.modulate.a = 1.0
 
 func perform_melee_attack():
 	# Make sure we're using current_weapon, NOT current_staff
@@ -323,6 +326,10 @@ func take_damage(amount: float):
 	var is_dead = stats.take_damage(amount)
 	health_changed.emit(stats.current_health, stats.max_health)
 
+	# Screen shake on player damage
+	if camera and camera.has_method("add_trauma"):
+		camera.add_trauma(0.5)
+
 	# Visual feedback - flash red
 	sprite.modulate = Color.RED
 	await get_tree().create_timer(0.1).timeout
@@ -369,4 +376,48 @@ func _spawn_and_equip_staff(staff_scene: PackedScene):
 	staff_holder.add_child(staff_instance)
 	staff_instance.position = Vector2.ZERO
 	current_staff = staff_instance
-	
+
+func perform_dash():
+	# Set dash direction based on input or last direction
+	if input_vector.length() > 0:
+		dash_direction = input_vector.normalized()
+	else:
+		dash_direction = last_direction
+
+	# Start dashing
+	is_dashing = true
+	dash_cooldown_timer = dash_cooldown
+
+	# Create dash trail effect
+	_create_dash_trail()
+
+	# Small screen shake on dash
+	if camera and camera.has_method("add_trauma"):
+		camera.add_trauma(0.1)
+
+	# Dash animation and duration
+	await get_tree().create_timer(dash_duration).timeout
+	is_dashing = false
+
+func _create_dash_trail():
+	# Create multiple ghost sprites for trail effect
+	for i in range(3):
+		await get_tree().create_timer(dash_duration / 3.0).timeout
+
+		var ghost = Sprite2D.new()
+		ghost.texture = sprite.texture
+		ghost.global_position = global_position
+		ghost.scale = visuals_pivot.scale
+		ghost.modulate = Color(1, 1, 1, 0.3)
+		get_parent().add_child(ghost)
+
+		# Fade out ghost
+		var tween = create_tween()
+		tween.tween_property(ghost, "modulate:a", 0.0, 0.3)
+		tween.tween_callback(ghost.queue_free)
+
+func _handle_dash(delta):
+	# Move in dash direction at dash speed
+	velocity = dash_direction * dash_speed
+	move_and_slide()
+	position = position.round()

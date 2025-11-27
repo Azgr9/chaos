@@ -114,11 +114,20 @@ func die():
 	is_dead = true
 	enemy_died.emit(self)
 
+	# Screen shake on enemy death
+	_add_screen_shake(0.3)
+
 	# Notify player for lifesteal
 	if player_reference and player_reference.has_method("on_enemy_killed"):
 		player_reference.on_enemy_killed()
 
 	_on_death()
+
+func _add_screen_shake(trauma_amount: float):
+	# Find camera and add trauma
+	var camera = get_viewport().get_camera_2d()
+	if camera and camera.has_method("add_trauma"):
+		camera.add_trauma(trauma_amount)
 
 func _on_death():
 	# Override for specific death effects
