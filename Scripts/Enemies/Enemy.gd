@@ -5,6 +5,9 @@
 class_name Enemy
 extends CharacterBody2D
 
+# Preload damage number scene
+const DamageNumber = preload("res://Scenes/Ui/DamageNumber.tscn")
+
 # Base enemy stats
 @export var max_health: float = 30.0
 @export var move_speed: float = 40.0
@@ -74,6 +77,9 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback
 	current_health -= amount
 	health_changed.emit(current_health, max_health)
 
+	# Spawn damage number
+	_spawn_damage_number(amount)
+
 	# Apply knockback
 	if from_position != Vector2.ZERO:
 		var knockback_direction = (global_position - from_position).normalized()
@@ -88,6 +94,17 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback
 
 	if current_health <= 0:
 		die()
+
+func _spawn_damage_number(damage_amount: float):
+	# Instance damage number
+	var damage_number = DamageNumber.instantiate()
+	damage_number.global_position = global_position
+
+	# Add to scene (get the root of the scene tree)
+	get_tree().current_scene.add_child(damage_number)
+
+	# Setup the damage amount
+	damage_number.setup(damage_amount)
 
 func _on_damage_taken():
 	# Override for specific damage effects
