@@ -308,21 +308,6 @@ func _on_weapon_broke():
 		print("No weapons left!")
 
 func take_damage(amount: float):
-	# Check dodge
-	if stats.should_dodge():
-		# Dodged! Show visual feedback
-		var dodge_label = Label.new()
-		dodge_label.text = "DODGE!"
-		dodge_label.modulate = Color.CYAN
-		add_child(dodge_label)
-		dodge_label.position = Vector2(0, -30)
-
-		var tween = create_tween()
-		tween.tween_property(dodge_label, "position:y", -50, 0.5)
-		tween.parallel().tween_property(dodge_label, "modulate:a", 0.0, 0.5)
-		tween.tween_callback(dodge_label.queue_free)
-		return
-
 	var is_dead = stats.take_damage(amount)
 	health_changed.emit(stats.current_health, stats.max_health)
 

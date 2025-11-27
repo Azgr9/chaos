@@ -31,7 +31,7 @@ var best_score: int = 0
 
 # Death messages
 var death_tips = [
-	"Tip: Dodge slimes by keeping distance!",
+	"Tip: Keep your distance from enemies!",
 	"Tip: Save weapon durability for tough waves!",
 	"Tip: Magic attacks can hit multiple enemies!",
 	"Tip: Health upgrades also heal you!",

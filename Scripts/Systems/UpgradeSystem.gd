@@ -125,16 +125,6 @@ var all_upgrades = [
 		"apply_to": "lifesteal",
 		"value": 2,
 		"weight": 0.3
-	},
-	{
-		"id": "dodge_chance",
-		"name": "Evasion",
-		"description": "10% chance to dodge",
-		"icon_color": Color.LIGHT_BLUE,
-		"type": "special",
-		"apply_to": "dodge",
-		"value": 0.1,
-		"weight": 0.5
 	}
 ]
 
@@ -210,8 +200,6 @@ func apply_upgrade(player: Node2D, upgrade: Dictionary):
 				player.current_staff.multi_shot += int(upgrade.value)
 		"lifesteal":
 			player.stats.lifesteal_amount = upgrade.value
-		"dodge":
-			player.stats.dodge_chance = min(player.stats.dodge_chance + upgrade.value, 0.5)
 
 func reset_upgrades():
 	picked_upgrades.clear()

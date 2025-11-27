@@ -10,7 +10,6 @@ extends Resource
 
 # Special upgrades
 @export var lifesteal_amount: float = 0.0
-@export var dodge_chance: float = 0.0
 @export var crit_chance: float = 0.0
 @export var crit_damage: float = 1.5
 
@@ -48,7 +47,3 @@ func apply_upgrade(upgrade_type: String, value: float):
 			magic_damage_multiplier += value
 		"attack_speed":
 			attack_speed_multiplier += value
-
-# Check if attack should be dodged
-func should_dodge() -> bool:
-	return randf() < dodge_chance
