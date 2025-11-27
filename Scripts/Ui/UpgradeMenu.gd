@@ -12,13 +12,18 @@ extends CanvasLayer
 @onready var title_label: Label = $Control/Container/Title
 @onready var subtitle_label: Label = $Control/Container/Subtitle
 @onready var upgrade_cards: HBoxContainer = $Control/Container/UpgradeCards
+@onready var weapon_shop_button: Button = $Control/WeaponShopButton
 @onready var skip_button: Button = $Control/SkipButton
+
+const KATANA_SCENE = preload("res://Scenes/Weapons/Katana.tscn")
+const KATANA_PRICE = 1
 
 # Card references
 var card_panels: Array = []
 var card_data: Array = []
 var player_reference: Node2D = null
 var upgrade_system: UpgradeSystem = null
+var katana_purchased: bool = false
 
 # Signals
 signal upgrade_selected(upgrade: Dictionary)
@@ -49,8 +54,15 @@ func _ready():
 	if skip_button:
 		skip_button.pressed.connect(_on_skip_pressed)
 
+	# Connect weapon shop button
+	if weapon_shop_button:
+		weapon_shop_button.pressed.connect(_on_weapon_shop_pressed)
+
 func show_upgrades(player: Node2D):
 	player_reference = player
+
+	# Update weapon shop button
+	_update_weapon_shop_button()
 
 	# Get random upgrades
 	card_data = upgrade_system.get_random_upgrades(3)
@@ -153,6 +165,71 @@ func _on_card_selected(index: int):
 
 func _on_skip_pressed():
 	_close_menu()
+
+func _on_weapon_shop_pressed():
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	# Check if player has enough crystals
+	if game_manager.get_crystal_count() >= KATANA_PRICE:
+		if game_manager.spend_crystals(KATANA_PRICE):
+			_swap_weapon_to_katana()
+			_update_weapon_shop_button()
+
+func _update_weapon_shop_button():
+	if not weapon_shop_button:
+		return
+
+	# Hide button if already purchased
+	if katana_purchased:
+		weapon_shop_button.visible = false
+		return
+
+	weapon_shop_button.visible = true
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	var crystals = game_manager.get_crystal_count()
+	if crystals >= KATANA_PRICE:
+		weapon_shop_button.disabled = false
+		weapon_shop_button.text = "Buy Katana (%d Crystal)" % KATANA_PRICE
+	else:
+		weapon_shop_button.disabled = true
+		weapon_shop_button.text = "Need %d Crystals" % KATANA_PRICE
+
+func _swap_weapon_to_katana():
+	if not player_reference:
+		return
+
+	# Mark as purchased
+	katana_purchased = true
+
+	# Reset player attack state to prevent being stuck
+	player_reference.is_attacking = false
+
+	# Remove old weapon
+	if player_reference.current_weapon:
+		player_reference.current_weapon.queue_free()
+		player_reference.weapon_inventory.clear()
+
+	# Add new katana
+	var new_weapon = KATANA_SCENE.instantiate()
+	var weapon_holder = player_reference.get_node("WeaponPivot/WeaponHolder")
+	weapon_holder.add_child(new_weapon)
+	new_weapon.position = Vector2.ZERO
+
+	player_reference.current_weapon = new_weapon
+	player_reference.weapon_inventory.append(new_weapon)
+
+	# Connect signals
+	if new_weapon.has_signal("attack_finished"):
+		new_weapon.attack_finished.connect(player_reference._on_attack_finished)
+
+	# Reset attack state again after frame to ensure it's cleared
+	await get_tree().process_frame
+	player_reference.is_attacking = false
 
 func _close_menu():
 	# Animate out

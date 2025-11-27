@@ -232,3 +232,6 @@ func spend_crystals(amount: int) -> bool:
 		crystals_changed.emit(chaos_crystals, total_crystals_collected)
 		return true
 	return false
+
+func get_crystal_count() -> int:
+	return chaos_crystals

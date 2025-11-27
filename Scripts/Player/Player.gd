@@ -47,6 +47,12 @@ var dash_direction: Vector2 = Vector2.ZERO
 @export var dash_cooldown: float = 0.5
 var dash_cooldown_timer: float = 0.0
 
+# Invulnerability (for katana dash)
+var is_invulnerable: bool = false
+
+# Debug mode
+var debug_mode: bool = false
+
 # Signals
 signal health_changed(current_health: float, max_health: float)
 signal player_died
@@ -144,6 +150,28 @@ func handle_input():
 	# Weapon switching
 	if Input.is_action_just_pressed("swap_weapon"):
 		switch_weapon()
+
+	# Debug controls
+	if Input.is_physical_key_pressed(KEY_O):  # O key
+		if not debug_mode:
+			debug_mode = true
+			print("Debug mode: ON")
+
+	if Input.is_physical_key_pressed(KEY_L):  # L key to turn off
+		if debug_mode:
+			debug_mode = false
+			print("Debug mode: OFF")
+
+	if debug_mode:
+		if Input.is_physical_key_pressed(KEY_P):  # P key - Full heal
+			stats.current_health = stats.max_health
+			health_changed.emit(stats.current_health, stats.max_health)
+			print("Debug: Health restored")
+			await get_tree().create_timer(0.2).timeout  # Prevent spam
+
+		if Input.is_physical_key_pressed(KEY_I):  # I key - Kill all enemies
+			_debug_kill_all_enemies()
+			await get_tree().create_timer(0.2).timeout  # Prevent spam
 
 func move_player_pixel_perfect(delta):
 	# Calculate intended movement
@@ -321,6 +349,11 @@ func _on_weapon_broke():
 		print("No weapons left!")
 
 func take_damage(amount: float):
+	# Ignore damage if invulnerable
+	if is_invulnerable:
+		print("Debug: Damage blocked - player is invulnerable")
+		return
+
 	var is_dead = stats.take_damage(amount)
 	health_changed.emit(stats.current_health, stats.max_health)
 
@@ -426,3 +459,20 @@ func _handle_dash(delta):
 	velocity = dash_direction * dash_speed
 	move_and_slide()
 	position = position.round()
+
+func set_invulnerable(invulnerable: bool):
+	is_invulnerable = invulnerable
+	print("Debug: Player invulnerability set to: ", invulnerable)
+	# Visual feedback - slight transparency when invulnerable
+	if invulnerable:
+		sprite.modulate = Color(1, 1, 1, 0.5)
+	else:
+		sprite.modulate = Color.WHITE
+
+func _debug_kill_all_enemies():
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var count = enemies.size()
+	for enemy in enemies:
+		if enemy.has_method("take_damage"):
+			enemy.take_damage(9999)
+	print("Debug: Killed ", count, " enemies")

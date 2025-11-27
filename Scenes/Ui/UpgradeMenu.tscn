@@ -161,6 +161,21 @@ layout_mode = 2
 size_flags_vertical = 8
 text = "SELECT"
 
+[node name="WeaponShopButton" type="Button" parent="Control"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -80.0
+offset_top = -90.0
+offset_right = 80.0
+offset_bottom = -60.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "Buy Katana (1 Crystal)"
+
 [node name="SkipButton" type="Button" parent="Control"]
 layout_mode = 1
 anchors_preset = 7
