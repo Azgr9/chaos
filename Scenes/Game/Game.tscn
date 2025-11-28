@@ -19,7 +19,7 @@ metadata/_custom_type_script = "uid://qh02i550hrbk"
 [node name="Arena" parent="." instance=ExtResource("1_gwu2e")]
 
 [node name="Player" parent="." instance=ExtResource("2_xbxml")]
-position = Vector2(320, 180)
+position = Vector2(322, 180)
 stats = SubResource("Resource_3k6gv")
 
 [node name="Camera2D" type="Camera2D" parent="Player"]
