@@ -13,10 +13,13 @@ extends CanvasLayer
 @onready var subtitle_label: Label = $Control/Container/Subtitle
 @onready var upgrade_cards: HBoxContainer = $Control/Container/UpgradeCards
 @onready var weapon_shop_button: Button = $Control/WeaponShopButton
+@onready var staff_shop_button: Button = $Control/StaffShopButton
 @onready var skip_button: Button = $Control/SkipButton
 
 const KATANA_SCENE = preload("res://Scenes/Weapons/Katana.tscn")
 const KATANA_PRICE = 1
+const LIGHTNING_STAFF_SCENE = preload("res://Scenes/Weapons/LightningStaff.tscn")
+const STAFF_PRICE = 1
 
 # Card references
 var card_panels: Array = []
@@ -24,6 +27,7 @@ var card_data: Array = []
 var player_reference: Node2D = null
 var upgrade_system: UpgradeSystem = null
 var katana_purchased: bool = false
+var staff_purchased: bool = false
 
 # Signals
 signal upgrade_selected(upgrade: Dictionary)
@@ -58,11 +62,16 @@ func _ready():
 	if weapon_shop_button:
 		weapon_shop_button.pressed.connect(_on_weapon_shop_pressed)
 
+	# Connect staff shop button
+	if staff_shop_button:
+		staff_shop_button.pressed.connect(_on_staff_shop_pressed)
+
 func show_upgrades(player: Node2D):
 	player_reference = player
 
-	# Update weapon shop button
+	# Update weapon shop buttons
 	_update_weapon_shop_button()
+	_update_staff_shop_button()
 
 	# Get random upgrades
 	card_data = upgrade_system.get_random_upgrades(3)
@@ -228,6 +237,72 @@ func _swap_weapon_to_katana():
 		new_weapon.attack_finished.connect(player_reference._on_attack_finished)
 
 	# Reset attack state again after frame to ensure it's cleared
+	await get_tree().process_frame
+	player_reference.is_attacking = false
+
+func _on_staff_shop_pressed():
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	# Check if player has enough crystals
+	if game_manager.get_crystal_count() >= STAFF_PRICE:
+		if game_manager.spend_crystals(STAFF_PRICE):
+			_swap_weapon_to_staff()
+			_update_staff_shop_button()
+
+func _update_staff_shop_button():
+	if not staff_shop_button:
+		return
+
+	# Hide if already purchased
+	if staff_purchased:
+		staff_shop_button.visible = false
+		return
+
+	staff_shop_button.visible = true
+
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	var crystals = game_manager.get_crystal_count()
+	if crystals >= STAFF_PRICE:
+		staff_shop_button.disabled = false
+		staff_shop_button.text = "Buy Lightning Staff (%d Crystal)" % STAFF_PRICE
+	else:
+		staff_shop_button.disabled = true
+		staff_shop_button.text = "Need %d Crystals" % STAFF_PRICE
+
+func _swap_weapon_to_staff():
+	if not player_reference:
+		return
+
+	# Mark as purchased
+	staff_purchased = true
+
+	# Reset player attack state
+	player_reference.is_attacking = false
+
+	# Remove old weapon
+	if player_reference.current_weapon:
+		player_reference.current_weapon.queue_free()
+		player_reference.weapon_inventory.clear()
+
+	# Add new lightning staff
+	var new_weapon = LIGHTNING_STAFF_SCENE.instantiate()
+	var weapon_holder = player_reference.get_node("WeaponPivot/WeaponHolder")
+	weapon_holder.add_child(new_weapon)
+	new_weapon.position = Vector2.ZERO
+
+	player_reference.current_weapon = new_weapon
+	player_reference.weapon_inventory.append(new_weapon)
+
+	# Connect signals
+	if new_weapon.has_signal("attack_finished"):
+		new_weapon.attack_finished.connect(player_reference._on_attack_finished)
+
+	# Reset attack state again after frame
 	await get_tree().process_frame
 	player_reference.is_attacking = false
 
