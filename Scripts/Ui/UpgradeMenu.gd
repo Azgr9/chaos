@@ -283,28 +283,28 @@ func _swap_weapon_to_staff():
 
 	# Reset player attack state
 	player_reference.is_attacking = false
+	player_reference.is_magic_attacking = false
 
-	# Remove old weapon
-	if player_reference.current_weapon:
-		player_reference.current_weapon.queue_free()
-		player_reference.weapon_inventory.clear()
+	# Remove old staff if exists
+	if player_reference.current_staff:
+		player_reference.current_staff.queue_free()
+		player_reference.staff_inventory.clear()
 
-	# Add new lightning staff
-	var new_weapon = LIGHTNING_STAFF_SCENE.instantiate()
-	var weapon_holder = player_reference.get_node("WeaponPivot/WeaponHolder")
-	weapon_holder.add_child(new_weapon)
-	new_weapon.position = Vector2.ZERO
+	# Add new lightning staff to staff pivot (not weapon pivot!)
+	var new_staff = LIGHTNING_STAFF_SCENE.instantiate()
+	var staff_pivot = player_reference.get_node("StaffPivot")
+	staff_pivot.add_child(new_staff)
+	new_staff.position = Vector2.ZERO
 
-	player_reference.current_weapon = new_weapon
-	player_reference.weapon_inventory.append(new_weapon)
+	player_reference.current_staff = new_staff
+	player_reference.staff_inventory.append(new_staff)
 
-	# Connect signals
-	if new_weapon.has_signal("attack_finished"):
-		new_weapon.attack_finished.connect(player_reference._on_attack_finished)
+	print("Lightning Staff equipped! Use right-click to attack, E key for chain lightning ability.")
 
 	# Reset attack state again after frame
 	await get_tree().process_frame
 	player_reference.is_attacking = false
+	player_reference.is_magic_attacking = false
 
 func _close_menu():
 	# Animate out
