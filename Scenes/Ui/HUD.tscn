@@ -1,186 +1,29 @@
-[gd_scene load_steps=2 format=3 uid="uid://bwx8h5j2k3n4p"]
+[gd_scene load_steps=3 format=3 uid="uid://bwx8h5j2k3n4p"]
 
-[ext_resource type="Script" path="res://Scripts/Ui/HUD.gd" id="1_hud"]
+[ext_resource type="Script" uid="uid://dw1sda5rxjc1t" path="res://Scripts/Weapons/Katana.gd" id="1_pbd0h"]
 
-[node name="HUD" type="CanvasLayer"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_katana"]
+size = Vector2(20, 6)
 
-[node name="Control" type="Control" parent="."]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-script = ExtResource("1_hud")
+[node name="Katana" type="Node2D"]
+script = ExtResource("1_pbd0h")
 
-[node name="PlayerBars" type="Control" parent="Control"]
-layout_mode = 0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = 210.0
-offset_bottom = 70.0
+[node name="Pivot" type="Node2D" parent="."]
 
-[node name="HealthBar" type="Control" parent="Control/PlayerBars"]
-layout_mode = 0
-offset_right = 150.0
-offset_bottom = 20.0
-
-[node name="Background" type="ColorRect" parent="Control/PlayerBars/HealthBar"]
-layout_mode = 0
-offset_right = 150.0
-offset_bottom = 20.0
-color = Color(0.101961, 0, 0, 1)
-
-[node name="Fill" type="ColorRect" parent="Control/PlayerBars/HealthBar"]
-layout_mode = 0
+[node name="Sprite" type="ColorRect" parent="Pivot"]
 offset_left = 2.0
-offset_top = 2.0
-offset_right = 148.0
-offset_bottom = 18.0
-color = Color(1, 0, 0, 1)
+offset_top = -2.0
+offset_right = 20.0
+offset_bottom = 2.0
+color = Color(0.9, 0.2, 0.2, 1)
 
-[node name="Label" type="Label" parent="Control/PlayerBars/HealthBar"]
-layout_mode = 0
-offset_right = 150.0
-offset_bottom = 20.0
-text = "100/100"
-horizontal_alignment = 1
-vertical_alignment = 1
+[node name="HitBox" type="Area2D" parent="Pivot"]
+collision_layer = 64
+collision_mask = 20
 
-[node name="WeaponInfo" type="Control" parent="Control"]
-layout_mode = 0
-offset_left = 10.0
-offset_top = 320.0
-offset_right = 210.0
-offset_bottom = 350.0
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Pivot/HitBox"]
+position = Vector2(11, 0)
+shape = SubResource("RectangleShape2D_katana")
 
-[node name="WeaponIcon" type="ColorRect" parent="Control/WeaponInfo"]
-layout_mode = 0
-offset_left = 10.0
-offset_top = 5.0
-offset_right = 22.0
-offset_bottom = 21.0
-color = Color(0.752941, 0.752941, 0.752941, 1)
-
-[node name="Skills" type="Control" parent="Control"]
-layout_mode = 0
-offset_left = 10.0
-offset_top = 280.0
-offset_right = 150.0
-offset_bottom = 350.0
-
-[node name="SwordSkill" type="Control" parent="Control/Skills"]
-layout_mode = 0
-offset_right = 50.0
-offset_bottom = 50.0
-
-[node name="Background" type="ColorRect" parent="Control/Skills/SwordSkill"]
-layout_mode = 0
-offset_right = 50.0
-offset_bottom = 50.0
-color = Color(0.2, 0.2, 0.2, 1)
-
-[node name="Cooldown" type="ColorRect" parent="Control/Skills/SwordSkill"]
-layout_mode = 0
-offset_right = 50.0
-offset_bottom = 50.0
-color = Color(0.1, 0.1, 0.1, 0.7)
-
-[node name="Icon" type="ColorRect" parent="Control/Skills/SwordSkill"]
-layout_mode = 0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = 40.0
-offset_bottom = 40.0
-color = Color(0.75, 0.75, 0.75, 1)
-
-[node name="Keybind" type="Label" parent="Control/Skills/SwordSkill"]
-layout_mode = 0
-offset_left = 2.0
-offset_top = 2.0
-offset_right = 15.0
-offset_bottom = 15.0
-text = "Q"
-
-[node name="StaffSkill" type="Control" parent="Control/Skills"]
-layout_mode = 0
-offset_left = 60.0
-offset_right = 110.0
-offset_bottom = 50.0
-
-[node name="Background" type="ColorRect" parent="Control/Skills/StaffSkill"]
-layout_mode = 0
-offset_right = 50.0
-offset_bottom = 50.0
-color = Color(0.2, 0.2, 0.2, 1)
-
-[node name="Cooldown" type="ColorRect" parent="Control/Skills/StaffSkill"]
-layout_mode = 0
-offset_right = 50.0
-offset_bottom = 50.0
-color = Color(0.1, 0.1, 0.1, 0.7)
-
-[node name="Icon" type="ColorRect" parent="Control/Skills/StaffSkill"]
-layout_mode = 0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = 40.0
-offset_bottom = 40.0
-color = Color(0.8, 0.6, 1.0, 1)
-
-[node name="Keybind" type="Label" parent="Control/Skills/StaffSkill"]
-layout_mode = 0
-offset_left = 2.0
-offset_top = 2.0
-offset_right = 15.0
-offset_bottom = 15.0
-text = "E"
-
-[node name="GameInfo" type="Control" parent="Control"]
-layout_mode = 0
-offset_left = 540.0
-offset_top = 10.0
-offset_right = 630.0
-offset_bottom = 70.0
-
-[node name="WaveLabel" type="Label" parent="Control/GameInfo"]
-layout_mode = 0
-offset_right = 90.0
-offset_bottom = 20.0
-text = "Wave 1/5"
-
-[node name="EnemiesLabel" type="Label" parent="Control/GameInfo"]
-layout_mode = 0
-offset_top = 20.0
-offset_right = 90.0
-offset_bottom = 40.0
-text = "Enemies: 0"
-
-[node name="ScoreLabel" type="Label" parent="Control/GameInfo"]
-layout_mode = 0
-offset_top = 40.0
-offset_right = 90.0
-offset_bottom = 60.0
-text = "Score: 0"
-
-[node name="CrystalDisplay" type="Control" parent="Control"]
-layout_mode = 0
-offset_left = 10.0
-offset_top = 40.0
-offset_right = 160.0
-offset_bottom = 60.0
-
-[node name="CrystalIcon" type="ColorRect" parent="Control/CrystalDisplay"]
-layout_mode = 0
-offset_right = 12.0
-offset_bottom = 12.0
-color = Color(0, 0.8, 1, 1)
-
-[node name="CrystalLabel" type="Label" parent="Control/CrystalDisplay"]
-layout_mode = 0
-offset_left = 16.0
-offset_right = 100.0
-offset_bottom = 12.0
-text = "Crystals: 0"
-vertical_alignment = 1
+[node name="AttackTimer" type="Timer" parent="."]
+one_shot = true

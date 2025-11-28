@@ -1,42 +1,29 @@
-[gd_scene load_steps=11 format=3 uid="uid://dk43727mj1esl"]
+[gd_scene load_steps=3 format=3 uid="uid://dk43727mj1esl"]
 
-[ext_resource type="PackedScene" uid="uid://cputkgt8et483" path="res://Scenes/Game/Arena.tscn" id="1_gwu2e"]
-[ext_resource type="PackedScene" uid="uid://ihkhyc7g62ye" path="res://Scenes/Player/Player.tscn" id="2_xbxml"]
-[ext_resource type="Script" uid="uid://qh02i550hrbk" path="res://Scripts/Player/PlayerStats.gd" id="3_ln2h6"]
-[ext_resource type="Script" uid="uid://brhs5a6uhxrck" path="res://Scripts/Player/CameraShake.gd" id="3_shake"]
-[ext_resource type="Script" uid="uid://yhlbvdhwd02s" path="res://Scripts/Game/WaveManager.gd" id="4_y3kpf"]
-[ext_resource type="Script" uid="uid://bacwjgc8d7km3" path="res://Scripts/Game/GameManager.gd" id="5_3k6gv"]
-[ext_resource type="PackedScene" uid="uid://bwx8h5j2k3n4p" path="res://Scenes/Ui/HUD.tscn" id="6_3k6gv"]
-[ext_resource type="PackedScene" uid="uid://c8yay203a4b5c" path="res://Scenes/Ui/UpgradeMenu.tscn" id="7_1q8bt"]
-[ext_resource type="PackedScene" uid="uid://d4e5f6g7h8jaj" path="res://Scenes/Ui/GameOverScreen.tscn" id="9_3586x"]
+[ext_resource type="Script" uid="uid://dw1sda5rxjc1t" path="res://Scripts/Weapons/Katana.gd" id="1_rdw05"]
 
-[sub_resource type="Resource" id="Resource_3k6gv"]
-script = ExtResource("3_ln2h6")
-metadata/_custom_type_script = "uid://qh02i550hrbk"
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_katana"]
+size = Vector2(20, 6)
 
-[node name="Game" type="Node2D"]
+[node name="Katana" type="Node2D"]
+script = ExtResource("1_rdw05")
 
-[node name="Arena" parent="." instance=ExtResource("1_gwu2e")]
+[node name="Pivot" type="Node2D" parent="."]
 
-[node name="Player" parent="." instance=ExtResource("2_xbxml")]
-position = Vector2(320, 180)
-stats = SubResource("Resource_3k6gv")
+[node name="Sprite" type="ColorRect" parent="Pivot"]
+offset_left = 2.0
+offset_top = -2.0
+offset_right = 20.0
+offset_bottom = 2.0
+color = Color(0.9, 0.2, 0.2, 1)
 
-[node name="Camera2D" type="Camera2D" parent="Player"]
-process_callback = 0
-position_smoothing_enabled = true
-script = ExtResource("3_shake")
+[node name="HitBox" type="Area2D" parent="Pivot"]
+collision_layer = 64
+collision_mask = 20
 
-[node name="WaveManager" type="Node" parent="."]
-script = ExtResource("4_y3kpf")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Pivot/HitBox"]
+position = Vector2(11, 0)
+shape = SubResource("RectangleShape2D_katana")
 
-[node name="GameManager" type="Node" parent="."]
-script = ExtResource("5_3k6gv")
-
-[node name="HUD" parent="." instance=ExtResource("6_3k6gv")]
-
-[node name="UpgradeMenu" parent="." instance=ExtResource("7_1q8bt")]
-visible = false
-
-[node name="GameOverScreen" parent="." instance=ExtResource("9_3586x")]
-visible = false
+[node name="AttackTimer" type="Timer" parent="."]
+one_shot = true

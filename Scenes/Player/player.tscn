@@ -1,50 +1,29 @@
-[gd_scene load_steps=9 format=3 uid="uid://ihkhyc7g62ye"]
+[gd_scene load_steps=3 format=3 uid="uid://bhj4xic0jeyt"]
 
-[ext_resource type="Script" uid="uid://dsmf6w5yegfc" path="res://Scripts/Player/Player.gd" id="1_ft8w5"]
-[ext_resource type="Texture2D" uid="uid://dq20hol0fbldv" path="res://icon.svg" id="1_uvnfx"]
-[ext_resource type="Script" uid="uid://qh02i550hrbk" path="res://Scripts/Player/PlayerStats.gd" id="2_ude3g"]
-[ext_resource type="PackedScene" uid="uid://8obk5qvsqmhk" path="res://Scenes/Weapons/Basic_sword.tscn" id="3_jmcll"]
-[ext_resource type="PackedScene" uid="uid://dn16fj6ro42m1" path="res://Scenes/Weapons/basic_staff.tscn" id="4_jmcll"]
+[ext_resource type="Script" uid="uid://dw1sda5rxjc1t" path="res://Scripts/Weapons/Katana.gd" id="1_s0eop"]
 
-[sub_resource type="Resource" id="Resource_h54ih"]
-script = ExtResource("2_ude3g")
-metadata/_custom_type_script = "uid://qh02i550hrbk"
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_katana"]
+size = Vector2(20, 6)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_uvnfx"]
-size = Vector2(12, 12)
+[node name="Katana" type="Node2D"]
+script = ExtResource("1_s0eop")
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_a3d8c"]
-size = Vector2(14, 14)
+[node name="Pivot" type="Node2D" parent="."]
 
-[node name="Player" type="CharacterBody2D"]
-collision_layer = 2
-collision_mask = 8
-script = ExtResource("1_ft8w5")
-stats = SubResource("Resource_h54ih")
-starting_weapon_scene = ExtResource("3_jmcll")
-starting_staff_scene = ExtResource("4_jmcll")
+[node name="Sprite" type="ColorRect" parent="Pivot"]
+offset_left = 2.0
+offset_top = -2.0
+offset_right = 20.0
+offset_bottom = 2.0
+color = Color(0.9, 0.2, 0.2, 1)
 
-[node name="VisualsPivot" type="Node2D" parent="."]
+[node name="HitBox" type="Area2D" parent="Pivot"]
+collision_layer = 64
+collision_mask = 20
 
-[node name="Icon" type="Sprite2D" parent="VisualsPivot"]
-texture = ExtResource("1_uvnfx")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Pivot/HitBox"]
+position = Vector2(11, 0)
+shape = SubResource("RectangleShape2D_katana")
 
-[node name="CollisionShape" type="CollisionShape2D" parent="."]
-shape = SubResource("RectangleShape2D_uvnfx")
-
-[node name="WeaponPivot" type="Node2D" parent="."]
-
-[node name="WeaponHolder" type="Marker2D" parent="WeaponPivot"]
-position = Vector2(12, 0)
-
-[node name="StaffPivot" type="Node2D" parent="."]
-
-[node name="StaffHolder" type="Marker2D" parent="StaffPivot"]
-position = Vector2(-12, 0)
-
-[node name="HurtBox" type="Area2D" parent="."]
-collision_layer = 2
-collision_mask = 128
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="HurtBox"]
-shape = SubResource("RectangleShape2D_a3d8c")
+[node name="AttackTimer" type="Timer" parent="."]
+one_shot = true
