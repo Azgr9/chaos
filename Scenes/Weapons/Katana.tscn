@@ -1,12 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://katana_scene"]
+[gd_scene load_steps=3 format=3 uid="uid://yjs3f6eud54l"]
 
-[ext_resource type="Script" path="res://Scripts/Weapons/Katana.gd" id="1_katana"]
+[ext_resource type="Script" uid="uid://dw1sda5rxjc1t" path="res://Scripts/Weapons/Katana.gd" id="1_katana"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_katana"]
 size = Vector2(20, 6)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_sprite"]
-size = Vector2(18, 4)
 
 [node name="Katana" type="Node2D"]
 script = ExtResource("1_katana")
