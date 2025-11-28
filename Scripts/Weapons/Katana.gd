@@ -1,58 +1,43 @@
 # SCRIPT: Katana.gd
-# ATTACH TO: Katana (Node2D) root node in Katana.tscn
-# LOCATION: res://Scripts/Weapons/Katana.gd
-
 class_name Katana
 extends Node2D
 
-# Weapon stats
-@export var damage: float = 12.0  # Slightly higher than basic sword
-@export var attack_duration: float = 0.2  # Faster attacks
+@export var damage: float = 12.0
+@export var attack_duration: float = 0.2
 @export var attack_cooldown: float = 0.3
 
-# Nodes
 @onready var pivot: Node2D = $Pivot
 @onready var sprite: ColorRect = $Pivot/Sprite
 @onready var hit_box: Area2D = $Pivot/HitBox
 @onready var hit_box_collision: CollisionShape2D = $Pivot/HitBox/CollisionShape2D
 @onready var attack_timer: Timer = $AttackTimer
 
-# State
 var is_attacking: bool = false
 var can_attack: bool = true
 var damage_multiplier: float = 1.0
 var hits_this_swing: Array = []
 
-# Skill system - Dash Slash
-var skill_cooldown: float = 6.0  # 6 seconds cooldown
+var skill_cooldown: float = 6.0
 var skill_ready: bool = true
 var skill_timer: float = 0.0
 var is_dash_slashing: bool = false
 
-# Signals
 signal attack_finished
 signal dealt_damage(target: Node2D, damage: float)
 signal skill_used(cooldown: float)
 signal skill_ready_changed(ready: bool)
 
 func _ready():
-	# Connect hit detection
 	hit_box.area_entered.connect(_on_hit_box_area_entered)
 	hit_box.body_entered.connect(_on_hit_box_body_entered)
 	attack_timer.timeout.connect(_on_attack_cooldown_finished)
 
-	# Start with hitbox disabled
 	hit_box_collision.disabled = true
-
-	# Visual setup - Red katana
-	sprite.color = Color(0.9, 0.2, 0.2)  # Red
-
-	# Start hidden
+	sprite.color = Color(0.9, 0.2, 0.2)
 	visible = false
 	modulate.a = 0.0
 
 func _process(delta):
-	# Update skill cooldown
 	if not skill_ready:
 		skill_timer -= delta
 		if skill_timer <= 0:
@@ -68,70 +53,62 @@ func use_skill() -> bool:
 	skill_used.emit(skill_cooldown)
 	skill_ready_changed.emit(false)
 
-	# Perform dash slash
 	_perform_dash_slash()
 
 	return true
 
 func _perform_dash_slash():
-	# Get player and dash forward
 	var player = get_tree().get_first_node_in_group("player")
 	if not player:
 		return
 
 	is_dash_slashing = true
-	visible = true
-	hits_this_swing.clear()
 
-	# Make player invulnerable during dash
+	var dash_distance = 150.0
+	var dash_time = 0.15
+
+	# ⭐ DASH TOWARD MOUSE ⭐
+	var direction = (player.get_global_mouse_position() - player.global_position).normalized()
+
+	# -----------------------------
+	# WALL-SAFE DASH
+	# -----------------------------
+	var desired_position = player.global_position + direction * dash_distance
+
+	var space_state = get_world_2d().direct_space_state
+	var query = PhysicsRayQueryParameters2D.create(
+		player.global_position,
+		desired_position
+	)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+
+	var result = space_state.intersect_ray(query)
+
+	var target_position = desired_position
+
+	if result:
+		target_position = result.position - direction * 4.0
+	# -----------------------------
+
+	# --- INVULNERABILITY START ---
 	if player.has_method("set_invulnerable"):
 		player.set_invulnerable(true)
 
-	# Dash direction towards mouse
-	var mouse_pos = get_global_mouse_position()
-	var dash_direction = (mouse_pos - player.global_position).normalized()
-	var dash_distance = 80.0
-
-	# Position katana visually
-	pivot.position = Vector2.ZERO
-	pivot.rotation = dash_direction.angle()
-
-	# Create afterimage trail
-	_create_dash_trail(player)
-
-	# Create a damage area that follows the player
-	_create_dash_damage_area(player, dash_direction, dash_distance)
-
-	# Move player forward quickly
-	var start_pos = player.global_position
-	var end_pos = start_pos + dash_direction * dash_distance
-
 	var tween = create_tween()
-	tween.set_parallel(true)
+	tween.tween_property(player, "global_position", target_position, dash_time)\
+		.set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_OUT)
 
-	# Dash movement
-	tween.tween_property(player, "global_position", end_pos, 0.15)\
-		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-
-	# Katana flash
-	modulate.a = 1.0
-	sprite.color = Color.WHITE
-	tween.tween_property(sprite, "color", Color(0.9, 0.2, 0.2), 0.3)
-
-	# Cleanup
-	tween.tween_callback(func():
-		visible = false
-		modulate.a = 0.0
-		is_dash_slashing = false
-		pivot.rotation = 0
-		pivot.position = Vector2.ZERO
-		# Remove invulnerability
+	tween.finished.connect(func():
 		if player.has_method("set_invulnerable"):
 			player.set_invulnerable(false)
+		is_dash_slashing = false
 	)
 
+	_create_slash_effect(player.global_position)
+	_create_dash_damage_area(player, direction, dash_distance)
+
 func _create_dash_damage_area(player: Node2D, direction: Vector2, distance: float):
-	# Manually check for enemies during dash and damage them
 	var dash_time = 0.15
 	var checks = 5
 	var hit_enemies = []
@@ -139,19 +116,15 @@ func _create_dash_damage_area(player: Node2D, direction: Vector2, distance: floa
 	for i in range(checks):
 		await get_tree().create_timer(dash_time / checks).timeout
 
-		# Get all enemies in the game
 		var enemies = get_tree().get_nodes_in_group("enemies")
 
 		for enemy in enemies:
-			# Check distance to player (within dash radius)
 			if enemy.global_position.distance_to(player.global_position) < 30.0:
-				# Don't hit same enemy multiple times in one check
 				if enemy in hit_enemies:
 					continue
 
 				hit_enemies.append(enemy)
 
-				# Deal damage
 				var final_damage = damage * damage_multiplier * 1.5
 				print("Debug: Katana dash hit ", enemy.name, " for ", final_damage, " damage")
 
@@ -193,36 +166,27 @@ func attack(_direction: Vector2, player_damage_multiplier: float = 1.0):
 	return true
 
 func _perform_quick_slash():
-	# Fast horizontal slash
 	visible = true
 
 	var tween = create_tween()
 	tween.set_parallel(true)
 
-	# Fade in quickly
 	tween.tween_property(self, "modulate:a", 1.0, 0.05)
 
-	# Starting position
 	pivot.rotation = deg_to_rad(-90)
 	pivot.position = Vector2(-10, 0)
 
 	tween.set_parallel(false)
 
-	# Enable hitbox
 	tween.tween_callback(func(): hit_box_collision.disabled = false)
 
-	# Lightning fast slash
 	sprite.scale = Vector2(1.6, 0.6)
 	tween.tween_property(pivot, "rotation", deg_to_rad(90), attack_duration)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	tween.parallel().tween_property(sprite, "scale", Vector2.ONE, attack_duration)
 
-	# Disable hitbox
 	tween.tween_callback(func(): hit_box_collision.disabled = true)
-
-	# Quick fade out
 	tween.tween_property(self, "modulate:a", 0.0, 0.1)
-
 	tween.tween_callback(finish_attack)
 
 	attack_timer.start(attack_cooldown)
@@ -247,14 +211,10 @@ func _on_hit_box_area_entered(area: Area2D):
 	if parent.has_method("take_damage"):
 		hits_this_swing.append(parent)
 		var final_damage = damage * damage_multiplier
-		# Bonus damage during dash slash
 		if is_dash_slashing:
 			final_damage *= 1.5
-			print("Debug: Katana dash hit enemy for ", final_damage, " damage")
 		parent.take_damage(final_damage)
 		dealt_damage.emit(parent, final_damage)
-
-		# Visual feedback
 		_create_slash_effect(parent.global_position)
 
 func _on_hit_box_body_entered(body: Node2D):
@@ -271,7 +231,6 @@ func _on_hit_box_body_entered(body: Node2D):
 		_create_slash_effect(body.global_position)
 
 func _create_slash_effect(hit_position: Vector2):
-	# Red slash effect
 	for i in range(3):
 		var particle = ColorRect.new()
 		particle.size = Vector2(6, 2)
