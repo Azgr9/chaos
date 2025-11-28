@@ -183,10 +183,14 @@ func _perform_chain_lightning():
 			break
 
 	# Damage all targets in chain
+	print("DEBUG Lightning Staff: Found ", chain_targets.size(), " targets in chain")
 	for target in chain_targets:
 		if is_instance_valid(target) and target.has_method("take_damage"):
 			var final_damage = chain_damage * damage_multiplier
+			print("DEBUG Lightning Staff: Dealing ", final_damage, " damage to ", target.name)
 			target.take_damage(final_damage)
+		else:
+			print("DEBUG Lightning Staff: Target invalid or no take_damage method")
 
 	# Visual effect - draw lightning between targets
 	_draw_lightning_chain(chain_targets)

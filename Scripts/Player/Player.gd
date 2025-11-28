@@ -422,9 +422,15 @@ func perform_dash():
 	else:
 		dash_direction = last_direction
 
-	# Start dashing
+	# Start dashing - invulnerable during dash
 	is_dashing = true
+	is_invulnerable = true
 	dash_cooldown_timer = dash_cooldown
+
+	print("DEBUG: Started dash! is_dashing=", is_dashing, " is_invulnerable=", is_invulnerable)
+
+	# Visual feedback
+	sprite.modulate = Color(1, 1, 1, 0.5)
 
 	# Create dash trail effect
 	_create_dash_trail()
@@ -436,6 +442,8 @@ func perform_dash():
 	# Dash animation and duration
 	await get_tree().create_timer(dash_duration).timeout
 	is_dashing = false
+	is_invulnerable = false
+	sprite.modulate = Color.WHITE
 
 func _create_dash_trail():
 	# Create multiple ghost sprites for trail effect
