@@ -69,12 +69,14 @@ func _perform_dash_slash():
 
 	# ⭐ DASH TOWARD MOUSE ⭐
 	var direction = (player.get_global_mouse_position() - player.global_position).normalized()
+	if direction == Vector2.ZERO:
+		direction = Vector2.RIGHT  # fallback so we don't get a zero-length dash
 
-	# -----------------------------
-	# WALL-SAFE DASH
-	# -----------------------------
 	var desired_position = player.global_position + direction * dash_distance
 
+	# -----------------------------
+	# WALL-SAFE DASH (IGNORE PLAYER + ENEMIES)
+	# -----------------------------
 	var space_state = get_world_2d().direct_space_state
 	var query = PhysicsRayQueryParameters2D.create(
 		player.global_position,
@@ -83,11 +85,21 @@ func _perform_dash_slash():
 	query.collide_with_areas = false
 	query.collide_with_bodies = true
 
+	# Don't hit the player or enemies with this ray
+	var exclude: Array = [player]
+	exclude.append_array(get_tree().get_nodes_in_group("enemies"))
+	query.exclude = exclude
+
+	# If you want to restrict to a specific wall layer, you can optionally set:
+	# query.collision_mask = WALL_LAYER_MASK
+	# where WALL_LAYER_MASK is the bitmask for your wall/tiles layer.
+
 	var result = space_state.intersect_ray(query)
 
 	var target_position = desired_position
 
 	if result:
+		# Hit a wall (or other blocking body) → stop a bit before it
 		target_position = result.position - direction * 4.0
 	# -----------------------------
 
