@@ -50,9 +50,9 @@ func _ready():
 	if not projectile_scene:
 		projectile_scene = preload("res://Scenes/Spells/BasicProjectile.tscn")
 
-	# Get player reference
+	# Get player reference - use group lookup instead of fragile parent chain
 	await get_tree().process_frame
-	player = get_parent().get_parent().get_parent()
+	player = get_tree().get_first_node_in_group("player")
 
 func _process(_delta):
 	# Check for ability activation (E key)
@@ -269,3 +269,22 @@ func _on_ability_cooldown_finished():
 
 func _on_cooldown_finished():
 	can_attack = true
+
+# Method for HUD to query skill cooldown status
+func get_skill_cooldown_percent() -> float:
+	# Return 0.0 when on cooldown, 1.0 when ready
+	if can_use_ability:
+		return 1.0
+
+	# Calculate progress through cooldown
+	if ability_cooldown_timer.is_stopped():
+		return 1.0
+
+	var time_left = ability_cooldown_timer.time_left
+	var total_time = chain_lightning_cooldown
+
+	if total_time <= 0:
+		return 1.0
+
+	# Return percentage complete (0.0 = just started, 1.0 = finished)
+	return 1.0 - (time_left / total_time)

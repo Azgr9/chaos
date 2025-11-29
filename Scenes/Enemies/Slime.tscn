@@ -14,14 +14,6 @@ radius = 8.0
 collision_layer = 4
 collision_mask = 9
 script = ExtResource("1_slime")
-hop_distance = null
-hop_interval = null
-detection_range = null
-max_health = null
-move_speed = null
-damage = null
-knockback_resistance = null
-experience_value = null
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_physics")
