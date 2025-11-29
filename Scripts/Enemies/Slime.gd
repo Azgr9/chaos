@@ -65,11 +65,7 @@ func _physics_process(delta):
 
 func _update_movement(_delta):
 	if not player_reference:
-		# Find player if we don't have reference
-		var players = get_tree().get_nodes_in_group("player")
-		if players.size() > 0:
-			player_reference = players[0]
-		return
+		return  # Player reference set in base Enemy._ready()
 
 	# Don't move if being knocked back
 	if knockback_velocity.length() > 0:

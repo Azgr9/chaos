@@ -30,6 +30,7 @@ var skill_active: bool = false
 var skill_duration: float = 5.0  # 5 seconds boost
 var skill_duration_timer: float = 0.0
 var base_attack_cooldown: float = 0.3
+var glow_tween: Tween = null  # Store tween reference to kill it later
 
 # Signals
 signal projectile_fired(projectile: Area2D)
@@ -85,13 +86,18 @@ func _activate_skill():
 
 	# Visual feedback - glow effect
 	sprite.color = Color.CYAN
-	var glow_tween = create_tween()
+	glow_tween = create_tween()
 	glow_tween.set_loops()
 	glow_tween.tween_property(sprite, "modulate:v", 1.5, 0.3)
 	glow_tween.tween_property(sprite, "modulate:v", 1.0, 0.3)
 
 func _deactivate_skill():
 	skill_active = false
+
+	# Kill the looping tween to prevent memory leak
+	if glow_tween:
+		glow_tween.kill()
+		glow_tween = null
 
 	# Reset attack speed
 	attack_cooldown = base_attack_cooldown

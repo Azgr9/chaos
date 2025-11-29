@@ -69,11 +69,7 @@ func _physics_process(delta):
 
 func _update_movement(delta):
 	if not player_reference:
-		# Find player if we don't have reference
-		var players = get_tree().get_nodes_in_group("player")
-		if players.size() > 0:
-			player_reference = players[0]
-		return
+		return  # Player reference set in base Enemy._ready()
 
 	var distance_to_player = global_position.distance_to(player_reference.global_position)
 	var direction_to_player = (player_reference.global_position - global_position).normalized()

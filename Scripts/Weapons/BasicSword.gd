@@ -292,11 +292,11 @@ func _on_hit_box_area_entered(area: Area2D):
 		_create_hit_effect()
 		_create_impact_particles(parent.global_position)
 
-		# Dynamic hitstop - stronger freeze for stronger attacks
+		# Dynamic hitstop - use time_scale for better timing control
 		var freeze_duration = clamp(final_damage / 100.0, 0.01, 0.05)
-		get_tree().paused = true
-		await get_tree().create_timer(freeze_duration).timeout
-		get_tree().paused = false
+		Engine.time_scale = 0.05  # Slow to 5% speed for dramatic effect
+		await get_tree().create_timer(freeze_duration, true, false, true).timeout
+		Engine.time_scale = 1.0
 
 func _on_hit_box_body_entered(body: Node2D):
 	if body in hits_this_swing:

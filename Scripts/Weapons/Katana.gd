@@ -120,7 +120,7 @@ func _perform_dash_slash():
 	_create_slash_effect(player.global_position)
 	_create_dash_damage_area(player, direction, dash_distance)
 
-func _create_dash_damage_area(player: Node2D, direction: Vector2, distance: float):
+func _create_dash_damage_area(player: Node2D, _direction: Vector2, _distance: float):
 	var dash_time = 0.15
 	var checks = 5
 	var hit_enemies = []

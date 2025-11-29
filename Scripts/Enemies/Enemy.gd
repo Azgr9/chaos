@@ -29,12 +29,17 @@ var is_stunned: bool = false
 
 # Signals
 signal enemy_died(enemy: Enemy)
-signal damage_dealt(amount: float)
+signal damage_dealt(amount: float)  # Available for future use (e.g., achievements, stats)
 signal health_changed(current: float, max: float)
 
 func _ready():
 	current_health = max_health
 	add_to_group("enemies")
+
+	# Cache player reference once instead of searching every frame
+	if not player_reference:
+		player_reference = get_tree().get_first_node_in_group("player")
+
 	_setup_enemy()
 
 func _setup_enemy():

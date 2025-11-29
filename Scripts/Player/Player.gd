@@ -462,7 +462,7 @@ func _create_dash_trail():
 		tween.tween_property(ghost, "modulate:a", 0.0, 0.3)
 		tween.tween_callback(ghost.queue_free)
 
-func _handle_dash(delta):
+func _handle_dash(_delta):
 	# Move in dash direction at dash speed
 	velocity = dash_direction * dash_speed
 	move_and_slide()
