@@ -51,6 +51,7 @@ func _physics_process(delta):
 		_update_movement(delta)
 
 	_apply_knockback(delta)
+	_avoid_player_overlap()
 	move_and_slide()
 
 func _update_movement(_delta):
@@ -73,6 +74,27 @@ func _apply_knockback(delta):
 		knockback_velocity = knockback_velocity.lerp(Vector2.ZERO, 10 * delta)
 		if knockback_velocity.length() < 5:
 			knockback_velocity = Vector2.ZERO
+
+func _avoid_player_overlap():
+	# Prevent enemies from going inside the player
+	if not player_reference:
+		return
+
+	# Calculate distance to player
+	var to_player = player_reference.global_position - global_position
+	var distance = to_player.length()
+
+	# Minimum distance to maintain from player (based on collision shapes)
+	var min_distance = 25.0  # Adjust based on your collision shape sizes
+
+	# If too close, push away from player
+	if distance < min_distance and distance > 0:
+		var push_direction = -to_player.normalized()
+		var push_strength = (min_distance - distance) / min_distance
+
+		# Apply moderate push force (reduced to prevent catapulting)
+		if knockback_velocity.length() == 0:
+			velocity += push_direction * push_strength * 100.0  # Reduced from 200.0
 
 func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback_power: float = 150.0, stun_duration: float = 0.0):
 	if is_dead:

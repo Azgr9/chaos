@@ -71,39 +71,40 @@ func _update_movement(_delta):
 			player_reference = players[0]
 		return
 
-	# Don't hop if being knocked back
+	# Don't move if being knocked back
 	if knockback_velocity.length() > 0:
 		return
 
 	var distance_to_player = global_position.distance_to(player_reference.global_position)
+	var direction_to_player = (player_reference.global_position - global_position).normalized()
 
-	# Only move if player is in range and we can hop
-	if distance_to_player <= detection_range and hop_cooldown <= 0:
-		_perform_hop()
+	# Move in a hopping pattern using velocity (not tweens)
+	if distance_to_player <= detection_range:
+		if hop_cooldown <= 0:
+			# Trigger hop visual
+			_perform_hop_visual()
+			hop_cooldown = hop_interval
 
-func _perform_hop():
+		# Continuous movement during hop
+		if is_hopping:
+			velocity = direction_to_player * move_speed * 1.5  # Faster during hop
+		else:
+			velocity = Vector2.ZERO  # Stop between hops
+
+func _perform_hop_visual():
 	if is_hopping:
 		return
 
 	is_hopping = true
-	hop_cooldown = hop_interval
 
-	# Calculate hop direction toward player
-	hop_direction = (player_reference.global_position - global_position).normalized()
-
-	# Hop animation with tween
+	# Hop animation with tween (visuals only, no position change)
 	var tween = create_tween()
 
 	# Squash before jump
 	tween.tween_property(visuals_pivot, "scale", Vector2(base_scale.x * 1.3, base_scale.y * 0.7), 0.1)
 
 	# Jump up - stretch vertically
-	tween.tween_property(visuals_pivot, "scale", Vector2(base_scale.x * 0.8, base_scale.y * 1.3), 0.2)
-
-	# Add the actual movement
-	tween.parallel().tween_property(self, "position",
-		position + hop_direction * hop_distance, 0.3)\
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(visuals_pivot, "scale", Vector2(base_scale.x * 0.8, base_scale.y * 1.3), 0.3)
 
 	# Land - squash on impact
 	tween.tween_property(visuals_pivot, "scale", Vector2(base_scale.x * 1.2, base_scale.y * 0.8), 0.1)
@@ -112,7 +113,7 @@ func _perform_hop():
 	tween.tween_property(visuals_pivot, "scale", base_scale, 0.2)\
 		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
-	# Finish hop
+	# Finish hop after animation
 	tween.tween_callback(func(): is_hopping = false)
 
 func _on_damage_taken():
@@ -174,6 +175,7 @@ func _on_attack_box_area_entered(area: Area2D):
 		sprite.color = Color("#ffff00")  # Yellow flash
 		var tween = create_tween()
 		tween.tween_property(sprite, "color", Color("#00ff00"), 0.1)
+
 
 func _on_animation_timer():
 	# Random slight movements for life
