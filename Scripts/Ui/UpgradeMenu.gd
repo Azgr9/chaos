@@ -215,13 +215,30 @@ func _swap_weapon_to_katana():
 	# Mark as purchased
 	katana_purchased = true
 
-	# Reset player attack state to prevent being stuck
+	# CRITICAL: Reset ALL attack states immediately
 	player_reference.is_attacking = false
+	player_reference.is_melee_attacking = false
 
-	# Remove old weapon
+	# PROPER CLEANUP: Remove old weapon with full cleanup
 	if player_reference.current_weapon:
-		player_reference.current_weapon.queue_free()
+		var old_weapon = player_reference.current_weapon
+
+		# Cancel any active attacks/animations
+		if old_weapon.has_method("finish_attack"):
+			old_weapon.finish_attack()
+
+		# Disconnect all signals to prevent orphan connections
+		if old_weapon.has_signal("attack_finished"):
+			for connection in old_weapon.attack_finished.get_connections():
+				old_weapon.attack_finished.disconnect(connection["callable"])
+
+		# Queue free the weapon (will be removed next frame)
+		old_weapon.queue_free()
 		player_reference.weapon_inventory.clear()
+		player_reference.current_weapon = null
+
+	# Wait one frame for old weapon to be fully removed
+	await get_tree().process_frame
 
 	# Add new katana
 	var new_weapon = KATANA_SCENE.instantiate()
@@ -236,9 +253,9 @@ func _swap_weapon_to_katana():
 	if new_weapon.has_signal("attack_finished"):
 		new_weapon.attack_finished.connect(player_reference._on_attack_finished)
 
-	# Reset attack state again after frame to ensure it's cleared
-	await get_tree().process_frame
+	# Final reset after everything is set up
 	player_reference.is_attacking = false
+	player_reference.is_melee_attacking = false
 
 func _on_staff_shop_pressed():
 	var game_manager = get_tree().get_first_node_in_group("game_manager")
@@ -281,19 +298,33 @@ func _swap_weapon_to_staff():
 	# Mark as purchased
 	staff_purchased = true
 
-	# Reset player attack state
+	# CRITICAL: Reset ALL attack states immediately
 	player_reference.is_attacking = false
 	player_reference.is_magic_attacking = false
 
-	# Remove old staff if exists
+	# PROPER CLEANUP: Remove old staff with full cleanup
 	if player_reference.current_staff:
-		player_reference.current_staff.queue_free()
-		player_reference.staff_inventory.clear()
+		var old_staff = player_reference.current_staff
 
-	# Add new lightning staff to staff pivot (not weapon pivot!)
+		# Disconnect all signals
+		var staff_signals = ["projectile_fired", "skill_used", "skill_ready_changed"]
+		for sig_name in staff_signals:
+			if old_staff.has_signal(sig_name):
+				for connection in old_staff.get(sig_name).get_connections():
+					old_staff.get(sig_name).disconnect(connection["callable"])
+
+		# Queue free the staff
+		old_staff.queue_free()
+		player_reference.staff_inventory.clear()
+		player_reference.current_staff = null
+
+	# Wait one frame for old staff to be fully removed
+	await get_tree().process_frame
+
+	# Add new lightning staff to staff holder
 	var new_staff = LIGHTNING_STAFF_SCENE.instantiate()
-	var staff_pivot = player_reference.get_node("StaffPivot")
-	staff_pivot.add_child(new_staff)
+	var staff_holder = player_reference.get_node("StaffPivot/StaffHolder")
+	staff_holder.add_child(new_staff)
 	new_staff.position = Vector2.ZERO
 
 	player_reference.current_staff = new_staff
@@ -301,8 +332,7 @@ func _swap_weapon_to_staff():
 
 	print("Lightning Staff equipped! Use right-click to attack, E key for chain lightning ability.")
 
-	# Reset attack state again after frame
-	await get_tree().process_frame
+	# Final reset
 	player_reference.is_attacking = false
 	player_reference.is_magic_attacking = false
 

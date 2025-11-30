@@ -71,9 +71,15 @@ func _ready():
 	# Visual setup
 	sprite.color = Color("#c0c0c0")  # Silver
 
-	# Start hidden
-	visible = false
-	modulate.a = 0.0
+	# Start visible and always show (like staff)
+	visible = true
+	modulate.a = 1.0
+
+	# Default idle state - small sword
+	# Position is FULLY controlled by Player's WeaponPivot - we only control rotation and scale
+	pivot.position = Vector2.ZERO  # No offset - Player controls position
+	pivot.rotation = deg_to_rad(45)  # Angled down
+	sprite.scale = Vector2(0.6, 0.6)  # Smaller when idle
 
 	# Get player reference for dash attacks
 	await get_tree().process_frame
@@ -173,9 +179,6 @@ func attack(_direction: Vector2, player_damage_multiplier: float = 1.0):
 	return true
 
 func _perform_overhead_swing(duration: float = 0.25, is_dash_attack: bool = false):
-	# Make sword visible with fade in
-	visible = true
-
 	# Enhanced visuals for combo finisher
 	var is_combo_finisher = (combo_count == 3)
 	if is_combo_finisher:
@@ -186,8 +189,8 @@ func _perform_overhead_swing(duration: float = 0.25, is_dash_attack: bool = fals
 	var tween = create_tween()
 	tween.set_parallel(true)
 
-	# Faster fade in for combo attacks
-	tween.tween_property(self, "modulate:a", 1.0, duration * 0.4)
+	# Scale up from idle size to full attack size
+	tween.tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)
 
 	# Starting position - raised up and back
 	pivot.rotation = deg_to_rad(-120)
@@ -225,15 +228,15 @@ func _perform_overhead_swing(duration: float = 0.25, is_dash_attack: bool = fals
 	# Disable hitbox
 	tween.tween_callback(func(): hit_box_collision.disabled = true)
 
-	# Fade out
-	tween.tween_property(self, "modulate:a", 0.0, 0.15)
+	# Return to idle position
+	tween.tween_property(pivot, "position", Vector2.ZERO, 0.15)
+	tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.15)
+	tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.15)
 
 	# Finish
 	tween.tween_callback(finish_attack)
 
 func _perform_horizontal_swing(duration: float = 0.25, is_dash_attack: bool = false):
-	visible = true
-
 	# Enhanced visuals for combo finisher
 	var is_combo_finisher = (combo_count == 3)
 	if is_combo_finisher:
@@ -244,8 +247,8 @@ func _perform_horizontal_swing(duration: float = 0.25, is_dash_attack: bool = fa
 	var tween = create_tween()
 	tween.set_parallel(true)
 
-	# Faster fade in for combo attacks
-	tween.tween_property(self, "modulate:a", 1.0, duration * 0.4)
+	# Scale up from idle size to full attack size
+	tween.tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)
 
 	# Starting position - pulled to the side
 	pivot.rotation = deg_to_rad(-90)
@@ -279,14 +282,14 @@ func _perform_horizontal_swing(duration: float = 0.25, is_dash_attack: bool = fa
 	# Disable hitbox
 	tween.tween_callback(func(): hit_box_collision.disabled = true)
 
-	# Fade out
-	tween.tween_property(self, "modulate:a", 0.0, 0.15)
+	# Return to idle position
+	tween.tween_property(pivot, "position", Vector2.ZERO, 0.15)
+	tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.15)
+	tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.15)
 
 	tween.tween_callback(finish_attack)
 
 func _perform_stab_attack(duration: float = 0.25, is_dash_attack: bool = false):
-	visible = true
-
 	# Enhanced visuals for combo finisher
 	var is_combo_finisher = (combo_count == 3)
 	if is_combo_finisher:
@@ -297,8 +300,8 @@ func _perform_stab_attack(duration: float = 0.25, is_dash_attack: bool = false):
 	var tween = create_tween()
 	tween.set_parallel(true)
 
-	# Faster fade in for combo attacks
-	tween.tween_property(self, "modulate:a", 1.0, duration * 0.4)
+	# Scale up from idle size to full attack size
+	tween.tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)
 
 	# Starting position - pulled back
 	pivot.rotation = 0
@@ -332,19 +335,21 @@ func _perform_stab_attack(duration: float = 0.25, is_dash_attack: bool = false):
 	# Disable hitbox
 	tween.tween_callback(func(): hit_box_collision.disabled = true)
 
-	# Fade out
-	tween.tween_property(self, "modulate:a", 0.0, 0.15)
+	# Return to idle position
+	tween.tween_property(pivot, "position", Vector2.ZERO, 0.15)
+	tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.15)
+	tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.15)
 
 	tween.tween_callback(finish_attack)
 
 func finish_attack():
 	hit_box_collision.disabled = true
 	is_attacking = false
-	visible = false
-	pivot.rotation = 0
-	pivot.position = Vector2.ZERO
+	# Keep sword visible at all times
+	pivot.rotation = deg_to_rad(45)  # Idle angle
+	pivot.position = Vector2.ZERO  # No offset - Player controls all positioning
 	sprite.color = Color("#c0c0c0")  # Reset to silver
-	sprite.scale = Vector2.ONE  # Reset scale
+	sprite.scale = Vector2(0.6, 0.6)  # Idle size
 	attack_finished.emit()
 
 func _on_attack_cooldown_finished():

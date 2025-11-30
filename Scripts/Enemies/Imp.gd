@@ -5,6 +5,9 @@
 class_name Imp
 extends Enemy
 
+# Imp specific stats
+@export var unlocks_at_wave: int = 1  # Imps available from wave 1
+
 # Nodes
 @onready var visuals_pivot: Node2D = $VisualsPivot
 @onready var sprite: ColorRect = $VisualsPivot/Sprite

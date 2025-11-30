@@ -6,6 +6,7 @@ class_name GoblinArcher
 extends Enemy
 
 # Archer specific properties
+@export var unlocks_at_wave: int = 2  # Goblin Archers unlock at wave 2
 @export var arrow_scene: PackedScene = preload("res://Scenes/Enemies/EnemyArrow.tscn")
 @export var shoot_range: float = 120.0
 @export var retreat_range: float = 50.0
@@ -16,14 +17,12 @@ extends Enemy
 @onready var sprite: ColorRect = $VisualsPivot/Sprite
 @onready var bow: ColorRect = $VisualsPivot/Bow
 @onready var hurt_box: Area2D = $HurtBox
-@onready var detection_range: Area2D = $DetectionRange
 @onready var health_bar: Node2D = $HealthBar
 @onready var health_fill: ColorRect = $HealthBar/Fill
 @onready var shoot_timer: Timer = $ShootTimer
 @onready var animation_timer: Timer = $AnimationTimer
 
 # State
-var can_see_player: bool = false
 var can_shoot: bool = true
 var is_shooting: bool = false
 var time_alive: float = 0.0
@@ -36,8 +35,6 @@ func _setup_enemy():
 	current_health = max_health
 
 	# Connect signals
-	detection_range.body_entered.connect(_on_detection_range_entered)
-	detection_range.body_exited.connect(_on_detection_range_exited)
 	shoot_timer.timeout.connect(_on_shoot_timer_timeout)
 	animation_timer.timeout.connect(_on_animation_timer)
 
@@ -91,8 +88,8 @@ func _update_movement(delta):
 		# Good distance - stand and shoot
 		velocity = velocity.lerp(Vector2.ZERO, 5 * delta)
 
-		# Try to shoot
-		if can_see_player and can_shoot:
+		# Try to shoot - always shoot when in range
+		if can_shoot:
 			_shoot_arrow()
 
 func _shoot_arrow():
@@ -140,14 +137,6 @@ func _spawn_arrow():
 	target_pos.y += spread
 
 	arrow.initialize(global_position, target_pos)
-
-func _on_detection_range_entered(body: Node2D):
-	if body.is_in_group("player"):
-		can_see_player = true
-
-func _on_detection_range_exited(body: Node2D):
-	if body.is_in_group("player"):
-		can_see_player = false
 
 func _on_shoot_timer_timeout():
 	can_shoot = true

@@ -33,9 +33,17 @@ func _ready():
 	attack_timer.timeout.connect(_on_attack_cooldown_finished)
 
 	hit_box_collision.disabled = true
-	sprite.color = Color(0.9, 0.2, 0.2)
-	visible = false
-	modulate.a = 0.0
+	sprite.color = Color(0.9, 0.2, 0.2)  # Red katana
+
+	# Start visible and always show (like staff)
+	visible = true
+	modulate.a = 1.0
+
+	# Default idle position - katana held in hand
+	# Only set Y position, X is controlled by WeaponPivot in Player
+	pivot.position = Vector2.ZERO  # Down slightly
+	pivot.rotation = deg_to_rad(45)  # Angled down
+	sprite.scale = Vector2(0.6, 0.6)  # Smaller when idle
 
 func _process(delta):
 	if not skill_ready:
@@ -178,12 +186,11 @@ func attack(_direction: Vector2, player_damage_multiplier: float = 1.0):
 	return true
 
 func _perform_quick_slash():
-	visible = true
-
 	var tween = create_tween()
 	tween.set_parallel(true)
 
-	tween.tween_property(self, "modulate:a", 1.0, 0.05)
+	# Scale up from idle size
+	tween.tween_property(sprite, "scale", Vector2(1.6, 0.6), 0.05)
 
 	pivot.rotation = deg_to_rad(-90)
 	pivot.position = Vector2(-10, 0)
@@ -192,13 +199,17 @@ func _perform_quick_slash():
 
 	tween.tween_callback(func(): hit_box_collision.disabled = false)
 
-	sprite.scale = Vector2(1.6, 0.6)
 	tween.tween_property(pivot, "rotation", deg_to_rad(90), attack_duration)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	tween.parallel().tween_property(sprite, "scale", Vector2.ONE, attack_duration)
 
 	tween.tween_callback(func(): hit_box_collision.disabled = true)
-	tween.tween_property(self, "modulate:a", 0.0, 0.1)
+
+	# Return to idle position
+	tween.tween_property(pivot, "position", Vector2(0, 8), 0.1)
+	tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.1)
+	tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.1)
+
 	tween.tween_callback(finish_attack)
 
 	attack_timer.start(attack_cooldown)
@@ -206,9 +217,10 @@ func _perform_quick_slash():
 func finish_attack():
 	hit_box_collision.disabled = true
 	is_attacking = false
-	visible = false
-	pivot.rotation = 0
-	pivot.position = Vector2.ZERO
+	# Keep katana visible at all times
+	pivot.rotation = deg_to_rad(45)  # Idle angle
+	pivot.position = Vector2.ZERO  # Idle position
+	sprite.scale = Vector2(0.6, 0.6)  # Idle size
 	attack_finished.emit()
 
 func _on_attack_cooldown_finished():

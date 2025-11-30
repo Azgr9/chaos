@@ -216,17 +216,18 @@ func update_facing_direction():
 		facing_direction = last_direction
 	# When idle, keep last facing direction
 
-	# Update visual facing (flip sprite if needed)
+	# Update visual facing (flip sprite AND weapon pivots)
 	if facing_direction.x < 0:
 		visuals_pivot.scale.x = -1
-		# When facing left, flip weapon positions
-		weapon_pivot.position = Vector2(-12, 0)  # Sword goes to left
-		staff_pivot.position = Vector2(12, 0)    # Staff goes to right
+		# Mirror weapon pivots so they switch sides
+		# Sword goes to LEFT (facing direction), Staff goes to RIGHT (back)
+		weapon_pivot.scale.x = -1
+		staff_pivot.scale.x = -1
 	else:
 		visuals_pivot.scale.x = 1
-		# When facing right, normal positions
-		weapon_pivot.position = Vector2(12, 0)   # Sword on right
-		staff_pivot.position = Vector2(-12, 0)   # Staff on left
+		# Normal - Sword on RIGHT (facing direction), Staff on LEFT (back)
+		weapon_pivot.scale.x = 1
+		staff_pivot.scale.x = 1
 
 	# Keep weapons horizontal when not attacking
 	if not is_melee_attacking:

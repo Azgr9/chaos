@@ -8,7 +8,7 @@ extends Enemy
 # Slime specific stats
 @export var hop_distance: float = 30.0
 @export var hop_interval: float = 1.0
-@export var detection_range: float = 200.0
+@export var unlocks_at_wave: int = 1  # Slimes available from wave 1
 
 # Nodes
 @onready var visuals_pivot: Node2D = $VisualsPivot
@@ -75,17 +75,17 @@ func _update_movement(_delta):
 	var direction_to_player = (player_reference.global_position - global_position).normalized()
 
 	# Move in a hopping pattern using velocity (not tweens)
-	if distance_to_player <= detection_range:
-		if hop_cooldown <= 0:
-			# Trigger hop visual
-			_perform_hop_visual()
-			hop_cooldown = hop_interval
+	# Always pursue player immediately
+	if hop_cooldown <= 0:
+		# Trigger hop visual
+		_perform_hop_visual()
+		hop_cooldown = hop_interval
 
-		# Continuous movement during hop
-		if is_hopping:
-			velocity = direction_to_player * move_speed * 1.5  # Faster during hop
-		else:
-			velocity = Vector2.ZERO  # Stop between hops
+	# Continuous movement during hop
+	if is_hopping:
+		velocity = direction_to_player * move_speed * 1.5  # Faster during hop
+	else:
+		velocity = Vector2.ZERO  # Stop between hops
 
 func _perform_hop_visual():
 	if is_hopping:

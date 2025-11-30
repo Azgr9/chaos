@@ -8,14 +8,14 @@ script = ExtResource("1_33077")
 projectile_scene = ExtResource("2_oaq23")
 
 [node name="Sprite" type="ColorRect" parent="."]
-offset_top = -2.0
-offset_right = 16.0
-offset_bottom = 2.0
+offset_left = -2.0
+offset_right = 14.0
+offset_bottom = 4.0
 rotation = -1.5707964
 color = Color(0.54509807, 0.27058825, 0.07450981, 1)
 
 [node name="ProjectileSpawn" type="Marker2D" parent="."]
-position = Vector2(2, -18)
+position = Vector2(0, -16)
 
 [node name="AttackCooldown" type="Timer" parent="."]
 wait_time = 0.3

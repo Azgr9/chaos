@@ -6,8 +6,9 @@
 script = ExtResource("1_lightning")
 
 [node name="Sprite" type="ColorRect" parent="."]
+offset_left = -9.0
 offset_top = -2.0
-offset_right = 18.0
+offset_right = 9.0
 offset_bottom = 2.0
 rotation = -1.5707964
 color = Color(0.26667, 0.53333, 1, 1)

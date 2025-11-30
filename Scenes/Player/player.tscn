@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://ihkhyc7g62ye"]
+[gd_scene load_steps=9 format=3 uid="uid://4gcg2yrjo66v"]
 
 [ext_resource type="Script" uid="uid://dsmf6w5yegfc" path="res://Scripts/Player/Player.gd" id="1_ft8w5"]
 [ext_resource type="Texture2D" uid="uid://dq20hol0fbldv" path="res://icon.svg" id="1_uvnfx"]
@@ -35,7 +35,7 @@ shape = SubResource("RectangleShape2D_uvnfx")
 [node name="WeaponPivot" type="Node2D" parent="."]
 
 [node name="WeaponHolder" type="Marker2D" parent="WeaponPivot"]
-position = Vector2(12, 0)
+position = Vector2(10, 6)
 
 [node name="StaffPivot" type="Node2D" parent="."]
 
