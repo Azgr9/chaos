@@ -28,6 +28,25 @@ var can_attack: bool = true
 var damage_multiplier: float = 1.0
 var hits_this_swing: Array = []  # Track what we hit this swing
 
+# Combo system
+var combo_count: int = 0
+var combo_timer: float = 0.0
+const COMBO_WINDOW: float = 2.0  # Reset combo after 2 seconds
+const COMBO_FINISHER_MULTIPLIER: float = 1.5
+
+# Attack speed scaling
+var base_attack_cooldown: float = 0.35
+const SPEED_BOOST_PER_HIT: float = 0.1  # 10% faster per hit
+
+# Critical hit system
+const CRIT_CHANCE: float = 0.2  # 20% chance
+const CRIT_MULTIPLIER: float = 2.0
+
+# Dash attack system
+var player_reference: Node2D = null
+const DASH_ATTACK_WINDOW: float = 0.2
+const DASH_ATTACK_MULTIPLIER: float = 1.5
+
 # Skill system
 var skill_cooldown: float = 8.0  # 8 seconds cooldown
 var skill_ready: bool = true
@@ -56,7 +75,17 @@ func _ready():
 	visible = false
 	modulate.a = 0.0
 
+	# Get player reference for dash attacks
+	await get_tree().process_frame
+	player_reference = get_tree().get_first_node_in_group("player")
+
 func _process(delta):
+	# Update combo timer
+	if combo_count > 0:
+		combo_timer -= delta
+		if combo_timer <= 0:
+			combo_count = 0  # Reset combo
+
 	# Update skill cooldown
 	if not skill_ready:
 		skill_timer -= delta
@@ -112,157 +141,201 @@ func attack(_direction: Vector2, player_damage_multiplier: float = 1.0):
 	can_attack = false
 	hits_this_swing.clear()
 
-	# Perform the appropriate swing style
+	# Increment combo
+	combo_count += 1
+	combo_timer = COMBO_WINDOW
+
+	# Calculate attack speed based on combo
+	var speed_multiplier = 1.0 + (min(combo_count - 1, 2) * SPEED_BOOST_PER_HIT)
+	var modified_duration = attack_duration / speed_multiplier
+	var modified_cooldown = base_attack_cooldown / speed_multiplier
+
+	# Check for dash attack bonus
+	var is_dash_attack = false
+	if player_reference and player_reference.is_dashing:
+		is_dash_attack = true
+		print("DASH ATTACK!")
+
+	# Perform the appropriate swing style with modified timing
 	match swing_style:
 		"overhead":
-			_perform_overhead_swing()
+			_perform_overhead_swing(modified_duration, is_dash_attack)
 		"horizontal":
-			_perform_horizontal_swing()
+			_perform_horizontal_swing(modified_duration, is_dash_attack)
 		"stab":
-			_perform_stab_attack()
+			_perform_stab_attack(modified_duration, is_dash_attack)
 		_:
-			_perform_overhead_swing()
+			_perform_overhead_swing(modified_duration, is_dash_attack)
+
+	# Start cooldown with speed scaling
+	attack_timer.start(modified_cooldown)
 
 	return true
 
-func _perform_overhead_swing():
+func _perform_overhead_swing(duration: float = 0.25, is_dash_attack: bool = false):
 	# Make sword visible with fade in
 	visible = true
-	
+
+	# Enhanced visuals for combo finisher
+	var is_combo_finisher = (combo_count == 3)
+	if is_combo_finisher:
+		sprite.color = Color.GOLD  # Gold for combo finisher
+	elif is_dash_attack:
+		sprite.color = Color.CYAN  # Cyan for dash attack
+
 	var tween = create_tween()
 	tween.set_parallel(true)
-	
-	# Fade in
-	tween.tween_property(self, "modulate:a", 1.0, 0.1)
-	
+
+	# Faster fade in for combo attacks
+	tween.tween_property(self, "modulate:a", 1.0, duration * 0.4)
+
 	# Starting position - raised up and back
 	pivot.rotation = deg_to_rad(-120)
-	pivot.position = Vector2(-5, -10)  # Pull back and up
-	
+	pivot.position = Vector2(-5, -10)
+
 	# Create swing arc
 	tween.set_parallel(false)
-	
-	# Anticipation - pull back slightly more
-	tween.tween_property(pivot, "rotation", deg_to_rad(-130), attack_duration * 0.2)
-	tween.parallel().tween_property(pivot, "position", Vector2(-8, -12), attack_duration * 0.2)
-	
-	# Enable hitbox and create trail just before main swing
+
+	# Anticipation - pull back slightly more (shorter for speed)
+	tween.tween_property(pivot, "rotation", deg_to_rad(-130), duration * 0.2)
+	tween.parallel().tween_property(pivot, "position", Vector2(-8, -12), duration * 0.2)
+
+	# Enable hitbox and create enhanced trail
 	tween.tween_callback(func():
 		hit_box_collision.disabled = false
-		_create_swing_trail()
+		_create_swing_trail(is_combo_finisher, is_dash_attack)
 	)
 
-	# Main swing - fast and powerful with stretch
-	sprite.scale = Vector2(1.5, 0.7)  # Stretch for speed
-	tween.tween_property(pivot, "rotation", deg_to_rad(70), attack_duration * 0.5)\
+	# Main swing - more stretch for combo finisher
+	var stretch_amount = 1.7 if is_combo_finisher else 1.5
+	sprite.scale = Vector2(stretch_amount, 0.6)
+	tween.tween_property(pivot, "rotation", deg_to_rad(70), duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(pivot, "position", Vector2(5, 5), attack_duration * 0.5)\
+	tween.parallel().tween_property(pivot, "position", Vector2(5, 5), duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 	# Reset scale with bounce
-	tween.parallel().tween_property(sprite, "scale", Vector2.ONE, attack_duration * 0.3)\
+	tween.parallel().tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	
+
 	# Follow through
-	tween.tween_property(pivot, "rotation", deg_to_rad(90), attack_duration * 0.3)\
+	tween.tween_property(pivot, "rotation", deg_to_rad(90), duration * 0.3)\
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	
+
 	# Disable hitbox
 	tween.tween_callback(func(): hit_box_collision.disabled = true)
-	
+
 	# Fade out
 	tween.tween_property(self, "modulate:a", 0.0, 0.15)
-	
+
 	# Finish
 	tween.tween_callback(finish_attack)
-	
-	# Start cooldown timer
-	attack_timer.start(attack_cooldown)
 
-func _perform_horizontal_swing():
+func _perform_horizontal_swing(duration: float = 0.25, is_dash_attack: bool = false):
 	visible = true
-	
+
+	# Enhanced visuals for combo finisher
+	var is_combo_finisher = (combo_count == 3)
+	if is_combo_finisher:
+		sprite.color = Color.GOLD  # Gold for combo finisher
+	elif is_dash_attack:
+		sprite.color = Color.CYAN  # Cyan for dash attack
+
 	var tween = create_tween()
 	tween.set_parallel(true)
-	
-	# Fade in
-	tween.tween_property(self, "modulate:a", 1.0, 0.1)
-	
+
+	# Faster fade in for combo attacks
+	tween.tween_property(self, "modulate:a", 1.0, duration * 0.4)
+
 	# Starting position - pulled to the side
 	pivot.rotation = deg_to_rad(-90)
 	pivot.position = Vector2(-8, 0)
-	
+
 	tween.set_parallel(false)
-	
+
 	# Anticipation
-	tween.tween_property(pivot, "rotation", deg_to_rad(-100), attack_duration * 0.2)
-	
-	# Enable hitbox
-	tween.tween_callback(func(): hit_box_collision.disabled = false)
-	
-	# Main sweep
-	tween.tween_property(pivot, "rotation", deg_to_rad(90), attack_duration * 0.5)\
+	tween.tween_property(pivot, "rotation", deg_to_rad(-100), duration * 0.2)
+
+	# Enable hitbox and create enhanced trail
+	tween.tween_callback(func():
+		hit_box_collision.disabled = false
+		_create_swing_trail(is_combo_finisher, is_dash_attack)
+	)
+
+	# Main sweep - more stretch for combo finisher
+	var stretch_amount = 0.6 if is_combo_finisher else 0.7
+	sprite.scale.y = stretch_amount
+	tween.tween_property(pivot, "rotation", deg_to_rad(90), duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(pivot, "position", Vector2(8, 0), attack_duration * 0.5)
-	
-	# Stretch effect for speed
-	tween.parallel().tween_property(sprite, "scale:y", 0.7, attack_duration * 0.3)
-	tween.tween_property(sprite, "scale:y", 1.0, attack_duration * 0.2)
-	
+	tween.parallel().tween_property(pivot, "position", Vector2(8, 0), duration * 0.5)
+
+	# Reset scale with bounce
+	tween.parallel().tween_property(sprite, "scale:y", 1.0, duration * 0.3)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
 	# Follow through
-	tween.tween_property(pivot, "rotation", deg_to_rad(100), attack_duration * 0.3)
-	
+	tween.tween_property(pivot, "rotation", deg_to_rad(100), duration * 0.3)
+
 	# Disable hitbox
 	tween.tween_callback(func(): hit_box_collision.disabled = true)
-	
+
 	# Fade out
 	tween.tween_property(self, "modulate:a", 0.0, 0.15)
-	
-	tween.tween_callback(finish_attack)
-	
-	attack_timer.start(attack_cooldown)
 
-func _perform_stab_attack():
+	tween.tween_callback(finish_attack)
+
+func _perform_stab_attack(duration: float = 0.25, is_dash_attack: bool = false):
 	visible = true
-	
+
+	# Enhanced visuals for combo finisher
+	var is_combo_finisher = (combo_count == 3)
+	if is_combo_finisher:
+		sprite.color = Color.GOLD  # Gold for combo finisher
+	elif is_dash_attack:
+		sprite.color = Color.CYAN  # Cyan for dash attack
+
 	var tween = create_tween()
 	tween.set_parallel(true)
-	
-	# Fade in
-	tween.tween_property(self, "modulate:a", 1.0, 0.1)
-	
+
+	# Faster fade in for combo attacks
+	tween.tween_property(self, "modulate:a", 1.0, duration * 0.4)
+
 	# Starting position - pulled back
 	pivot.rotation = 0
 	pivot.position = Vector2(-15, 0)
-	
+
 	tween.set_parallel(false)
-	
+
 	# Pull back more (anticipation)
-	tween.tween_property(pivot, "position", Vector2(-20, 0), attack_duration * 0.3)
-	
-	# Enable hitbox
-	tween.tween_callback(func(): hit_box_collision.disabled = false)
-	
-	# Thrust forward
-	tween.tween_property(pivot, "position", Vector2(15, 0), attack_duration * 0.4)\
+	tween.tween_property(pivot, "position", Vector2(-20, 0), duration * 0.3)
+
+	# Enable hitbox and create enhanced trail
+	tween.tween_callback(func():
+		hit_box_collision.disabled = false
+		_create_swing_trail(is_combo_finisher, is_dash_attack)
+	)
+
+	# Thrust forward - faster and further for combo finisher
+	var thrust_distance = 18.0 if is_combo_finisher else 15.0
+	tween.tween_property(pivot, "position", Vector2(thrust_distance, 0), duration * 0.4)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	
-	# Scale for impact
-	tween.parallel().tween_property(sprite, "scale:x", 1.5, attack_duration * 0.2)
-	tween.tween_property(sprite, "scale:x", 1.0, attack_duration * 0.2)
-	
+
+	# Scale for impact - more stretch for combo finisher
+	var stretch_amount = 1.8 if is_combo_finisher else 1.5
+	tween.parallel().tween_property(sprite, "scale:x", stretch_amount, duration * 0.2)
+	tween.tween_property(sprite, "scale:x", 1.0, duration * 0.2)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
 	# Pull back
-	tween.tween_property(pivot, "position", Vector2(0, 0), attack_duration * 0.3)
-	
+	tween.tween_property(pivot, "position", Vector2(0, 0), duration * 0.3)
+
 	# Disable hitbox
 	tween.tween_callback(func(): hit_box_collision.disabled = true)
-	
+
 	# Fade out
 	tween.tween_property(self, "modulate:a", 0.0, 0.15)
-	
+
 	tween.tween_callback(finish_attack)
-	
-	attack_timer.start(attack_cooldown)
 
 func finish_attack():
 	hit_box_collision.disabled = true
@@ -270,6 +343,8 @@ func finish_attack():
 	visible = false
 	pivot.rotation = 0
 	pivot.position = Vector2.ZERO
+	sprite.color = Color("#c0c0c0")  # Reset to silver
+	sprite.scale = Vector2.ONE  # Reset scale
 	attack_finished.emit()
 
 func _on_attack_cooldown_finished():
@@ -285,18 +360,44 @@ func _on_hit_box_area_entered(area: Area2D):
 	if parent.has_method("take_damage"):
 		hits_this_swing.append(parent)
 		var final_damage = damage * damage_multiplier
+
+		# Apply combo finisher bonus (3rd hit)
+		var is_combo_finisher = (combo_count == 3)
+		if is_combo_finisher:
+			final_damage *= COMBO_FINISHER_MULTIPLIER
+			print("COMBO FINISHER! x%.1f damage" % COMBO_FINISHER_MULTIPLIER)
+
+		# Apply dash attack bonus
+		if player_reference and player_reference.is_dashing:
+			final_damage *= DASH_ATTACK_MULTIPLIER
+			print("DASH BONUS! x%.1f damage" % DASH_ATTACK_MULTIPLIER)
+
+		# Apply critical hit
+		var is_crit = randf() < CRIT_CHANCE
+		if is_crit:
+			final_damage *= CRIT_MULTIPLIER
+			print("CRITICAL HIT!")
+			_spawn_crit_text(parent.global_position)
+
 		parent.take_damage(final_damage)
 		dealt_damage.emit(parent, final_damage)
 
 		# Enhanced visual feedback on hit
-		_create_hit_effect()
-		_create_impact_particles(parent.global_position)
+		_create_hit_effect(is_combo_finisher, is_crit)
+		_create_impact_particles(parent.global_position, is_combo_finisher, is_crit)
 
-		# Dynamic hitstop - use time_scale for better timing control
+		# Combo finisher gets longer hitstop
 		var freeze_duration = clamp(final_damage / 100.0, 0.01, 0.05)
+		if is_combo_finisher:
+			freeze_duration *= 1.5  # 50% longer freeze for combo finisher
+
 		Engine.time_scale = 0.05  # Slow to 5% speed for dramatic effect
 		await get_tree().create_timer(freeze_duration, true, false, true).timeout
 		Engine.time_scale = 1.0
+
+		# Reset combo after finisher
+		if is_combo_finisher:
+			combo_count = 0
 
 func _on_hit_box_body_entered(body: Node2D):
 	if body in hits_this_swing:
@@ -309,11 +410,18 @@ func _on_hit_box_body_entered(body: Node2D):
 		dealt_damage.emit(body, final_damage)
 		_create_hit_effect()
 
-func _create_hit_effect():
-	# Flash white on hit with squash and stretch
-	sprite.color = Color.WHITE
+func _create_hit_effect(is_combo_finisher: bool = false, is_crit: bool = false):
+	# Flash color based on hit type
+	if is_crit:
+		sprite.color = Color.RED  # Red flash for crit
+	elif is_combo_finisher:
+		sprite.color = Color.GOLD  # Gold flash for combo finisher
+	else:
+		sprite.color = Color.WHITE
+
 	var original_scale = sprite.scale
-	sprite.scale = Vector2(1.4, 0.8)  # Squash on impact
+	var squash_amount = 1.6 if (is_combo_finisher or is_crit) else 1.4
+	sprite.scale = Vector2(squash_amount, 0.8)  # Squash on impact
 
 	var tween = create_tween()
 	tween.set_parallel(true)
@@ -321,19 +429,29 @@ func _create_hit_effect():
 	tween.tween_property(sprite, "scale", original_scale, 0.15)\
 		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
-func _create_impact_particles(hit_position: Vector2):
-	# Create impact particles at hit location
-	for i in range(4):
+func _create_impact_particles(hit_position: Vector2, is_combo_finisher: bool = false, is_crit: bool = false):
+	# More particles for special hits
+	var particle_count = 8 if (is_combo_finisher or is_crit) else 4
+
+	# Color based on hit type
+	var particle_color = Color(1.0, 0.9, 0.5, 1.0)  # Default yellow-white
+	if is_crit:
+		particle_color = Color.RED
+	elif is_combo_finisher:
+		particle_color = Color.GOLD
+
+	for i in range(particle_count):
 		var particle = ColorRect.new()
-		particle.size = Vector2(4, 4)
-		particle.color = Color(1.0, 0.9, 0.5, 1.0)  # Yellow-white flash
+		var size = 6 if (is_combo_finisher or is_crit) else 4
+		particle.size = Vector2(size, size)
+		particle.color = particle_color
 		get_tree().current_scene.add_child(particle)
 		particle.global_position = hit_position
 
 		# Random direction outward
-		var angle = (TAU / 4.0) * i + randf_range(-0.3, 0.3)
+		var angle = (TAU / particle_count) * i + randf_range(-0.2, 0.2)
 		var direction = Vector2.from_angle(angle)
-		var distance = randf_range(15, 25)
+		var distance = randf_range(20, 35) if (is_combo_finisher or is_crit) else randf_range(15, 25)
 
 		var tween = create_tween()
 		tween.set_parallel(true)
@@ -344,14 +462,41 @@ func _create_impact_particles(hit_position: Vector2):
 		tween.tween_property(particle, "scale", Vector2(0.5, 0.5), 0.3)
 		tween.tween_callback(particle.queue_free)
 
-func _create_swing_trail():
+func _spawn_crit_text(position: Vector2):
+	# Create "CRIT!" text
+	var crit_label = Label.new()
+	crit_label.text = "CRIT!"
+	crit_label.add_theme_font_size_override("font_size", 24)
+	crit_label.modulate = Color.RED
+	get_tree().current_scene.add_child(crit_label)
+	crit_label.global_position = position + Vector2(-20, -30)
+
+	# Animate
+	var tween = create_tween()
+	tween.tween_property(crit_label, "global_position:y", position.y - 50, 0.5)
+	tween.parallel().tween_property(crit_label, "scale", Vector2(1.5, 1.5), 0.2)
+	tween.tween_property(crit_label, "scale", Vector2(1.0, 1.0), 0.3)
+	tween.parallel().tween_property(crit_label, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(crit_label.queue_free)
+
+func _create_swing_trail(is_combo_finisher: bool = false, is_dash_attack: bool = false):
 	# Create motion trail effect during swing
-	for i in range(3):
-		await get_tree().create_timer(0.03).timeout
+	var trail_count = 5 if (is_combo_finisher or is_dash_attack) else 3
+
+	for i in range(trail_count):
+		await get_tree().create_timer(0.02).timeout
 
 		var trail = ColorRect.new()
 		trail.size = sprite.size
-		trail.color = Color(0.8, 0.8, 1.0, 0.4)  # Light blue trail
+
+		# Enhanced colors for special attacks
+		if is_combo_finisher:
+			trail.color = Color.GOLD.darkened(0.2)  # Gold trail for combo finisher
+		elif is_dash_attack:
+			trail.color = Color.CYAN.darkened(0.2)  # Cyan trail for dash attack
+		else:
+			trail.color = Color(0.8, 0.8, 1.0, 0.4)  # Light blue trail
+
 		get_tree().current_scene.add_child(trail)
 		trail.global_position = sprite.global_position
 		trail.rotation = pivot.rotation  # Use pivot rotation for correct angle
