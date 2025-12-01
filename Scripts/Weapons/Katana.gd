@@ -201,16 +201,16 @@ func attack(_direction: Vector2, player_damage_multiplier: float = 1.0):
 	# Perform attack based on combo count (3-hit combo cycle)
 	# Attack 1: Right to left slash
 	# Attack 2: Left to right slash (reversed)
-	# Attack 3: Forward stab (combo finisher)
+	# Attack 3: Downward overhead slash (combo finisher)
 	var attack_in_combo = ((combo_count - 1) % 3) + 1
 
 	match attack_in_combo:
-		1:  # First attack - Right to left slash
+		1:  # First attack - Right to left horizontal slash
 			_perform_quick_slash(false)
-		2:  # Second attack - Left to right slash (reversed)
+		2:  # Second attack - Left to right horizontal slash (reversed)
 			_perform_quick_slash(true)
-		3:  # Third attack - Forward stab (combo finisher)
-			_perform_stab()
+		3:  # Third attack - Downward overhead slash (combo finisher)
+			_perform_overhead_slash()
 		_:
 			_perform_quick_slash(false)
 
@@ -267,7 +267,7 @@ func _perform_quick_slash(reverse: bool = false):
 
 	attack_timer.start(attack_cooldown)
 
-func _perform_stab():
+func _perform_overhead_slash():
 	# Kill any existing tween before creating a new one
 	if active_attack_tween:
 		active_attack_tween.kill()
@@ -282,39 +282,37 @@ func _perform_stab():
 	active_attack_tween = create_tween()
 	active_attack_tween.set_parallel(true)
 
-	# Scale up for impact
-	active_attack_tween.tween_property(sprite, "scale", Vector2(1.2, 0.8), 0.05)
+	# Scale up from idle size
+	active_attack_tween.tween_property(sprite, "scale", Vector2(1.6, 0.6), 0.05)
 
-	# Starting position - pulled back
-	pivot.rotation = 0
-	pivot.position = Vector2(-15, 0)
+	# Starting position - raised up and back
+	pivot.rotation = deg_to_rad(-120)
+	pivot.position = Vector2(-5, -10)
 
 	active_attack_tween.set_parallel(false)
 
-	# Pull back more (anticipation) - faster and snappier
-	active_attack_tween.tween_property(pivot, "position", Vector2(-20, 0), attack_duration * 0.2)
+	# Anticipation - pull back
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(-130), attack_duration * 0.2)
+	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(-8, -12), attack_duration * 0.2)
 
 	# Enable hitbox
 	active_attack_tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", false))
 
-	# Thrust forward - MUCH FARTHER for katana precision strike
-	var thrust_distance = 40.0 if is_combo_finisher else 32.0
-	active_attack_tween.tween_property(pivot, "position", Vector2(thrust_distance, 0), attack_duration * 0.35)\
+	# Main downward slash - powerful overhead swing
+	var stretch_amount = 2.0 if is_combo_finisher else 1.7
+	sprite.scale = Vector2(stretch_amount, 0.6)
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(70), attack_duration * 0.5)\
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(5, 5), attack_duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-	# Extreme stretch on impact - katana thrust is powerful
-	var stretch_amount = 2.5 if is_combo_finisher else 2.0
-	active_attack_tween.parallel().tween_property(sprite, "scale:x", stretch_amount, attack_duration * 0.15)
+	# Reset scale with bounce
+	active_attack_tween.parallel().tween_property(sprite, "scale", Vector2.ONE, attack_duration * 0.3)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
-	# Hold at full extension for hit detection
-	active_attack_tween.tween_interval(attack_duration * 0.15)
-
-	# Snap back with elastic feel
-	active_attack_tween.tween_property(sprite, "scale:x", 1.0, attack_duration * 0.15)\
-		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
-
-	# Pull back quickly
-	active_attack_tween.tween_property(pivot, "position", Vector2(0, 0), attack_duration * 0.15)
+	# Follow through
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(90), attack_duration * 0.3)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 	# Disable hitbox
 	active_attack_tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", true))

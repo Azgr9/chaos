@@ -164,18 +164,18 @@ func attack(_direction: Vector2, player_damage_multiplier: float = 1.0):
 		print("DASH ATTACK!")
 
 	# Perform attack based on combo count (3-hit combo cycle)
-	# Attack 1: Right side swing
-	# Attack 2: Left side swing
-	# Attack 3: Forward stab (combo finisher)
+	# Attack 1: Right to left swing
+	# Attack 2: Left to right swing (reversed)
+	# Attack 3: Overhead swing down (combo finisher)
 	var attack_in_combo = ((combo_count - 1) % 3) + 1
 
 	match attack_in_combo:
-		1:  # First attack - Right to left swing
+		1:  # First attack - Right to left horizontal swing
 			_perform_horizontal_swing(modified_duration, is_dash_attack, false)
-		2:  # Second attack - Left to right swing (reversed)
+		2:  # Second attack - Left to right horizontal swing (reversed)
 			_perform_horizontal_swing(modified_duration, is_dash_attack, true)
-		3:  # Third attack - Forward stab (combo finisher)
-			_perform_stab_attack(modified_duration, is_dash_attack)
+		3:  # Third attack - Overhead swing down (combo finisher)
+			_perform_overhead_swing(modified_duration, is_dash_attack)
 		_:
 			_perform_horizontal_swing(modified_duration, is_dash_attack, false)
 
