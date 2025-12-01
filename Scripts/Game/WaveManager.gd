@@ -271,6 +271,22 @@ func _spawn_enemy_of_type(enemy_type: String):
 	get_parent().add_child(enemy)
 	enemy.global_position = spawn_pos
 
+	# Connect enemy signals IMMEDIATELY
+	if enemy.has_signal("enemy_died"):
+		enemy.enemy_died.connect(_on_enemy_died.bind(enemy_type))
+
+	# Set player reference IMMEDIATELY
+	if enemy.has_method("set_player_reference") and player_reference:
+		enemy.set_player_reference(player_reference)
+
+	# Update counters IMMEDIATELY (before activation delay)
+	enemies_alive += 1
+	enemies_alive_by_type[enemy_type] += 1
+	points_spawned += enemy_data["cost"]
+	points_remaining -= enemy_data["cost"]
+
+	enemy_spawned.emit(enemy)
+
 	# Freeze enemy for activation time (visual polish)
 	enemy.set_physics_process(false)
 
@@ -281,22 +297,6 @@ func _spawn_enemy_of_type(enemy_type: String):
 	await get_tree().create_timer(enemy_activation_time).timeout
 	if is_instance_valid(enemy):
 		enemy.set_physics_process(true)
-
-	# Connect enemy signals
-	if enemy.has_signal("enemy_died"):
-		enemy.enemy_died.connect(_on_enemy_died.bind(enemy_type))
-
-	# Set player reference
-	if enemy.has_method("set_player_reference") and player_reference:
-		enemy.set_player_reference(player_reference)
-
-	# Update counters
-	enemies_alive += 1
-	enemies_alive_by_type[enemy_type] += 1
-	points_spawned += enemy_data["cost"]
-	points_remaining -= enemy_data["cost"]
-
-	enemy_spawned.emit(enemy)
 
 func _get_spawn_position() -> Vector2:
 	# SAFEGUARD 3: Spatial distribution - get well-distributed angle
