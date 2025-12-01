@@ -16,6 +16,7 @@ var is_attacking: bool = false
 var can_attack: bool = true
 var damage_multiplier: float = 1.0
 var hits_this_swing: Array = []
+var active_attack_tween: Tween = null  # Track active tween to kill it if needed
 
 var skill_cooldown: float = 6.0
 var skill_ready: bool = true
@@ -186,39 +187,43 @@ func attack(_direction: Vector2, player_damage_multiplier: float = 1.0):
 	return true
 
 func _perform_quick_slash():
-	var tween = create_tween()
-	tween.set_parallel(true)
+	# Kill any existing tween before creating a new one
+	if active_attack_tween:
+		active_attack_tween.kill()
+
+	active_attack_tween = create_tween()
+	active_attack_tween.set_parallel(true)
 
 	# Scale up from idle size
-	tween.tween_property(sprite, "scale", Vector2(1.6, 0.6), 0.05)
+	active_attack_tween.tween_property(sprite, "scale", Vector2(1.6, 0.6), 0.05)
 
 	pivot.rotation = deg_to_rad(-90)
 	pivot.position = Vector2(-10, 0)
 
-	tween.set_parallel(false)
+	active_attack_tween.set_parallel(false)
 
-	tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", false))
+	active_attack_tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", false))
 
-	tween.tween_property(pivot, "rotation", deg_to_rad(90), attack_duration)\
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(90), attack_duration)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	tween.parallel().tween_property(sprite, "scale", Vector2.ONE, attack_duration)
+	active_attack_tween.parallel().tween_property(sprite, "scale", Vector2.ONE, attack_duration)
 
-	tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", true))
+	active_attack_tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", true))
 
 	# Return to idle position
-	tween.tween_property(pivot, "position", Vector2(0, 8), 0.1)
-	tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.1)
-	tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.1)
+	active_attack_tween.tween_property(pivot, "position", Vector2(0, 8), 0.1)
+	active_attack_tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.1)
+	active_attack_tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.1)
 
-	tween.tween_callback(finish_attack)
+	active_attack_tween.tween_callback(finish_attack)
 
 	attack_timer.start(attack_cooldown)
 
 func finish_attack():
-	# CRITICAL: Kill all active tweens to prevent stuck animations
-	for child in get_children():
-		if child is Tween:
-			child.kill()
+	# CRITICAL: Kill active tween to prevent stuck animations
+	if active_attack_tween:
+		active_attack_tween.kill()
+		active_attack_tween = null
 
 	# Use set_deferred to avoid "flushing queries" error
 	hit_box_collision.set_deferred("disabled", true)

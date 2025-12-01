@@ -27,6 +27,7 @@ var is_attacking: bool = false
 var can_attack: bool = true
 var damage_multiplier: float = 1.0
 var hits_this_swing: Array = []  # Track what we hit this swing
+var active_attack_tween: Tween = null  # Track active tween to kill it if needed
 
 # Combo system
 var combo_count: int = 0
@@ -186,25 +187,29 @@ func _perform_overhead_swing(duration: float = 0.25, is_dash_attack: bool = fals
 	elif is_dash_attack:
 		sprite.color = Color.CYAN  # Cyan for dash attack
 
-	var tween = create_tween()
-	tween.set_parallel(true)
+	# Kill any existing tween before creating a new one
+	if active_attack_tween:
+		active_attack_tween.kill()
+
+	active_attack_tween = create_tween()
+	active_attack_tween.set_parallel(true)
 
 	# Scale up from idle size to full attack size
-	tween.tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)
+	active_attack_tween.tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)
 
 	# Starting position - raised up and back
 	pivot.rotation = deg_to_rad(-120)
 	pivot.position = Vector2(-5, -10)
 
 	# Create swing arc
-	tween.set_parallel(false)
+	active_attack_tween.set_parallel(false)
 
 	# Anticipation - pull back slightly more (shorter for speed)
-	tween.tween_property(pivot, "rotation", deg_to_rad(-130), duration * 0.2)
-	tween.parallel().tween_property(pivot, "position", Vector2(-8, -12), duration * 0.2)
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(-130), duration * 0.2)
+	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(-8, -12), duration * 0.2)
 
 	# Enable hitbox and create enhanced trail
-	tween.tween_callback(func():
+	active_attack_tween.tween_callback(func():
 		hit_box_collision.disabled = false
 		_create_swing_trail(is_combo_finisher, is_dash_attack)
 	)
@@ -212,29 +217,29 @@ func _perform_overhead_swing(duration: float = 0.25, is_dash_attack: bool = fals
 	# Main swing - more stretch for combo finisher
 	var stretch_amount = 1.7 if is_combo_finisher else 1.5
 	sprite.scale = Vector2(stretch_amount, 0.6)
-	tween.tween_property(pivot, "rotation", deg_to_rad(70), duration * 0.5)\
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(70), duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(pivot, "position", Vector2(5, 5), duration * 0.5)\
+	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(5, 5), duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 	# Reset scale with bounce
-	tween.parallel().tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)\
+	active_attack_tween.parallel().tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 	# Follow through
-	tween.tween_property(pivot, "rotation", deg_to_rad(90), duration * 0.3)\
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(90), duration * 0.3)\
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 	# Disable hitbox
-	tween.tween_callback(func(): hit_box_collision.disabled = true)
+	active_attack_tween.tween_callback(func(): hit_box_collision.disabled = true)
 
 	# Return to idle position
-	tween.tween_property(pivot, "position", Vector2.ZERO, 0.15)
-	tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.15)
-	tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.15)
+	active_attack_tween.tween_property(pivot, "position", Vector2.ZERO, 0.15)
+	active_attack_tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.15)
+	active_attack_tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.15)
 
 	# Finish
-	tween.tween_callback(finish_attack)
+	active_attack_tween.tween_callback(finish_attack)
 
 func _perform_horizontal_swing(duration: float = 0.25, is_dash_attack: bool = false):
 	# Enhanced visuals for combo finisher
@@ -244,23 +249,27 @@ func _perform_horizontal_swing(duration: float = 0.25, is_dash_attack: bool = fa
 	elif is_dash_attack:
 		sprite.color = Color.CYAN  # Cyan for dash attack
 
-	var tween = create_tween()
-	tween.set_parallel(true)
+	# Kill any existing tween before creating a new one
+	if active_attack_tween:
+		active_attack_tween.kill()
+
+	active_attack_tween = create_tween()
+	active_attack_tween.set_parallel(true)
 
 	# Scale up from idle size to full attack size
-	tween.tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)
+	active_attack_tween.tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)
 
 	# Starting position - pulled to the side
 	pivot.rotation = deg_to_rad(-90)
 	pivot.position = Vector2(-8, 0)
 
-	tween.set_parallel(false)
+	active_attack_tween.set_parallel(false)
 
 	# Anticipation
-	tween.tween_property(pivot, "rotation", deg_to_rad(-100), duration * 0.2)
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(-100), duration * 0.2)
 
 	# Enable hitbox and create enhanced trail
-	tween.tween_callback(func():
+	active_attack_tween.tween_callback(func():
 		hit_box_collision.disabled = false
 		_create_swing_trail(is_combo_finisher, is_dash_attack)
 	)
@@ -268,26 +277,26 @@ func _perform_horizontal_swing(duration: float = 0.25, is_dash_attack: bool = fa
 	# Main sweep - more stretch for combo finisher
 	var stretch_amount = 0.6 if is_combo_finisher else 0.7
 	sprite.scale.y = stretch_amount
-	tween.tween_property(pivot, "rotation", deg_to_rad(90), duration * 0.5)\
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(90), duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(pivot, "position", Vector2(8, 0), duration * 0.5)
+	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(8, 0), duration * 0.5)
 
 	# Reset scale with bounce
-	tween.parallel().tween_property(sprite, "scale:y", 1.0, duration * 0.3)\
+	active_attack_tween.parallel().tween_property(sprite, "scale:y", 1.0, duration * 0.3)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 	# Follow through
-	tween.tween_property(pivot, "rotation", deg_to_rad(100), duration * 0.3)
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(100), duration * 0.3)
 
 	# Disable hitbox
-	tween.tween_callback(func(): hit_box_collision.disabled = true)
+	active_attack_tween.tween_callback(func(): hit_box_collision.disabled = true)
 
 	# Return to idle position
-	tween.tween_property(pivot, "position", Vector2.ZERO, 0.15)
-	tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.15)
-	tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.15)
+	active_attack_tween.tween_property(pivot, "position", Vector2.ZERO, 0.15)
+	active_attack_tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.15)
+	active_attack_tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.15)
 
-	tween.tween_callback(finish_attack)
+	active_attack_tween.tween_callback(finish_attack)
 
 func _perform_stab_attack(duration: float = 0.25, is_dash_attack: bool = false):
 	# Enhanced visuals for combo finisher
@@ -297,56 +306,60 @@ func _perform_stab_attack(duration: float = 0.25, is_dash_attack: bool = false):
 	elif is_dash_attack:
 		sprite.color = Color.CYAN  # Cyan for dash attack
 
-	var tween = create_tween()
-	tween.set_parallel(true)
+	# Kill any existing tween before creating a new one
+	if active_attack_tween:
+		active_attack_tween.kill()
+
+	active_attack_tween = create_tween()
+	active_attack_tween.set_parallel(true)
 
 	# Scale up from idle size to full attack size
-	tween.tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)
+	active_attack_tween.tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)
 
 	# Starting position - pulled back
 	pivot.rotation = 0
 	pivot.position = Vector2(-15, 0)
 
-	tween.set_parallel(false)
+	active_attack_tween.set_parallel(false)
 
 	# Pull back more (anticipation)
-	tween.tween_property(pivot, "position", Vector2(-20, 0), duration * 0.3)
+	active_attack_tween.tween_property(pivot, "position", Vector2(-20, 0), duration * 0.3)
 
 	# Enable hitbox and create enhanced trail
-	tween.tween_callback(func():
+	active_attack_tween.tween_callback(func():
 		hit_box_collision.disabled = false
 		_create_swing_trail(is_combo_finisher, is_dash_attack)
 	)
 
 	# Thrust forward - faster and further for combo finisher
 	var thrust_distance = 18.0 if is_combo_finisher else 15.0
-	tween.tween_property(pivot, "position", Vector2(thrust_distance, 0), duration * 0.4)\
+	active_attack_tween.tween_property(pivot, "position", Vector2(thrust_distance, 0), duration * 0.4)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 	# Scale for impact - more stretch for combo finisher
 	var stretch_amount = 1.8 if is_combo_finisher else 1.5
-	tween.parallel().tween_property(sprite, "scale:x", stretch_amount, duration * 0.2)
-	tween.tween_property(sprite, "scale:x", 1.0, duration * 0.2)\
+	active_attack_tween.parallel().tween_property(sprite, "scale:x", stretch_amount, duration * 0.2)
+	active_attack_tween.tween_property(sprite, "scale:x", 1.0, duration * 0.2)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 	# Pull back
-	tween.tween_property(pivot, "position", Vector2(0, 0), duration * 0.3)
+	active_attack_tween.tween_property(pivot, "position", Vector2(0, 0), duration * 0.3)
 
 	# Disable hitbox
-	tween.tween_callback(func(): hit_box_collision.disabled = true)
+	active_attack_tween.tween_callback(func(): hit_box_collision.disabled = true)
 
 	# Return to idle position
-	tween.tween_property(pivot, "position", Vector2.ZERO, 0.15)
-	tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.15)
-	tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.15)
+	active_attack_tween.tween_property(pivot, "position", Vector2.ZERO, 0.15)
+	active_attack_tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.15)
+	active_attack_tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.15)
 
-	tween.tween_callback(finish_attack)
+	active_attack_tween.tween_callback(finish_attack)
 
 func finish_attack():
-	# CRITICAL: Kill all active tweens to prevent stuck animations
-	for child in get_children():
-		if child is Tween:
-			child.kill()
+	# CRITICAL: Kill active tween to prevent stuck animations
+	if active_attack_tween:
+		active_attack_tween.kill()
+		active_attack_tween = null
 
 	# Use set_deferred to avoid "flushing queries" error
 	hit_box_collision.set_deferred("disabled", true)
