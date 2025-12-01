@@ -404,6 +404,11 @@ func _complete_wave():
 	wave_active = false
 	wave_completed.emit(current_wave)
 
+	# Check if this was the final wave
+	if current_wave >= 5:
+		all_waves_completed.emit()
+		return
+
 	# Wait before starting next wave
 	await get_tree().create_timer(3.0).timeout
 	start_next_wave()

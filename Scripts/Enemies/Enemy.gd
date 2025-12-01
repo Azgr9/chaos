@@ -29,6 +29,7 @@ var is_stunned: bool = false
 
 # Signals
 signal enemy_died(enemy: Enemy)
+@warning_ignore("unused_signal")
 signal damage_dealt(amount: float)  # Available for future use (e.g., achievements, stats)
 signal health_changed(current: float, max: float)
 

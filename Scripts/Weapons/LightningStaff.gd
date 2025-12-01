@@ -36,6 +36,7 @@ var player: Node2D = null
 
 # Signals
 signal projectile_fired(projectile: Area2D)
+@warning_ignore("unused_signal")
 signal attack_finished  # Available for player to connect if needed
 
 func _ready():
