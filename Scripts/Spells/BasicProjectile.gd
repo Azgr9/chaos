@@ -28,11 +28,17 @@ var hit_enemies: Array = []
 signal projectile_hit(target: Node2D, damage: float)
 
 func _ready():
+	# Pause when game pauses (don't keep flying during upgrade menu)
+	process_mode = Node.PROCESS_MODE_PAUSABLE
+
+	# Add to projectiles group for cleanup
+	add_to_group("projectiles")
+
 	# Connect collision signals
 	area_entered.connect(_on_area_entered)
 	body_entered.connect(_on_body_entered)
 	lifetime_timer.timeout.connect(_on_lifetime_timeout)
-	
+
 	# Visual setup
 	_create_spawn_effect()
 

@@ -18,6 +18,12 @@ var velocity: Vector2 = Vector2.ZERO
 var direction: Vector2 = Vector2.ZERO
 
 func _ready():
+	# Pause when game pauses (don't keep flying during upgrade menu)
+	process_mode = Node.PROCESS_MODE_PAUSABLE
+
+	# Add to projectiles group for cleanup
+	add_to_group("projectiles")
+
 	# Connect signals
 	area_entered.connect(_on_area_entered)
 	body_entered.connect(_on_body_entered)

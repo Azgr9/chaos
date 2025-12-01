@@ -13,6 +13,9 @@ extends Node2D
 @export var spread: float = 20.0
 
 func _ready():
+	# Pause when game pauses (don't keep animating during upgrade menu)
+	process_mode = Node.PROCESS_MODE_PAUSABLE
+
 	# Add random horizontal spread
 	var random_offset = Vector2(randf_range(-spread, spread), 0)
 	position += random_offset

@@ -69,6 +69,9 @@ func _ready():
 func show_upgrades(player: Node2D):
 	player_reference = player
 
+	# CRITICAL: Clean up all active animations and effects BEFORE pausing
+	_cleanup_active_effects()
+
 	# Update weapon shop buttons
 	_update_weapon_shop_button()
 	_update_staff_shop_button()
@@ -315,3 +318,45 @@ func _close_menu():
 		get_tree().paused = false
 		menu_closed.emit()
 	)
+
+func _cleanup_active_effects():
+	# Cancel all player attack animations
+	if player_reference:
+		# Reset all attack states
+		player_reference.is_attacking = false
+		player_reference.is_melee_attacking = false
+		player_reference.is_magic_attacking = false
+
+		# Cancel weapon attack animations
+		if player_reference.current_weapon and player_reference.current_weapon.has_method("finish_attack"):
+			player_reference.current_weapon.finish_attack()
+
+		# Cancel staff attack animations
+		if player_reference.current_staff and player_reference.current_staff.has_method("finish_attack"):
+			player_reference.current_staff.finish_attack()
+
+	# Clean up all damage numbers, projectiles, and visual effects in the scene
+	_cleanup_scene_effects()
+
+func _cleanup_scene_effects():
+	var scene_root = get_tree().current_scene
+	if not scene_root:
+		return
+
+	# Remove all damage numbers (DamageNumber nodes)
+	for node in scene_root.get_children():
+		if node.get_script() and node.get_script().resource_path.ends_with("DamageNumber.gd"):
+			node.queue_free()
+
+	# Remove floating projectiles and effects
+	# Look for common effect node types
+	for node in scene_root.get_children():
+		# Remove projectiles
+		if node.is_in_group("projectiles"):
+			node.queue_free()
+		# Remove visual effects
+		elif node.is_in_group("effects"):
+			node.queue_free()
+		# Remove any nodes with "effect" or "projectile" in name
+		elif "effect" in node.name.to_lower() or "projectile" in node.name.to_lower():
+			node.queue_free()
