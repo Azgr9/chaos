@@ -18,6 +18,12 @@ var damage_multiplier: float = 1.0
 var hits_this_swing: Array = []
 var active_attack_tween: Tween = null  # Track active tween to kill it if needed
 
+# Combo system
+var combo_count: int = 0
+var combo_timer: float = 0.0
+const COMBO_WINDOW: float = 2.0  # Reset combo after 2 seconds
+const COMBO_FINISHER_MULTIPLIER: float = 1.5
+
 var skill_cooldown: float = 6.0
 var skill_ready: bool = true
 var skill_timer: float = 0.0
@@ -47,6 +53,12 @@ func _ready():
 	sprite.scale = Vector2(0.6, 0.6)  # Smaller when idle
 
 func _process(delta):
+	# Update combo timer
+	if combo_count > 0:
+		combo_timer -= delta
+		if combo_timer <= 0:
+			combo_count = 0  # Reset combo
+
 	if not skill_ready:
 		skill_timer -= delta
 		if skill_timer <= 0:
@@ -182,14 +194,39 @@ func attack(_direction: Vector2, player_damage_multiplier: float = 1.0):
 	can_attack = false
 	hits_this_swing.clear()
 
-	_perform_quick_slash()
+	# Increment combo
+	combo_count += 1
+	combo_timer = COMBO_WINDOW
+
+	# Perform attack based on combo count (3-hit combo cycle)
+	# Attack 1: Right to left slash
+	# Attack 2: Left to right slash (reversed)
+	# Attack 3: Forward stab (combo finisher)
+	var attack_in_combo = ((combo_count - 1) % 3) + 1
+
+	match attack_in_combo:
+		1:  # First attack - Right to left slash
+			_perform_quick_slash(false)
+		2:  # Second attack - Left to right slash (reversed)
+			_perform_quick_slash(true)
+		3:  # Third attack - Forward stab (combo finisher)
+			_perform_stab()
+		_:
+			_perform_quick_slash(false)
 
 	return true
 
-func _perform_quick_slash():
+func _perform_quick_slash(reverse: bool = false):
 	# Kill any existing tween before creating a new one
 	if active_attack_tween:
 		active_attack_tween.kill()
+
+	# Check if this is combo finisher
+	var attack_in_combo = ((combo_count - 1) % 3) + 1
+	var is_combo_finisher = (attack_in_combo == 3)
+
+	if is_combo_finisher:
+		sprite.color = Color.GOLD
 
 	active_attack_tween = create_tween()
 	active_attack_tween.set_parallel(true)
@@ -197,14 +234,25 @@ func _perform_quick_slash():
 	# Scale up from idle size
 	active_attack_tween.tween_property(sprite, "scale", Vector2(1.6, 0.6), 0.05)
 
-	pivot.rotation = deg_to_rad(-90)
+	# Set start and end angles based on direction
+	var start_angle: float
+	var end_angle: float
+
+	if reverse:  # Left to right slash
+		start_angle = 90
+		end_angle = -90
+	else:  # Right to left slash
+		start_angle = -90
+		end_angle = 90
+
+	pivot.rotation = deg_to_rad(start_angle)
 	pivot.position = Vector2(-10, 0)
 
 	active_attack_tween.set_parallel(false)
 
 	active_attack_tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", false))
 
-	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(90), attack_duration)\
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(end_angle), attack_duration)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	active_attack_tween.parallel().tween_property(sprite, "scale", Vector2.ONE, attack_duration)
 
@@ -212,6 +260,60 @@ func _perform_quick_slash():
 
 	# Return to idle position
 	active_attack_tween.tween_property(pivot, "position", Vector2(0, 8), 0.1)
+	active_attack_tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.1)
+	active_attack_tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.1)
+
+	active_attack_tween.tween_callback(finish_attack)
+
+	attack_timer.start(attack_cooldown)
+
+func _perform_stab():
+	# Kill any existing tween before creating a new one
+	if active_attack_tween:
+		active_attack_tween.kill()
+
+	# Combo finisher - Gold color
+	var attack_in_combo = ((combo_count - 1) % 3) + 1
+	var is_combo_finisher = (attack_in_combo == 3)
+
+	if is_combo_finisher:
+		sprite.color = Color.GOLD
+
+	active_attack_tween = create_tween()
+	active_attack_tween.set_parallel(true)
+
+	# Scale up for impact
+	active_attack_tween.tween_property(sprite, "scale", Vector2(1.2, 0.8), 0.05)
+
+	# Starting position - pulled back
+	pivot.rotation = 0
+	pivot.position = Vector2(-15, 0)
+
+	active_attack_tween.set_parallel(false)
+
+	# Pull back more (anticipation)
+	active_attack_tween.tween_property(pivot, "position", Vector2(-20, 0), attack_duration * 0.3)
+
+	# Enable hitbox
+	active_attack_tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", false))
+
+	# Thrust forward
+	active_attack_tween.tween_property(pivot, "position", Vector2(15, 0), attack_duration * 0.4)\
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+	# Stretch on impact
+	active_attack_tween.parallel().tween_property(sprite, "scale:x", 1.8, attack_duration * 0.2)
+	active_attack_tween.tween_property(sprite, "scale:x", 1.0, attack_duration * 0.2)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+	# Pull back
+	active_attack_tween.tween_property(pivot, "position", Vector2(0, 0), attack_duration * 0.3)
+
+	# Disable hitbox
+	active_attack_tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", true))
+
+	# Return to idle position
+	active_attack_tween.tween_property(pivot, "position", Vector2.ZERO, 0.1)
 	active_attack_tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.1)
 	active_attack_tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.1)
 
@@ -232,6 +334,7 @@ func finish_attack():
 	pivot.rotation = deg_to_rad(45)  # Idle angle
 	pivot.position = Vector2.ZERO  # Idle position
 	sprite.scale = Vector2(0.6, 0.6)  # Idle size
+	sprite.color = Color(0.9, 0.2, 0.2)  # Reset to red katana color
 	attack_finished.emit()
 
 func _on_attack_cooldown_finished():
@@ -246,6 +349,14 @@ func _on_hit_box_area_entered(area: Area2D):
 	if parent.has_method("take_damage"):
 		hits_this_swing.append(parent)
 		var final_damage = damage * damage_multiplier
+
+		# Apply combo finisher bonus (every 3rd hit)
+		var attack_in_combo = ((combo_count - 1) % 3) + 1
+		var is_combo_finisher = (attack_in_combo == 3)
+		if is_combo_finisher:
+			final_damage *= COMBO_FINISHER_MULTIPLIER
+			print("KATANA COMBO FINISHER! x%.1f damage" % COMBO_FINISHER_MULTIPLIER)
+
 		if is_dash_slashing:
 			final_damage *= 1.5
 		parent.take_damage(final_damage)

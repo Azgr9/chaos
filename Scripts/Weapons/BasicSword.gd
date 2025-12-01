@@ -163,16 +163,21 @@ func attack(_direction: Vector2, player_damage_multiplier: float = 1.0):
 		is_dash_attack = true
 		print("DASH ATTACK!")
 
-	# Perform the appropriate swing style with modified timing
-	match swing_style:
-		"overhead":
-			_perform_overhead_swing(modified_duration, is_dash_attack)
-		"horizontal":
-			_perform_horizontal_swing(modified_duration, is_dash_attack)
-		"stab":
+	# Perform attack based on combo count (3-hit combo cycle)
+	# Attack 1: Right side swing
+	# Attack 2: Left side swing
+	# Attack 3: Forward stab (combo finisher)
+	var attack_in_combo = ((combo_count - 1) % 3) + 1
+
+	match attack_in_combo:
+		1:  # First attack - Right to left swing
+			_perform_horizontal_swing(modified_duration, is_dash_attack, false)
+		2:  # Second attack - Left to right swing (reversed)
+			_perform_horizontal_swing(modified_duration, is_dash_attack, true)
+		3:  # Third attack - Forward stab (combo finisher)
 			_perform_stab_attack(modified_duration, is_dash_attack)
 		_:
-			_perform_overhead_swing(modified_duration, is_dash_attack)
+			_perform_horizontal_swing(modified_duration, is_dash_attack, false)
 
 	# Start cooldown with speed scaling
 	attack_timer.start(modified_cooldown)
@@ -180,8 +185,9 @@ func attack(_direction: Vector2, player_damage_multiplier: float = 1.0):
 	return true
 
 func _perform_overhead_swing(duration: float = 0.25, is_dash_attack: bool = false):
-	# Enhanced visuals for combo finisher
-	var is_combo_finisher = (combo_count == 3)
+	# Enhanced visuals for combo finisher (every 3rd hit)
+	var attack_in_combo = ((combo_count - 1) % 3) + 1
+	var is_combo_finisher = (attack_in_combo == 3)
 	if is_combo_finisher:
 		sprite.color = Color.GOLD  # Gold for combo finisher
 	elif is_dash_attack:
@@ -241,9 +247,10 @@ func _perform_overhead_swing(duration: float = 0.25, is_dash_attack: bool = fals
 	# Finish
 	active_attack_tween.tween_callback(finish_attack)
 
-func _perform_horizontal_swing(duration: float = 0.25, is_dash_attack: bool = false):
-	# Enhanced visuals for combo finisher
-	var is_combo_finisher = (combo_count == 3)
+func _perform_horizontal_swing(duration: float = 0.25, is_dash_attack: bool = false, reverse: bool = false):
+	# Enhanced visuals for combo finisher (every 3rd hit)
+	var attack_in_combo = ((combo_count - 1) % 3) + 1
+	var is_combo_finisher = (attack_in_combo == 3)
 	if is_combo_finisher:
 		sprite.color = Color.GOLD  # Gold for combo finisher
 	elif is_dash_attack:
@@ -259,14 +266,37 @@ func _perform_horizontal_swing(duration: float = 0.25, is_dash_attack: bool = fa
 	# Scale up from idle size to full attack size
 	active_attack_tween.tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)
 
+	# Starting position and angles depend on direction
+	var start_angle: float
+	var anticipation_angle: float
+	var sweep_angle: float
+	var follow_angle: float
+	var start_pos: Vector2
+	var sweep_pos: Vector2
+
+	if reverse:  # Left to right swing (attack 2)
+		start_angle = 90
+		anticipation_angle = 100
+		sweep_angle = -90
+		follow_angle = -100
+		start_pos = Vector2(8, 0)
+		sweep_pos = Vector2(-8, 0)
+	else:  # Right to left swing (attack 1)
+		start_angle = -90
+		anticipation_angle = -100
+		sweep_angle = 90
+		follow_angle = 100
+		start_pos = Vector2(-8, 0)
+		sweep_pos = Vector2(8, 0)
+
 	# Starting position - pulled to the side
-	pivot.rotation = deg_to_rad(-90)
-	pivot.position = Vector2(-8, 0)
+	pivot.rotation = deg_to_rad(start_angle)
+	pivot.position = start_pos
 
 	active_attack_tween.set_parallel(false)
 
 	# Anticipation
-	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(-100), duration * 0.2)
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(anticipation_angle), duration * 0.2)
 
 	# Enable hitbox and create enhanced trail
 	active_attack_tween.tween_callback(func():
@@ -277,16 +307,16 @@ func _perform_horizontal_swing(duration: float = 0.25, is_dash_attack: bool = fa
 	# Main sweep - more stretch for combo finisher
 	var stretch_amount = 0.6 if is_combo_finisher else 0.7
 	sprite.scale.y = stretch_amount
-	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(90), duration * 0.5)\
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(sweep_angle), duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(8, 0), duration * 0.5)
+	active_attack_tween.parallel().tween_property(pivot, "position", sweep_pos, duration * 0.5)
 
 	# Reset scale with bounce
 	active_attack_tween.parallel().tween_property(sprite, "scale:y", 1.0, duration * 0.3)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 	# Follow through
-	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(100), duration * 0.3)
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(follow_angle), duration * 0.3)
 
 	# Disable hitbox
 	active_attack_tween.tween_callback(func(): hit_box_collision.disabled = true)
@@ -299,8 +329,9 @@ func _perform_horizontal_swing(duration: float = 0.25, is_dash_attack: bool = fa
 	active_attack_tween.tween_callback(finish_attack)
 
 func _perform_stab_attack(duration: float = 0.25, is_dash_attack: bool = false):
-	# Enhanced visuals for combo finisher
-	var is_combo_finisher = (combo_count == 3)
+	# Enhanced visuals for combo finisher (every 3rd hit)
+	var attack_in_combo = ((combo_count - 1) % 3) + 1
+	var is_combo_finisher = (attack_in_combo == 3)
 	if is_combo_finisher:
 		sprite.color = Color.GOLD  # Gold for combo finisher
 	elif is_dash_attack:
@@ -385,8 +416,9 @@ func _on_hit_box_area_entered(area: Area2D):
 		hits_this_swing.append(parent)
 		var final_damage = damage * damage_multiplier
 
-		# Apply combo finisher bonus (3rd hit)
-		var is_combo_finisher = (combo_count == 3)
+		# Apply combo finisher bonus (every 3rd hit in combo chain)
+		var attack_in_combo = ((combo_count - 1) % 3) + 1
+		var is_combo_finisher = (attack_in_combo == 3)
 		if is_combo_finisher:
 			final_damage *= COMBO_FINISHER_MULTIPLIER
 			print("COMBO FINISHER! x%.1f damage" % COMBO_FINISHER_MULTIPLIER)
