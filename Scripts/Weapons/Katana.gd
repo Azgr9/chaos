@@ -291,23 +291,30 @@ func _perform_stab():
 
 	active_attack_tween.set_parallel(false)
 
-	# Pull back more (anticipation)
-	active_attack_tween.tween_property(pivot, "position", Vector2(-20, 0), attack_duration * 0.3)
+	# Pull back more (anticipation) - faster and snappier
+	active_attack_tween.tween_property(pivot, "position", Vector2(-20, 0), attack_duration * 0.2)
 
 	# Enable hitbox
 	active_attack_tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", false))
 
-	# Thrust forward
-	active_attack_tween.tween_property(pivot, "position", Vector2(15, 0), attack_duration * 0.4)\
+	# Thrust forward - MUCH FARTHER for katana precision strike
+	var thrust_distance = 40.0 if is_combo_finisher else 32.0
+	active_attack_tween.tween_property(pivot, "position", Vector2(thrust_distance, 0), attack_duration * 0.35)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-	# Stretch on impact
-	active_attack_tween.parallel().tween_property(sprite, "scale:x", 1.8, attack_duration * 0.2)
-	active_attack_tween.tween_property(sprite, "scale:x", 1.0, attack_duration * 0.2)\
-		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# Extreme stretch on impact - katana thrust is powerful
+	var stretch_amount = 2.5 if is_combo_finisher else 2.0
+	active_attack_tween.parallel().tween_property(sprite, "scale:x", stretch_amount, attack_duration * 0.15)
 
-	# Pull back
-	active_attack_tween.tween_property(pivot, "position", Vector2(0, 0), attack_duration * 0.3)
+	# Hold at full extension for hit detection
+	active_attack_tween.tween_interval(attack_duration * 0.15)
+
+	# Snap back with elastic feel
+	active_attack_tween.tween_property(sprite, "scale:x", 1.0, attack_duration * 0.15)\
+		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+
+	# Pull back quickly
+	active_attack_tween.tween_property(pivot, "position", Vector2(0, 0), attack_duration * 0.15)
 
 	# Disable hitbox
 	active_attack_tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", true))

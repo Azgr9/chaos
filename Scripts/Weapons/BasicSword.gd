@@ -353,8 +353,8 @@ func _perform_stab_attack(duration: float = 0.25, is_dash_attack: bool = false):
 
 	active_attack_tween.set_parallel(false)
 
-	# Pull back more (anticipation)
-	active_attack_tween.tween_property(pivot, "position", Vector2(-20, 0), duration * 0.3)
+	# Pull back more (anticipation) - shorter for snappier feel
+	active_attack_tween.tween_property(pivot, "position", Vector2(-20, 0), duration * 0.2)
 
 	# Enable hitbox and create enhanced trail
 	active_attack_tween.tween_callback(func():
@@ -362,19 +362,24 @@ func _perform_stab_attack(duration: float = 0.25, is_dash_attack: bool = false):
 		_create_swing_trail(is_combo_finisher, is_dash_attack)
 	)
 
-	# Thrust forward - faster and further for combo finisher
-	var thrust_distance = 18.0 if is_combo_finisher else 15.0
-	active_attack_tween.tween_property(pivot, "position", Vector2(thrust_distance, 0), duration * 0.4)\
+	# Thrust forward - MUCH FARTHER for better reach (combo finisher goes even further)
+	var thrust_distance = 35.0 if is_combo_finisher else 28.0
+	active_attack_tween.tween_property(pivot, "position", Vector2(thrust_distance, 0), duration * 0.35)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-	# Scale for impact - more stretch for combo finisher
-	var stretch_amount = 1.8 if is_combo_finisher else 1.5
-	active_attack_tween.parallel().tween_property(sprite, "scale:x", stretch_amount, duration * 0.2)
-	active_attack_tween.tween_property(sprite, "scale:x", 1.0, duration * 0.2)\
+	# Scale for impact - extreme stretch for satisfying feel
+	var stretch_amount = 2.2 if is_combo_finisher else 1.8
+	active_attack_tween.parallel().tween_property(sprite, "scale:x", stretch_amount, duration * 0.15)
+
+	# Hold at full extension briefly for better hit detection
+	active_attack_tween.tween_interval(duration * 0.15)
+
+	# Snap back
+	active_attack_tween.tween_property(sprite, "scale:x", 1.0, duration * 0.15)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
-	# Pull back
-	active_attack_tween.tween_property(pivot, "position", Vector2(0, 0), duration * 0.3)
+	# Pull back quickly
+	active_attack_tween.tween_property(pivot, "position", Vector2(0, 0), duration * 0.2)
 
 	# Disable hitbox
 	active_attack_tween.tween_callback(func(): hit_box_collision.disabled = true)
