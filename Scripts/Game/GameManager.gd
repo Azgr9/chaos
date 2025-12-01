@@ -124,6 +124,8 @@ func _on_wave_completed(wave_number: int):
 	# Show upgrade menu after wave (except last wave)
 	if wave_number < 5:
 		current_state = GameState.UPGRADE
+		# Wait 0.5 seconds after last enemy dies before showing upgrade menu
+		await get_tree().create_timer(0.5).timeout
 		_show_upgrade_menu()
 
 	# Achievement check

@@ -215,6 +215,11 @@ func _perform_quick_slash():
 	attack_timer.start(attack_cooldown)
 
 func finish_attack():
+	# CRITICAL: Kill all active tweens to prevent stuck animations
+	for child in get_children():
+		if child is Tween:
+			child.kill()
+
 	# Use set_deferred to avoid "flushing queries" error
 	hit_box_collision.set_deferred("disabled", true)
 	is_attacking = false
