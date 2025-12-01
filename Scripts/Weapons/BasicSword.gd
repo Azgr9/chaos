@@ -343,7 +343,8 @@ func _perform_stab_attack(duration: float = 0.25, is_dash_attack: bool = false):
 	tween.tween_callback(finish_attack)
 
 func finish_attack():
-	hit_box_collision.disabled = true
+	# Use set_deferred to avoid "flushing queries" error
+	hit_box_collision.set_deferred("disabled", true)
 	is_attacking = false
 	# Keep sword visible at all times
 	pivot.rotation = deg_to_rad(45)  # Idle angle

@@ -197,13 +197,13 @@ func _perform_quick_slash():
 
 	tween.set_parallel(false)
 
-	tween.tween_callback(func(): hit_box_collision.disabled = false)
+	tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", false))
 
 	tween.tween_property(pivot, "rotation", deg_to_rad(90), attack_duration)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	tween.parallel().tween_property(sprite, "scale", Vector2.ONE, attack_duration)
 
-	tween.tween_callback(func(): hit_box_collision.disabled = true)
+	tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", true))
 
 	# Return to idle position
 	tween.tween_property(pivot, "position", Vector2(0, 8), 0.1)
@@ -215,7 +215,8 @@ func _perform_quick_slash():
 	attack_timer.start(attack_cooldown)
 
 func finish_attack():
-	hit_box_collision.disabled = true
+	# Use set_deferred to avoid "flushing queries" error
+	hit_box_collision.set_deferred("disabled", true)
 	is_attacking = false
 	# Keep katana visible at all times
 	pivot.rotation = deg_to_rad(45)  # Idle angle
