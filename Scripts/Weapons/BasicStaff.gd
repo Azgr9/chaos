@@ -170,7 +170,7 @@ func _play_attack_animation():
 	
 	# Staff recoil
 	var recoil_tween = create_tween()
-	recoil_tween.tween_property(self, "position:x", -3, 0.05)
+	recoil_tween.tween_property(self, "position:x", -12, 0.05)
 	recoil_tween.tween_property(self, "position:x", 0, 0.1)
 	
 	# Staff glow

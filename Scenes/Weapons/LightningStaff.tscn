@@ -6,15 +6,15 @@
 script = ExtResource("1_lightning")
 
 [node name="Sprite" type="ColorRect" parent="."]
-offset_left = -9.0
-offset_top = -2.0
-offset_right = 9.0
-offset_bottom = 2.0
+offset_left = -36.0
+offset_top = -8.0
+offset_right = 36.0
+offset_bottom = 8.0
 rotation = -1.5707964
 color = Color(0.26667, 0.53333, 1, 1)
 
 [node name="ProjectileSpawn" type="Marker2D" parent="."]
-position = Vector2(2, -20)
+position = Vector2(8, -80)
 
 [node name="AttackCooldown" type="Timer" parent="."]
 wait_time = 0.3
@@ -22,10 +22,10 @@ one_shot = true
 
 [node name="MuzzleFlash" type="ColorRect" parent="."]
 visible = false
-offset_left = 12.0
-offset_top = -8.0
-offset_right = 28.0
-offset_bottom = 8.0
+offset_left = 48.0
+offset_top = -32.0
+offset_right = 112.0
+offset_bottom = 32.0
 color = Color(0.4, 0.8, 1, 1)
 
 [node name="AbilityTimer" type="Timer" parent="."]

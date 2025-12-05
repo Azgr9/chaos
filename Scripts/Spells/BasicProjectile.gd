@@ -6,10 +6,10 @@ class_name BasicProjectile
 extends Area2D
 
 # Projectile stats
-@export var speed: float = 250.0
+@export var speed: float = 1000.0
 @export var damage: float = 5.0
 @export var pierce_count: int = 0  # How many enemies it can pass through
-@export var knockback_power: float = 100.0
+@export var knockback_power: float = 400.0
 @export var hitstun_duration: float = 0.1
 
 # Nodes
@@ -42,7 +42,7 @@ func _ready():
 	# Visual setup
 	_create_spawn_effect()
 
-func initialize(start_position: Vector2, dir: Vector2, magic_damage_multiplier: float = 1.0, kb_power: float = 100.0, stun_dur: float = 0.1):
+func initialize(start_position: Vector2, dir: Vector2, magic_damage_multiplier: float = 1.0, kb_power: float = 400.0, stun_dur: float = 0.1):
 	global_position = start_position
 	direction = dir.normalized()
 	velocity = direction * speed

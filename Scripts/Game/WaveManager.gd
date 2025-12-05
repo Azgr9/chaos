@@ -6,8 +6,8 @@ class_name WaveManager
 extends Node
 
 # Spawn configuration
-@export var spawn_radius: float = 250.0
-@export var spawn_distance_from_player: float = 150.0
+@export var spawn_radius: float = 1000.0
+@export var spawn_distance_from_player: float = 600.0
 @export var enemy_activation_time: float = 0.5
 
 # Enemy definitions with unlock requirements and weights
@@ -44,7 +44,7 @@ var enemies_alive: int = 0
 var enemies_alive_by_type: Dictionary = {}
 var wave_active: bool = false
 var player_reference: Node2D = null
-var arena_center: Vector2 = Vector2(320, 180)
+var arena_center: Vector2 = Vector2(1280, 720)
 
 # Spawn timing
 var spawn_timer: float = 0.0
@@ -318,8 +318,8 @@ func _get_spawn_position() -> Vector2:
 			spawn_pos = player_reference.global_position + dir_from_player * spawn_distance_from_player
 
 	# Clamp to arena bounds (with padding)
-	spawn_pos.x = clamp(spawn_pos.x, 40, 600)
-	spawn_pos.y = clamp(spawn_pos.y, 40, 320)
+	spawn_pos.x = clamp(spawn_pos.x, 128, 2432)
+	spawn_pos.y = clamp(spawn_pos.y, 128, 1312)
 
 	return spawn_pos
 
@@ -422,7 +422,7 @@ func _show_wave_notification():
 
 	# Center on screen
 	get_parent().add_child(wave_notification)
-	wave_notification.global_position = Vector2(320, 100) - wave_notification.size / 2
+	wave_notification.global_position = Vector2(1280, 400) - wave_notification.size / 2
 
 	# Animate
 	var tween = create_tween()
@@ -434,8 +434,8 @@ func _show_wave_notification():
 func _create_spawn_effect(position: Vector2):
 	# Create a simple spawn indicator
 	var effect = ColorRect.new()
-	effect.size = Vector2(16, 16)
-	effect.position = position - Vector2(8, 8)
+	effect.size = Vector2(64, 64)
+	effect.position = position - Vector2(32, 32)
 	effect.color = Color.PURPLE
 	effect.modulate.a = 0.5
 	get_parent().add_child(effect)

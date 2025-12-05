@@ -31,21 +31,24 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -250.0
-offset_top = -150.0
-offset_right = 250.0
-offset_bottom = 150.0
+offset_left = -400.0
+offset_top = -250.0
+offset_right = 400.0
+offset_bottom = 250.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 20
 
 [node name="Title" type="Label" parent="Control/Container"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 32
 text = "CHOOSE UPGRADE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Subtitle" type="Label" parent="Control/Container"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Select one to continue"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -53,11 +56,11 @@ vertical_alignment = 1
 [node name="UpgradeCards" type="HBoxContainer" parent="Control/Container"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 20
+theme_override_constants/separation = 30
 alignment = 1
 
 [node name="UpgradeCard1" type="Panel" parent="Control/Container/UpgradeCards"]
-custom_minimum_size = Vector2(140, 180)
+custom_minimum_size = Vector2(220, 280)
 layout_mode = 2
 
 [node name="VBox" type="VBoxContainer" parent="Control/Container/UpgradeCards/UpgradeCard1"]
@@ -67,21 +70,23 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 
 [node name="Icon" type="ColorRect" parent="Control/Container/UpgradeCards/UpgradeCard1/VBox"]
-custom_minimum_size = Vector2(60, 60)
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 size_flags_horizontal = 4
 color = Color(1, 0, 0, 1)
 
 [node name="Name" type="Label" parent="Control/Container/UpgradeCards/UpgradeCard1/VBox"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Upgrade Name"
 horizontal_alignment = 1
 
 [node name="Description" type="Label" parent="Control/Container/UpgradeCards/UpgradeCard1/VBox"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Description here"
 horizontal_alignment = 1
 autowrap_mode = 3
@@ -92,7 +97,7 @@ size_flags_vertical = 8
 text = "SELECT"
 
 [node name="UpgradeCard2" type="Panel" parent="Control/Container/UpgradeCards"]
-custom_minimum_size = Vector2(140, 180)
+custom_minimum_size = Vector2(220, 280)
 layout_mode = 2
 
 [node name="VBox" type="VBoxContainer" parent="Control/Container/UpgradeCards/UpgradeCard2"]
@@ -102,21 +107,23 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 
 [node name="Icon" type="ColorRect" parent="Control/Container/UpgradeCards/UpgradeCard2/VBox"]
-custom_minimum_size = Vector2(60, 60)
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 size_flags_horizontal = 4
 color = Color(0, 1, 0, 1)
 
 [node name="Name" type="Label" parent="Control/Container/UpgradeCards/UpgradeCard2/VBox"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Upgrade Name"
 horizontal_alignment = 1
 
 [node name="Description" type="Label" parent="Control/Container/UpgradeCards/UpgradeCard2/VBox"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Description here"
 horizontal_alignment = 1
 autowrap_mode = 3
@@ -127,7 +134,7 @@ size_flags_vertical = 8
 text = "SELECT"
 
 [node name="UpgradeCard3" type="Panel" parent="Control/Container/UpgradeCards"]
-custom_minimum_size = Vector2(140, 180)
+custom_minimum_size = Vector2(220, 280)
 layout_mode = 2
 
 [node name="VBox" type="VBoxContainer" parent="Control/Container/UpgradeCards/UpgradeCard3"]
@@ -137,21 +144,23 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 
 [node name="Icon" type="ColorRect" parent="Control/Container/UpgradeCards/UpgradeCard3/VBox"]
-custom_minimum_size = Vector2(60, 60)
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 size_flags_horizontal = 4
 color = Color(0, 0, 1, 1)
 
 [node name="Name" type="Label" parent="Control/Container/UpgradeCards/UpgradeCard3/VBox"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Upgrade Name"
 horizontal_alignment = 1
 
 [node name="Description" type="Label" parent="Control/Container/UpgradeCards/UpgradeCard3/VBox"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Description here"
 horizontal_alignment = 1
 autowrap_mode = 3
@@ -168,12 +177,13 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -80.0
-offset_top = -130.0
-offset_right = 80.0
-offset_bottom = -100.0
+offset_left = -150.0
+offset_top = -180.0
+offset_right = 150.0
+offset_bottom = -140.0
 grow_horizontal = 2
 grow_vertical = 0
+theme_override_font_sizes/font_size = 16
 text = "Buy Katana (1 Crystal)"
 
 [node name="StaffShopButton" type="Button" parent="Control"]
@@ -183,12 +193,13 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -80.0
-offset_top = -90.0
-offset_right = 80.0
-offset_bottom = -60.0
+offset_left = -150.0
+offset_top = -120.0
+offset_right = 150.0
+offset_bottom = -80.0
 grow_horizontal = 2
 grow_vertical = 0
+theme_override_font_sizes/font_size = 16
 text = "Buy Lightning Staff (1 Crystal)"
 
 [node name="SkipButton" type="Button" parent="Control"]
@@ -198,10 +209,11 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -40.0
-offset_top = -50.0
-offset_right = 40.0
+offset_left = -80.0
+offset_top = -60.0
+offset_right = 80.0
 offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 0
+theme_override_font_sizes/font_size = 16
 text = "Skip"

@@ -33,7 +33,7 @@ var game_manager: Node = null
 var time_alive: float = 0.0
 
 # Bar animation
-var health_max_width: float = 146
+var health_max_width: float = 196
 
 # Smooth bar animation
 var target_health_percent: float = 1.0
@@ -120,7 +120,7 @@ func _update_skill_cooldowns():
 	# Update sword skill cooldown
 	if player and player.current_weapon and player.current_weapon.has_method("get_skill_cooldown_percent"):
 		var percent = player.current_weapon.get_skill_cooldown_percent()
-		sword_skill_cooldown.size.y = 50 * (1.0 - percent)
+		sword_skill_cooldown.size.y = 56 * (1.0 - percent)
 		if percent >= 1.0:
 			sword_skill_cooldown.color = Color(0.1, 0.1, 0.1, 0.0)  # Fully transparent when ready
 		else:
@@ -129,7 +129,7 @@ func _update_skill_cooldowns():
 	# Update staff skill cooldown
 	if player and player.current_staff and player.current_staff.has_method("get_skill_cooldown_percent"):
 		var percent = player.current_staff.get_skill_cooldown_percent()
-		staff_skill_cooldown.size.y = 50 * (1.0 - percent)
+		staff_skill_cooldown.size.y = 56 * (1.0 - percent)
 		if percent >= 1.0:
 			staff_skill_cooldown.color = Color(0.1, 0.1, 0.1, 0.0)  # Fully transparent when ready
 		else:

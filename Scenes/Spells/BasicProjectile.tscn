@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cvnh7j6qrs7bf" path="res://Scripts/Spells/BasicProjectile.gd" id="1_5yf0g"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_taor6"]
-radius = 4.0
+radius = 16.0
 
 [node name="BasicProjectile" type="Area2D"]
 collision_layer = 64
@@ -12,11 +12,11 @@ monitorable = false
 script = ExtResource("1_5yf0g")
 
 [node name="Sprite" type="ColorRect" parent="."]
-offset_left = -4.0
-offset_top = -4.0
-offset_right = 4.0
-offset_bottom = 4.0
-pivot_offset = Vector2(4, 4)
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+pivot_offset = Vector2(16, 16)
 color = Color(0, 1, 1, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

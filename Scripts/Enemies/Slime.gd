@@ -6,7 +6,7 @@ class_name Slime
 extends Enemy
 
 # Slime specific stats
-@export var hop_distance: float = 30.0
+@export var hop_distance: float = 120.0
 @export var hop_interval: float = 1.0
 @export var unlocks_at_wave: int = 1  # Slimes available from wave 1
 
@@ -30,7 +30,7 @@ var time_alive: float = 0.0
 func _setup_enemy():
 	# Slime specific setup
 	max_health = 30.0
-	move_speed = 40.0
+	move_speed = 160.0
 	damage = 10.0
 
 	# Connect signals
@@ -142,15 +142,15 @@ func _on_death():
 	# Create death particles effect (simple version)
 	for i in range(5):
 		var particle = ColorRect.new()
-		particle.size = Vector2(4, 4)
-		particle.position = Vector2(randf_range(-8, 8), randf_range(-8, 8))
+		particle.size = Vector2(16, 16)
+		particle.position = Vector2(randf_range(-32, 32), randf_range(-32, 32))
 		particle.color = Color("#00ff00")
 		add_child(particle)
 
 		var particle_tween = create_tween()
 		var random_dir = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
 		particle_tween.tween_property(particle, "position",
-			particle.position + random_dir * 30, 0.5)
+			particle.position + random_dir * 120, 0.5)
 		particle_tween.parallel().tween_property(particle, "modulate:a", 0.0, 0.5)
 
 	# Remove after animation
@@ -159,7 +159,7 @@ func _on_death():
 func _update_health_bar():
 	if health_bar.visible:
 		var health_percentage = current_health / max_health
-		health_fill.size.x = 20 * health_percentage
+		health_fill.size.x = 80 * health_percentage
 
 func _on_attack_box_area_entered(area: Area2D):
 	# Deal damage to player when they touch us

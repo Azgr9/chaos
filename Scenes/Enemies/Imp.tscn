@@ -3,10 +3,10 @@
 [ext_resource type="Script" path="res://Scripts/Enemies/Imp.gd" id="1_imp"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_physics"]
-radius = 4.0
+radius = 16.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_hurtbox"]
-radius = 5.0
+radius = 20.0
 
 [node name="Imp" type="CharacterBody2D"]
 collision_layer = 4
@@ -27,25 +27,25 @@ shape = SubResource("CircleShape2D_physics")
 [node name="VisualsPivot" type="Node2D" parent="."]
 
 [node name="Sprite" type="ColorRect" parent="VisualsPivot"]
-offset_left = -5.0
-offset_top = -5.0
-offset_right = 5.0
-offset_bottom = 5.0
-pivot_offset = Vector2(5, 5)
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+pivot_offset = Vector2(20, 20)
 color = Color(0.6, 0.1, 0.2, 1)
 
 [node name="Eye1" type="ColorRect" parent="VisualsPivot"]
-offset_left = -2.0
-offset_top = -1.0
-offset_right = -1.0
-offset_bottom = 1.0
+offset_left = -8.0
+offset_top = -4.0
+offset_right = -4.0
+offset_bottom = 4.0
 color = Color(1, 0.8, 0, 1)
 
 [node name="Eye2" type="ColorRect" parent="VisualsPivot"]
-offset_left = 1.0
-offset_top = -1.0
-offset_right = 2.0
-offset_bottom = 1.0
+offset_left = 4.0
+offset_top = -4.0
+offset_right = 8.0
+offset_bottom = 4.0
 color = Color(1, 0.8, 0, 1)
 
 [node name="HurtBox" type="Area2D" parent="."]
@@ -59,15 +59,15 @@ shape = SubResource("CircleShape2D_hurtbox")
 [node name="HealthBar" type="Node2D" parent="."]
 
 [node name="Background" type="ColorRect" parent="HealthBar"]
-offset_left = -8.0
-offset_top = -15.0
-offset_right = 8.0
-offset_bottom = -12.0
+offset_left = -32.0
+offset_top = -60.0
+offset_right = 32.0
+offset_bottom = -48.0
 color = Color(0.2, 0, 0, 1)
 
 [node name="Fill" type="ColorRect" parent="HealthBar"]
-offset_left = -8.0
-offset_top = -15.0
-offset_right = 8.0
-offset_bottom = -12.0
+offset_left = -32.0
+offset_top = -60.0
+offset_right = 32.0
+offset_bottom = -48.0
 color = Color(1, 0, 0, 1)

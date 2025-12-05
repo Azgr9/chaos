@@ -7,10 +7,10 @@ extends Node2D
 @onready var label: Label = $Label
 
 # Animation settings
-@export var float_speed: float = 30.0
-@export var float_distance: float = 40.0
+@export var float_speed: float = 120.0
+@export var float_distance: float = 160.0
 @export var fade_duration: float = 1.0
-@export var spread: float = 20.0
+@export var spread: float = 80.0
 
 func _ready():
 	# Pause when game pauses (don't keep animating during upgrade menu)

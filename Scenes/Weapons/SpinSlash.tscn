@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://Scripts/Weapons/SpinSlash.gd" id="1_spin"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_spin"]
-radius = 30.0
+radius = 120.0
 
 [node name="SpinSlash" type="Node2D"]
 script = ExtResource("1_spin")
@@ -20,43 +20,43 @@ shape = SubResource("CircleShape2D_spin")
 [node name="Visual" type="Node2D" parent="."]
 
 [node name="Blade1" type="ColorRect" parent="Visual"]
-offset_left = 25.0
-offset_top = -3.0
-offset_right = 35.0
-offset_bottom = 3.0
-pivot_offset = Vector2(-25, 3)
+offset_left = 100.0
+offset_top = -12.0
+offset_right = 140.0
+offset_bottom = 12.0
+pivot_offset = Vector2(-100, 12)
 color = Color(1, 0.843137, 0, 1)
 
 [node name="Blade2" type="ColorRect" parent="Visual"]
-offset_left = 25.0
-offset_top = -3.0
-offset_right = 35.0
-offset_bottom = 3.0
-pivot_offset = Vector2(-25, 3)
+offset_left = 100.0
+offset_top = -12.0
+offset_right = 140.0
+offset_bottom = 12.0
+pivot_offset = Vector2(-100, 12)
 rotation = 1.5708
 color = Color(1, 0.843137, 0, 1)
 
 [node name="Blade3" type="ColorRect" parent="Visual"]
-offset_left = 25.0
-offset_top = -3.0
-offset_right = 35.0
-offset_bottom = 3.0
-pivot_offset = Vector2(-25, 3)
+offset_left = 100.0
+offset_top = -12.0
+offset_right = 140.0
+offset_bottom = 12.0
+pivot_offset = Vector2(-100, 12)
 rotation = 3.14159
 color = Color(1, 0.843137, 0, 1)
 
 [node name="Blade4" type="ColorRect" parent="Visual"]
-offset_left = 25.0
-offset_top = -3.0
-offset_right = 35.0
-offset_bottom = 3.0
-pivot_offset = Vector2(-25, 3)
+offset_left = 100.0
+offset_top = -12.0
+offset_right = 140.0
+offset_bottom = 12.0
+pivot_offset = Vector2(-100, 12)
 rotation = -1.5708
 color = Color(1, 0.843137, 0, 1)
 
 [node name="Center" type="ColorRect" parent="Visual"]
-offset_left = -5.0
-offset_top = -5.0
-offset_right = 5.0
-offset_bottom = 5.0
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
 color = Color(1, 0.843137, 0, 0.5)

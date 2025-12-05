@@ -23,13 +23,13 @@ var dash_timer: float = 0.0
 var is_dashing: bool = false
 var dash_direction: Vector2 = Vector2.ZERO
 @export var dash_cooldown: float = 2.0
-@export var dash_speed: float = 150.0
+@export var dash_speed: float = 600.0
 @export var dash_duration: float = 0.3
 
 func _setup_enemy():
 	# Imp stats - fast, weak, low health
 	max_health = 10.0  # Very low health
-	move_speed = 60.0  # Fastest enemy
+	move_speed = 240.0  # Fastest enemy
 	damage = 5.0  # Low damage
 	current_health = max_health
 
@@ -98,12 +98,12 @@ func _update_movement(_delta):
 		velocity = dash_direction * dash_speed
 	else:
 		# Normal movement - zigzag toward player
-		var zigzag = sin(time_alive * 8.0) * 15.0
+		var zigzag = sin(time_alive * 8.0) * 60.0
 		var perpendicular = Vector2(-direction_to_player.y, direction_to_player.x)
 		velocity = (direction_to_player * move_speed) + (perpendicular * zigzag)
 
 		# Try to dash when close enough
-		if distance_to_player < 100 and dash_timer <= 0:
+		if distance_to_player < 400 and dash_timer <= 0:
 			_perform_dash(direction_to_player)
 
 func _perform_dash(direction: Vector2):
@@ -164,7 +164,7 @@ func _on_death():
 	# Create explosion particles
 	for i in range(6):
 		var particle = ColorRect.new()
-		particle.size = Vector2(3, 3)
+		particle.size = Vector2(12, 12)
 		particle.position = Vector2.ZERO
 		particle.color = Color(0.6, 0.1, 0.2)
 		add_child(particle)
@@ -172,7 +172,7 @@ func _on_death():
 		var particle_tween = create_tween()
 		var random_dir = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
 		particle_tween.tween_property(particle, "position",
-			particle.position + random_dir * 25, 0.4)
+			particle.position + random_dir * 100, 0.4)
 		particle_tween.parallel().tween_property(particle, "modulate:a", 0.0, 0.4)
 
 	# Remove after animation
@@ -181,4 +181,4 @@ func _on_death():
 func _update_health_bar():
 	if health_bar.visible:
 		var health_percentage = current_health / max_health
-		health_fill.size.x = 16 * health_percentage
+		health_fill.size.x = 64 * health_percentage

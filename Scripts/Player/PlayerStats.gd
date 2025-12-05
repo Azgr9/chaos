@@ -3,7 +3,7 @@ extends Resource
 
 # Base stats
 @export var max_health: float = 100.0
-@export var move_speed: float = 80.0  # Pixels per second (reduced for pixel art)
+@export var move_speed: float = 320.0  # Pixels per second (scaled for 64x64 assets)
 @export var melee_damage_multiplier: float = 1.0
 @export var magic_damage_multiplier: float = 1.0
 @export var attack_speed_multiplier: float = 1.0

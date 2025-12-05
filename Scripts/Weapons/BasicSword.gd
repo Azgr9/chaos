@@ -12,7 +12,7 @@ extends Node2D
 @export var swing_arc: float = 150.0  # Total arc of swing
 
 # Visual settings
-@export var sword_length: float = 20.0
+@export var sword_length: float = 80.0
 @export var swing_style: String = "overhead"  # "overhead", "horizontal", "stab"
 
 # Nodes
@@ -205,14 +205,14 @@ func _perform_overhead_swing(duration: float = 0.25, is_dash_attack: bool = fals
 
 	# Starting position - raised up and back
 	pivot.rotation = deg_to_rad(-120)
-	pivot.position = Vector2(-5, -10)
+	pivot.position = Vector2(-20, -40)
 
 	# Create swing arc
 	active_attack_tween.set_parallel(false)
 
 	# Anticipation - pull back slightly more (shorter for speed)
 	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(-130), duration * 0.2)
-	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(-8, -12), duration * 0.2)
+	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(-32, -48), duration * 0.2)
 
 	# Enable hitbox and create enhanced trail
 	active_attack_tween.tween_callback(func():
@@ -225,7 +225,7 @@ func _perform_overhead_swing(duration: float = 0.25, is_dash_attack: bool = fals
 	sprite.scale = Vector2(stretch_amount, 0.6)
 	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(70), duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(5, 5), duration * 0.5)\
+	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(20, 20), duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 	# Reset scale with bounce
@@ -279,15 +279,15 @@ func _perform_horizontal_swing(duration: float = 0.25, is_dash_attack: bool = fa
 		anticipation_angle = 100
 		sweep_angle = -90
 		follow_angle = -100
-		start_pos = Vector2(8, 0)
-		sweep_pos = Vector2(-8, 0)
+		start_pos = Vector2(32, 0)
+		sweep_pos = Vector2(-32, 0)
 	else:  # Right to left swing (attack 1)
 		start_angle = -90
 		anticipation_angle = -100
 		sweep_angle = 90
 		follow_angle = 100
-		start_pos = Vector2(-8, 0)
-		sweep_pos = Vector2(8, 0)
+		start_pos = Vector2(-32, 0)
+		sweep_pos = Vector2(32, 0)
 
 	# Starting position - pulled to the side
 	pivot.rotation = deg_to_rad(start_angle)
@@ -349,12 +349,12 @@ func _perform_stab_attack(duration: float = 0.25, is_dash_attack: bool = false):
 
 	# Starting position - pulled back
 	pivot.rotation = 0
-	pivot.position = Vector2(-15, 0)
+	pivot.position = Vector2(-60, 0)
 
 	active_attack_tween.set_parallel(false)
 
 	# Pull back more (anticipation) - shorter for snappier feel
-	active_attack_tween.tween_property(pivot, "position", Vector2(-20, 0), duration * 0.2)
+	active_attack_tween.tween_property(pivot, "position", Vector2(-80, 0), duration * 0.2)
 
 	# Enable hitbox and create enhanced trail
 	active_attack_tween.tween_callback(func():
@@ -363,7 +363,7 @@ func _perform_stab_attack(duration: float = 0.25, is_dash_attack: bool = false):
 	)
 
 	# Thrust forward - MUCH FARTHER for better reach (combo finisher goes even further)
-	var thrust_distance = 35.0 if is_combo_finisher else 28.0
+	var thrust_distance = 140.0 if is_combo_finisher else 112.0
 	active_attack_tween.tween_property(pivot, "position", Vector2(thrust_distance, 0), duration * 0.35)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
@@ -503,7 +503,7 @@ func _create_impact_particles(hit_position: Vector2, is_combo_finisher: bool = f
 
 	for i in range(particle_count):
 		var particle = ColorRect.new()
-		var size = 6 if (is_combo_finisher or is_crit) else 4
+		var size = 24 if (is_combo_finisher or is_crit) else 16
 		particle.size = Vector2(size, size)
 		particle.color = particle_color
 		get_tree().current_scene.add_child(particle)
@@ -512,7 +512,7 @@ func _create_impact_particles(hit_position: Vector2, is_combo_finisher: bool = f
 		# Random direction outward
 		var angle = (TAU / particle_count) * i + randf_range(-0.2, 0.2)
 		var direction = Vector2.from_angle(angle)
-		var distance = randf_range(20, 35) if (is_combo_finisher or is_crit) else randf_range(15, 25)
+		var distance = randf_range(80, 140) if (is_combo_finisher or is_crit) else randf_range(60, 100)
 
 		var tween = create_tween()
 		tween.set_parallel(true)
@@ -530,11 +530,11 @@ func _spawn_crit_text(position: Vector2):
 	crit_label.add_theme_font_size_override("font_size", 24)
 	crit_label.modulate = Color.RED
 	get_tree().current_scene.add_child(crit_label)
-	crit_label.global_position = position + Vector2(-20, -30)
+	crit_label.global_position = position + Vector2(-80, -120)
 
 	# Animate
 	var tween = create_tween()
-	tween.tween_property(crit_label, "global_position:y", position.y - 50, 0.5)
+	tween.tween_property(crit_label, "global_position:y", position.y - 200, 0.5)
 	tween.parallel().tween_property(crit_label, "scale", Vector2(1.5, 1.5), 0.2)
 	tween.tween_property(crit_label, "scale", Vector2(1.0, 1.0), 0.3)
 	tween.parallel().tween_property(crit_label, "modulate:a", 0.0, 0.5)

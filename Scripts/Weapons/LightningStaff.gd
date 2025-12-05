@@ -15,7 +15,7 @@ extends Node2D
 # Chain Lightning ability stats
 @export var chain_lightning_duration: float = 3.0
 @export var chain_lightning_cooldown: float = 8.0
-@export var chain_range: float = 150.0
+@export var chain_range: float = 600.0
 @export var chain_damage: float = 8.0
 @export var max_chains: int = 3
 
@@ -119,7 +119,7 @@ func _play_attack_animation():
 
 	# Staff recoil
 	var recoil_tween = create_tween()
-	recoil_tween.tween_property(self, "position:x", -3, 0.05)
+	recoil_tween.tween_property(self, "position:x", -12, 0.05)
 	recoil_tween.tween_property(self, "position:x", 0, 0.1)
 
 	# Staff glow - electric blue
@@ -232,7 +232,7 @@ func _create_lightning_bolt(from: Vector2, to: Vector2):
 
 	# Lightning color - bright cyan/white
 	bolt.default_color = Color("#00ffff")
-	bolt.width = 2.0
+	bolt.width = 8.0
 
 	# Create jagged lightning effect
 	var segments = 5
@@ -245,7 +245,7 @@ func _create_lightning_bolt(from: Vector2, to: Vector2):
 		# Add random offset perpendicular to direction
 		var direction = (to - from).normalized()
 		var perpendicular = Vector2(-direction.y, direction.x)
-		var offset = perpendicular * randf_range(-10, 10)
+		var offset = perpendicular * randf_range(-40, 40)
 		points.append(point + offset)
 
 	points.append(to)

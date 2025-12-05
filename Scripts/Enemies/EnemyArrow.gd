@@ -6,7 +6,7 @@ class_name EnemyArrow
 extends Area2D
 
 # Arrow properties
-@export var speed: float = 150.0
+@export var speed: float = 600.0
 @export var damage: float = 8.0
 
 # Nodes

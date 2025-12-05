@@ -85,7 +85,7 @@ func _perform_dash_slash():
 
 	is_dash_slashing = true
 
-	var dash_distance = 150.0
+	var dash_distance = 600.0
 	var dash_time = 0.15
 
 	# ⭐ DASH TOWARD MOUSE ⭐
@@ -121,7 +121,7 @@ func _perform_dash_slash():
 
 	if result:
 		# Hit a wall (or other blocking body) → stop a bit before it
-		target_position = result.position - direction * 4.0
+		target_position = result.position - direction * 16.0
 	# -----------------------------
 
 	# --- INVULNERABILITY START ---
@@ -152,7 +152,7 @@ func _create_dash_damage_area(player: Node2D, _direction: Vector2, _distance: fl
 		var enemies = get_tree().get_nodes_in_group("enemies")
 
 		for enemy in enemies:
-			if enemy.global_position.distance_to(player.global_position) < 30.0:
+			if enemy.global_position.distance_to(player.global_position) < 120.0:
 				if enemy in hit_enemies:
 					continue
 
@@ -171,7 +171,7 @@ func _create_dash_trail(player: Node2D):
 		await get_tree().create_timer(0.03).timeout
 
 		var ghost = ColorRect.new()
-		ghost.size = Vector2(10, 10)
+		ghost.size = Vector2(40, 40)
 		ghost.color = Color(0.9, 0.2, 0.2, 0.5)
 		get_tree().current_scene.add_child(ghost)
 		ghost.global_position = player.global_position
@@ -246,7 +246,7 @@ func _perform_quick_slash(reverse: bool = false):
 		end_angle = 90
 
 	pivot.rotation = deg_to_rad(start_angle)
-	pivot.position = Vector2(-10, 0)
+	pivot.position = Vector2(-40, 0)
 
 	active_attack_tween.set_parallel(false)
 
@@ -259,7 +259,7 @@ func _perform_quick_slash(reverse: bool = false):
 	active_attack_tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", true))
 
 	# Return to idle position
-	active_attack_tween.tween_property(pivot, "position", Vector2(0, 8), 0.1)
+	active_attack_tween.tween_property(pivot, "position", Vector2(0, 32), 0.1)
 	active_attack_tween.parallel().tween_property(pivot, "rotation", deg_to_rad(45), 0.1)
 	active_attack_tween.parallel().tween_property(sprite, "scale", Vector2(0.6, 0.6), 0.1)
 
@@ -287,13 +287,13 @@ func _perform_overhead_slash():
 
 	# Starting position - raised up and back
 	pivot.rotation = deg_to_rad(-120)
-	pivot.position = Vector2(-5, -10)
+	pivot.position = Vector2(-20, -40)
 
 	active_attack_tween.set_parallel(false)
 
 	# Anticipation - pull back
 	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(-130), attack_duration * 0.2)
-	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(-8, -12), attack_duration * 0.2)
+	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(-32, -48), attack_duration * 0.2)
 
 	# Enable hitbox
 	active_attack_tween.tween_callback(func(): hit_box_collision.set_deferred("disabled", false))
@@ -303,7 +303,7 @@ func _perform_overhead_slash():
 	sprite.scale = Vector2(stretch_amount, 0.6)
 	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(70), attack_duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(5, 5), attack_duration * 0.5)\
+	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(20, 20), attack_duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 	# Reset scale with bounce
@@ -384,14 +384,14 @@ func _on_hit_box_body_entered(body: Node2D):
 func _create_slash_effect(hit_position: Vector2):
 	for i in range(3):
 		var particle = ColorRect.new()
-		particle.size = Vector2(6, 2)
+		particle.size = Vector2(24, 8)
 		particle.color = Color(1.0, 0.3, 0.3, 1.0)
 		get_tree().current_scene.add_child(particle)
 		particle.global_position = hit_position
 
 		var angle = randf_range(-PI, PI)
 		var direction = Vector2.from_angle(angle)
-		var distance = randf_range(10, 20)
+		var distance = randf_range(40, 80)
 
 		var tween = create_tween()
 		tween.set_parallel(true)

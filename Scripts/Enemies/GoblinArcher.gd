@@ -8,8 +8,8 @@ extends Enemy
 # Archer specific properties
 @export var unlocks_at_wave: int = 2  # Goblin Archers unlock at wave 2
 @export var arrow_scene: PackedScene = preload("res://Scenes/Enemies/EnemyArrow.tscn")
-@export var shoot_range: float = 120.0
-@export var retreat_range: float = 50.0
+@export var shoot_range: float = 480.0
+@export var retreat_range: float = 200.0
 @export var shoot_cooldown: float = 2.0
 
 # Nodes
@@ -30,7 +30,7 @@ var time_alive: float = 0.0
 func _setup_enemy():
 	# Goblin archer stats
 	max_health = 20.0  # Less health than slime
-	move_speed = 30.0  # Slower movement
+	move_speed = 120.0  # Slower movement
 	damage = 8.0
 	current_health = max_health
 
@@ -103,8 +103,8 @@ func _shoot_arrow():
 	var tween = create_tween()
 
 	# Pull bow back
-	bow.position.x = 5
-	tween.tween_property(bow, "position:x", 7, 0.2)
+	bow.position.x = 20
+	tween.tween_property(bow, "position:x", 28, 0.2)
 
 	# Flash before shooting
 	sprite.color = Color.YELLOW
@@ -114,7 +114,7 @@ func _shoot_arrow():
 	tween.tween_callback(_spawn_arrow)
 
 	# Recoil animation
-	tween.tween_property(visuals_pivot, "position:x", -2, 0.1)
+	tween.tween_property(visuals_pivot, "position:x", -8, 0.1)
 	tween.tween_property(visuals_pivot, "position:x", 0, 0.2)
 
 	# Reset
@@ -132,7 +132,7 @@ func _spawn_arrow():
 	var target_pos = player_reference.global_position
 
 	# Add some inaccuracy for fairness
-	var spread = randf_range(-10, 10)
+	var spread = randf_range(-40, 40)
 	target_pos.x += spread
 	target_pos.y += spread
 
@@ -178,8 +178,8 @@ func _on_death():
 	# Drop arrows as death effect
 	for i in range(3):
 		var particle = ColorRect.new()
-		particle.size = Vector2(8, 2)
-		particle.position = Vector2(randf_range(-8, 8), randf_range(-8, 8))
+		particle.size = Vector2(32, 8)
+		particle.position = Vector2(randf_range(-32, 32), randf_range(-32, 32))
 		particle.color = Color("#8B4513")
 		particle.rotation = randf() * TAU
 		add_child(particle)
@@ -187,7 +187,7 @@ func _on_death():
 		var particle_tween = create_tween()
 		var random_dir = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
 		particle_tween.tween_property(particle, "position",
-			particle.position + random_dir * 20, 0.5)
+			particle.position + random_dir * 80, 0.5)
 		particle_tween.parallel().tween_property(particle, "modulate:a", 0.0, 0.5)
 
 	# Remove after animation
@@ -196,7 +196,7 @@ func _on_death():
 func _update_health_bar():
 	if health_bar.visible:
 		var health_percentage = current_health / max_health
-		health_fill.size.x = 20 * health_percentage
+		health_fill.size.x = 80 * health_percentage
 
 func _on_animation_timer():
 	# Occasional idle animations

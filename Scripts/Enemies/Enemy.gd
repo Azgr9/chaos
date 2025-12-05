@@ -11,7 +11,7 @@ const ChaosCrystal = preload("res://Scenes/Items/ChaosCrystal.tscn")
 
 # Base enemy stats
 @export var max_health: float = 30.0
-@export var move_speed: float = 40.0
+@export var move_speed: float = 160.0
 @export var damage: float = 10.0
 @export var knockback_resistance: float = 0.5
 @export var experience_value: int = 10
@@ -91,7 +91,7 @@ func _avoid_player_overlap():
 	var distance = to_player.length()
 
 	# Minimum distance to maintain from player (based on collision shapes)
-	var min_distance = 25.0  # Adjust based on your collision shape sizes
+	var min_distance = 100.0  # Adjust based on your collision shape sizes
 
 	# If too close, push away from player
 	if distance < min_distance and distance > 0:
@@ -100,9 +100,9 @@ func _avoid_player_overlap():
 
 		# Apply moderate push force (reduced to prevent catapulting)
 		if knockback_velocity.length() == 0:
-			velocity += push_direction * push_strength * 100.0  # Reduced from 200.0
+			velocity += push_direction * push_strength * 400.0  # Reduced from 200.0
 
-func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback_power: float = 150.0, stun_duration: float = 0.0):
+func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback_power: float = 600.0, stun_duration: float = 0.0):
 	if is_dead:
 		return
 
@@ -170,7 +170,7 @@ func _spawn_crystals():
 		var crystal = ChaosCrystal.instantiate()
 
 		# Spawn at enemy position with slight random offset
-		var offset = Vector2(randf_range(-15, 15), randf_range(-15, 15))
+		var offset = Vector2(randf_range(-60, 60), randf_range(-60, 60))
 		crystal.global_position = global_position + offset
 
 		# Add to scene

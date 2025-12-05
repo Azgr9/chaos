@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://Scripts/Enemies/EnemyArrow.gd" id="1_arrow"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_arrow"]
-size = Vector2(10, 4)
+size = Vector2(40, 16)
 
 [node name="EnemyArrow" type="Area2D"]
 collision_layer = 128
@@ -13,10 +13,10 @@ monitorable = false
 script = ExtResource("1_arrow")
 
 [node name="Sprite" type="ColorRect" parent="."]
-offset_left = -6.0
-offset_top = -2.0
-offset_right = 6.0
-offset_bottom = 2.0
+offset_left = -24.0
+offset_top = -8.0
+offset_right = 24.0
+offset_bottom = 8.0
 color = Color(0.545098, 0.270588, 0.0745098, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

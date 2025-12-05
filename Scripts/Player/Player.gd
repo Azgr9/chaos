@@ -42,7 +42,7 @@ var accumulated_movement: Vector2 = Vector2.ZERO
 # Dash mechanic
 var is_dashing: bool = false
 var dash_direction: Vector2 = Vector2.ZERO
-@export var dash_speed: float = 300.0
+@export var dash_speed: float = 1200.0
 @export var dash_duration: float = 0.2
 @export var dash_cooldown: float = 0.5
 var dash_cooldown_timer: float = 0.0
@@ -391,10 +391,10 @@ func on_enemy_killed():
 		heal_label.text = "+%d HP" % int(stats.lifesteal_amount)
 		heal_label.modulate = Color.GREEN
 		add_child(heal_label)
-		heal_label.position = Vector2(0, -30)
+		heal_label.position = Vector2(0, -120)
 
 		var tween = create_tween()
-		tween.tween_property(heal_label, "position:y", -50, 0.5)
+		tween.tween_property(heal_label, "position:y", -200, 0.5)
 		tween.parallel().tween_property(heal_label, "modulate:a", 0.0, 0.5)
 		tween.tween_callback(heal_label.queue_free)
 

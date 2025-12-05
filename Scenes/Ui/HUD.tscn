@@ -16,171 +16,181 @@ script = ExtResource("1_hud")
 
 [node name="PlayerBars" type="Control" parent="Control"]
 layout_mode = 0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = 210.0
-offset_bottom = 70.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 316.0
+offset_bottom = 100.0
 
 [node name="HealthBar" type="Control" parent="Control/PlayerBars"]
 layout_mode = 0
-offset_right = 150.0
-offset_bottom = 20.0
+offset_right = 200.0
+offset_bottom = 24.0
 
 [node name="Background" type="ColorRect" parent="Control/PlayerBars/HealthBar"]
 layout_mode = 0
-offset_right = 150.0
-offset_bottom = 20.0
+offset_right = 200.0
+offset_bottom = 24.0
 color = Color(0.101961, 0, 0, 1)
 
 [node name="Fill" type="ColorRect" parent="Control/PlayerBars/HealthBar"]
 layout_mode = 0
 offset_left = 2.0
 offset_top = 2.0
-offset_right = 148.0
-offset_bottom = 18.0
+offset_right = 198.0
+offset_bottom = 22.0
 color = Color(1, 0, 0, 1)
 
 [node name="Label" type="Label" parent="Control/PlayerBars/HealthBar"]
 layout_mode = 0
-offset_right = 150.0
-offset_bottom = 20.0
+offset_right = 200.0
+offset_bottom = 24.0
+theme_override_font_sizes/font_size = 14
 text = "100/100"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="WeaponInfo" type="Control" parent="Control"]
 layout_mode = 0
-offset_left = 10.0
-offset_top = 320.0
-offset_right = 210.0
-offset_bottom = 350.0
+offset_left = 16.0
+offset_top = 650.0
+offset_right = 200.0
+offset_bottom = 704.0
 
 [node name="WeaponIcon" type="ColorRect" parent="Control/WeaponInfo"]
 layout_mode = 0
-offset_left = 10.0
-offset_top = 5.0
-offset_right = 22.0
-offset_bottom = 21.0
+offset_left = 0.0
+offset_top = 4.0
+offset_right = 24.0
+offset_bottom = 28.0
 color = Color(0.752941, 0.752941, 0.752941, 1)
 
 [node name="Skills" type="Control" parent="Control"]
 layout_mode = 0
-offset_left = 10.0
-offset_top = 280.0
-offset_right = 150.0
-offset_bottom = 350.0
+offset_left = 16.0
+offset_top = 600.0
+offset_right = 200.0
+offset_bottom = 680.0
 
 [node name="SwordSkill" type="Control" parent="Control/Skills"]
 layout_mode = 0
-offset_right = 50.0
-offset_bottom = 50.0
+offset_right = 56.0
+offset_bottom = 56.0
 
 [node name="Background" type="ColorRect" parent="Control/Skills/SwordSkill"]
 layout_mode = 0
-offset_right = 50.0
-offset_bottom = 50.0
+offset_right = 56.0
+offset_bottom = 56.0
 color = Color(0.2, 0.2, 0.2, 1)
 
 [node name="Cooldown" type="ColorRect" parent="Control/Skills/SwordSkill"]
 layout_mode = 0
-offset_right = 50.0
-offset_bottom = 50.0
+offset_right = 56.0
+offset_bottom = 56.0
 color = Color(0.1, 0.1, 0.1, 0.7)
 
 [node name="Icon" type="ColorRect" parent="Control/Skills/SwordSkill"]
 layout_mode = 0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 48.0
+offset_bottom = 48.0
 color = Color(0.75, 0.75, 0.75, 1)
 
 [node name="Keybind" type="Label" parent="Control/Skills/SwordSkill"]
 layout_mode = 0
 offset_left = 2.0
 offset_top = 2.0
-offset_right = 15.0
-offset_bottom = 15.0
+offset_right = 20.0
+offset_bottom = 18.0
+theme_override_font_sizes/font_size = 12
 text = "Q"
 
 [node name="StaffSkill" type="Control" parent="Control/Skills"]
 layout_mode = 0
-offset_left = 60.0
-offset_right = 110.0
-offset_bottom = 50.0
+offset_left = 64.0
+offset_right = 120.0
+offset_bottom = 56.0
 
 [node name="Background" type="ColorRect" parent="Control/Skills/StaffSkill"]
 layout_mode = 0
-offset_right = 50.0
-offset_bottom = 50.0
+offset_right = 56.0
+offset_bottom = 56.0
 color = Color(0.2, 0.2, 0.2, 1)
 
 [node name="Cooldown" type="ColorRect" parent="Control/Skills/StaffSkill"]
 layout_mode = 0
-offset_right = 50.0
-offset_bottom = 50.0
+offset_right = 56.0
+offset_bottom = 56.0
 color = Color(0.1, 0.1, 0.1, 0.7)
 
 [node name="Icon" type="ColorRect" parent="Control/Skills/StaffSkill"]
 layout_mode = 0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 48.0
+offset_bottom = 48.0
 color = Color(0.8, 0.6, 1.0, 1)
 
 [node name="Keybind" type="Label" parent="Control/Skills/StaffSkill"]
 layout_mode = 0
 offset_left = 2.0
 offset_top = 2.0
-offset_right = 15.0
-offset_bottom = 15.0
+offset_right = 20.0
+offset_bottom = 18.0
+theme_override_font_sizes/font_size = 12
 text = "E"
 
 [node name="GameInfo" type="Control" parent="Control"]
 layout_mode = 0
-offset_left = 540.0
-offset_top = 10.0
-offset_right = 630.0
-offset_bottom = 70.0
+offset_left = 1100.0
+offset_top = 16.0
+offset_right = 1264.0
+offset_bottom = 100.0
 
 [node name="WaveLabel" type="Label" parent="Control/GameInfo"]
 layout_mode = 0
-offset_right = 90.0
-offset_bottom = 20.0
+offset_right = 164.0
+offset_bottom = 24.0
+theme_override_font_sizes/font_size = 16
 text = "Wave 1/5"
+horizontal_alignment = 2
 
 [node name="EnemiesLabel" type="Label" parent="Control/GameInfo"]
 layout_mode = 0
-offset_top = 20.0
-offset_right = 90.0
-offset_bottom = 40.0
+offset_top = 28.0
+offset_right = 164.0
+offset_bottom = 52.0
+theme_override_font_sizes/font_size = 14
 text = "Enemies: 0"
+horizontal_alignment = 2
 
 [node name="ScoreLabel" type="Label" parent="Control/GameInfo"]
 layout_mode = 0
-offset_top = 40.0
-offset_right = 90.0
-offset_bottom = 60.0
+offset_top = 56.0
+offset_right = 164.0
+offset_bottom = 80.0
+theme_override_font_sizes/font_size = 14
 text = "Score: 0"
+horizontal_alignment = 2
 
 [node name="CrystalDisplay" type="Control" parent="Control"]
 layout_mode = 0
-offset_left = 10.0
-offset_top = 40.0
-offset_right = 160.0
-offset_bottom = 60.0
+offset_left = 16.0
+offset_top = 48.0
+offset_right = 200.0
+offset_bottom = 72.0
 
 [node name="CrystalIcon" type="ColorRect" parent="Control/CrystalDisplay"]
 layout_mode = 0
-offset_right = 12.0
-offset_bottom = 12.0
+offset_right = 16.0
+offset_bottom = 16.0
 color = Color(0, 0.8, 1, 1)
 
 [node name="CrystalLabel" type="Label" parent="Control/CrystalDisplay"]
 layout_mode = 0
-offset_left = 16.0
-offset_right = 100.0
-offset_bottom = 12.0
+offset_left = 20.0
+offset_right = 150.0
+offset_bottom = 16.0
+theme_override_font_sizes/font_size = 12
 text = "Crystals: 0"
 vertical_alignment = 1

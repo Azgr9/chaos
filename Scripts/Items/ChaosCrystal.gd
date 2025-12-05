@@ -5,8 +5,8 @@
 extends Area2D
 
 @export var crystal_value: int = 1
-@export var magnet_range: float = 60.0
-@export var magnet_speed: float = 150.0
+@export var magnet_range: float = 240.0
+@export var magnet_speed: float = 600.0
 
 @onready var visual: Node2D = $Visual
 @onready var crystal_sprite: ColorRect = $Visual/Crystal
@@ -37,7 +37,7 @@ func _ready():
 func _spawn_animation():
 	# Start small and grow
 	visual.scale = Vector2.ZERO
-	position.y -= 10
+	position.y -= 40
 
 	var tween = create_tween()
 	tween.set_parallel(true)
@@ -47,7 +47,7 @@ func _spawn_animation():
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 	# Drop down
-	tween.tween_property(self, "position:y", position.y + 10, 0.3)\
+	tween.tween_property(self, "position:y", position.y + 40, 0.3)\
 		.set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 
 	# Return to normal scale
@@ -132,7 +132,7 @@ func _collection_animation():
 	tween.set_parallel(true)
 
 	tween.tween_property(visual, "scale", Vector2(1.5, 1.5), 0.1)
-	tween.tween_property(self, "position:y", position.y - 20, 0.3)
+	tween.tween_property(self, "position:y", position.y - 80, 0.3)
 	tween.tween_property(visual, "modulate:a", 0.0, 0.3)
 
 	await tween.finished
