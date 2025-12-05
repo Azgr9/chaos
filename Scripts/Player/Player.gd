@@ -147,10 +147,6 @@ func handle_input():
 		if current_staff.has_method("use_skill"):
 			current_staff.use_skill()
 
-	# Weapon switching
-	if Input.is_action_just_pressed("swap_weapon"):
-		switch_weapon()
-
 	# Debug controls
 	if Input.is_physical_key_pressed(KEY_O):  # O key
 		if not debug_mode:
