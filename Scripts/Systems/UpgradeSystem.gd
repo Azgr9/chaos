@@ -115,6 +115,36 @@ var all_upgrades = [
 		"apply_to": "lifesteal",
 		"value": 2,
 		"weight": 0.3
+	},
+	{
+		"id": "crit_chance_small",
+		"name": "Lucky Strike",
+		"description": "+10% Critical Hit Chance",
+		"icon_color": Color.ORANGE_RED,
+		"type": "stat",
+		"apply_to": "crit_chance",
+		"value": 0.1,
+		"weight": 0.7
+	},
+	{
+		"id": "crit_chance_large",
+		"name": "Assassin's Eye",
+		"description": "+20% Critical Hit Chance",
+		"icon_color": Color.CRIMSON,
+		"type": "stat",
+		"apply_to": "crit_chance",
+		"value": 0.2,
+		"weight": 0.4
+	},
+	{
+		"id": "crit_damage",
+		"name": "Deadly Precision",
+		"description": "+50% Critical Damage",
+		"icon_color": Color.GOLD,
+		"type": "stat",
+		"apply_to": "crit_damage",
+		"value": 0.5,
+		"weight": 0.5
 	}
 ]
 
@@ -186,7 +216,11 @@ func apply_upgrade(player: Node2D, upgrade: Dictionary):
 			if player.current_staff:
 				player.current_staff.multi_shot += int(upgrade.value)
 		"lifesteal":
-			player.stats.lifesteal_amount = upgrade.value
+			player.stats.lifesteal_amount += upgrade.value
+		"crit_chance":
+			player.stats.crit_chance += upgrade.value
+		"crit_damage":
+			player.stats.crit_damage += upgrade.value
 
 func reset_upgrades():
 	picked_upgrades.clear()

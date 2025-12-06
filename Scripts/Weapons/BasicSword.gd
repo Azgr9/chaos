@@ -29,18 +29,23 @@ var damage_multiplier: float = 1.0
 var hits_this_swing: Array = []  # Track what we hit this swing
 var active_attack_tween: Tween = null  # Track active tween to kill it if needed
 
-# Combo system
+# Combo system - now counts on swing, not hit
 var combo_count: int = 0
 var combo_timer: float = 0.0
-const COMBO_WINDOW: float = 2.0  # Reset combo after 2 seconds
+const COMBO_WINDOW: float = 1.5  # Reset combo after 1.5 seconds of no swings
+const COMBO_WINDOW_EXTENSION: float = 0.5  # Bonus time added when hitting enemies
 const COMBO_FINISHER_MULTIPLIER: float = 1.5
+
+# Knockback system - for pushing enemies into traps/pits
+const BASE_KNOCKBACK: float = 400.0  # Normal hit knockback
+const FINISHER_KNOCKBACK: float = 800.0  # 3rd hit knockback (2x stronger)
+const KNOCKBACK_STUN: float = 0.15  # Brief stun duration on hit
 
 # Attack speed scaling
 var base_attack_cooldown: float = 0.35
 const SPEED_BOOST_PER_HIT: float = 0.1  # 10% faster per hit
 
-# Critical hit system
-const CRIT_CHANCE: float = 0.2  # 20% chance
+# Critical hit system (uses player stats for crit_chance)
 const CRIT_MULTIPLIER: float = 2.0
 
 # Dash attack system
@@ -433,14 +438,27 @@ func _on_hit_box_area_entered(area: Area2D):
 			final_damage *= DASH_ATTACK_MULTIPLIER
 			print("DASH BONUS! x%.1f damage" % DASH_ATTACK_MULTIPLIER)
 
-		# Apply critical hit
-		var is_crit = randf() < CRIT_CHANCE
-		if is_crit:
-			final_damage *= CRIT_MULTIPLIER
-			print("CRITICAL HIT!")
-			_spawn_crit_text(parent.global_position)
+		# Apply critical hit (use player stats for crit chance)
+		var is_crit = false
+		if player_reference and player_reference.stats:
+			var crit_chance = player_reference.stats.crit_chance
+			# Also use player's crit_damage if available
+			var crit_multiplier = player_reference.stats.crit_damage if player_reference.stats.crit_damage > 0 else CRIT_MULTIPLIER
+			is_crit = randf() < crit_chance
+			if is_crit:
+				final_damage *= crit_multiplier
+				print("CRITICAL HIT! x%.1f damage (%.0f%% chance)" % [crit_multiplier, crit_chance * 100])
+				_spawn_crit_text(parent.global_position)
 
-		parent.take_damage(final_damage)
+		# EXTEND COMBO TIMER ON HIT - reward accuracy!
+		combo_timer += COMBO_WINDOW_EXTENSION
+
+		# Calculate knockback - 3rd hit (finisher) knocks back harder
+		var knockback_power = FINISHER_KNOCKBACK if is_combo_finisher else BASE_KNOCKBACK
+		var knockback_origin = player_reference.global_position if player_reference else global_position
+
+		# Apply damage with knockback
+		parent.take_damage(final_damage, knockback_origin, knockback_power, KNOCKBACK_STUN)
 		dealt_damage.emit(parent, final_damage)
 
 		# Enhanced visual feedback on hit
@@ -456,20 +474,29 @@ func _on_hit_box_area_entered(area: Area2D):
 		await get_tree().create_timer(freeze_duration, true, false, true).timeout
 		Engine.time_scale = 1.0
 
-		# Reset combo after finisher
-		if is_combo_finisher:
-			combo_count = 0
+		# NOTE: Combo no longer resets after finisher - combo counts on swing, not hit
+		# The combo naturally resets via combo_timer expiring
 
 func _on_hit_box_body_entered(body: Node2D):
 	if body in hits_this_swing:
 		return
-		
+
 	if body.has_method("take_damage"):
 		hits_this_swing.append(body)
 		var final_damage = damage * damage_multiplier
-		body.take_damage(final_damage)
+
+		# Calculate knockback for body hits too
+		var attack_in_combo = ((combo_count - 1) % 3) + 1
+		var is_combo_finisher = (attack_in_combo == 3)
+		var knockback_power = FINISHER_KNOCKBACK if is_combo_finisher else BASE_KNOCKBACK
+		var knockback_origin = player_reference.global_position if player_reference else global_position
+
+		# Extend combo timer on hit
+		combo_timer += COMBO_WINDOW_EXTENSION
+
+		body.take_damage(final_damage, knockback_origin, knockback_power, KNOCKBACK_STUN)
 		dealt_damage.emit(body, final_damage)
-		_create_hit_effect()
+		_create_hit_effect(is_combo_finisher, false)
 
 func _create_hit_effect(is_combo_finisher: bool = false, is_crit: bool = false):
 	# Flash color based on hit type

@@ -42,7 +42,7 @@ var accumulated_movement: Vector2 = Vector2.ZERO
 # Dash mechanic
 var is_dashing: bool = false
 var dash_direction: Vector2 = Vector2.ZERO
-@export var dash_speed: float = 1200.0
+@export var dash_speed: float = 1600.0
 @export var dash_duration: float = 0.2
 @export var dash_cooldown: float = 0.5
 var dash_cooldown_timer: float = 0.0

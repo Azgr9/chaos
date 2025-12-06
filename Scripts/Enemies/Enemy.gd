@@ -11,7 +11,7 @@ const ChaosCrystal = preload("res://Scenes/Items/ChaosCrystal.tscn")
 
 # Base enemy stats
 @export var max_health: float = 30.0
-@export var move_speed: float = 160.0
+@export var move_speed: float = 240.0
 @export var damage: float = 10.0
 @export var knockback_resistance: float = 0.5
 @export var experience_value: int = 10

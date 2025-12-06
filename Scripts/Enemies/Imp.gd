@@ -29,7 +29,7 @@ var dash_direction: Vector2 = Vector2.ZERO
 func _setup_enemy():
 	# Imp stats - fast, weak, low health
 	max_health = 10.0  # Very low health
-	move_speed = 240.0  # Fastest enemy
+	move_speed = 360.0  # Fastest enemy
 	damage = 5.0  # Low damage
 	current_health = max_health
 
@@ -51,6 +51,10 @@ func _setup_enemy():
 	sprite.color = Color(0.6, 0.1, 0.2) * color_variation
 
 func _on_hurt_box_area_entered(area: Area2D):
+	# Don't deal damage if dead
+	if is_dead:
+		return
+
 	# Deal contact damage to player
 	var parent = area.get_parent()
 	if parent and parent.is_in_group("player"):

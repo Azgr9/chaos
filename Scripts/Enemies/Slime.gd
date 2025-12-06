@@ -30,7 +30,7 @@ var time_alive: float = 0.0
 func _setup_enemy():
 	# Slime specific setup
 	max_health = 30.0
-	move_speed = 160.0
+	move_speed = 240.0
 	damage = 10.0
 
 	# Connect signals
@@ -162,6 +162,10 @@ func _update_health_bar():
 		health_fill.size.x = 80 * health_percentage
 
 func _on_attack_box_area_entered(area: Area2D):
+	# Don't deal damage if dead
+	if is_dead:
+		return
+
 	# Deal damage to player when they touch us
 	if area.get_parent().has_method("take_damage"):
 		area.get_parent().take_damage(damage)

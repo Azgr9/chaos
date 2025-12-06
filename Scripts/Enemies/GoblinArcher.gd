@@ -30,7 +30,7 @@ var time_alive: float = 0.0
 func _setup_enemy():
 	# Goblin archer stats
 	max_health = 20.0  # Less health than slime
-	move_speed = 120.0  # Slower movement
+	move_speed = 180.0  # Slower movement
 	damage = 8.0
 	current_health = max_health
 
@@ -93,7 +93,8 @@ func _update_movement(delta):
 			_shoot_arrow()
 
 func _shoot_arrow():
-	if not player_reference or is_shooting:
+	# Don't shoot if dead
+	if is_dead or not player_reference or is_shooting:
 		return
 
 	is_shooting = true
@@ -121,7 +122,8 @@ func _shoot_arrow():
 	tween.tween_callback(func(): is_shooting = false)
 
 func _spawn_arrow():
-	if not arrow_scene or not player_reference:
+	# Don't spawn arrows if dead
+	if is_dead or not arrow_scene or not player_reference:
 		return
 
 	# Create arrow
