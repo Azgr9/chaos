@@ -89,8 +89,7 @@ func _update_movement(_delta):
 
 func _perform_hop_visual():
 	if is_hopping:
-		return
-
+		return #
 	is_hopping = true
 
 	# Hop animation with tween (visuals only, no position change)

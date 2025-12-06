@@ -1,9 +1,60 @@
-[gd_scene load_steps=5 format=3 uid="uid://cqy13nrt4obnn"]
+[gd_scene load_steps=13 format=3 uid="uid://cqy13nrt4obnn"]
 
 [ext_resource type="Script" uid="uid://bs7j6cqcq884m" path="res://Scripts/Enemies/Slime.gd" id="1_slime"]
+[ext_resource type="Texture2D" uid="uid://6q742swkfya2" path="res://temp/Green_Slime_Move.png" id="3_s88bi"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_physics"]
 radius = 24.0
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qvstw"]
+atlas = ExtResource("3_s88bi")
+region = Rect2(0, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_i418a"]
+atlas = ExtResource("3_s88bi")
+region = Rect2(96, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vp0jb"]
+atlas = ExtResource("3_s88bi")
+region = Rect2(192, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wwgcc"]
+atlas = ExtResource("3_s88bi")
+region = Rect2(288, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pw37b"]
+atlas = ExtResource("3_s88bi")
+region = Rect2(384, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_duprh"]
+atlas = ExtResource("3_s88bi")
+region = Rect2(480, 0, 96, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_qvstw"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qvstw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_i418a")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_vp0jb")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wwgcc")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pw37b")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_duprh")
+}],
+"loop": true,
+"name": &"new_animation",
+"speed": 7.0
+}]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_hurtbox"]
 radius = 32.0
@@ -28,6 +79,15 @@ offset_bottom = 32.0
 pivot_offset = Vector2(32, 32)
 color = Color(0, 1, 0, 1)
 
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="VisualsPivot"]
+visible = false
+position = Vector2(5, -102)
+scale = Vector2(4, 4)
+sprite_frames = SubResource("SpriteFrames_qvstw")
+animation = &"new_animation"
+autoplay = "new_animation"
+frame_progress = 0.95134425
+
 [node name="HurtBox" type="Area2D" parent="."]
 collision_layer = 16
 collision_mask = 96
@@ -45,6 +105,7 @@ monitorable = false
 shape = SubResource("CircleShape2D_attackbox")
 
 [node name="HealthBar" type="Node2D" parent="."]
+visible = false
 
 [node name="Background" type="ColorRect" parent="HealthBar"]
 offset_left = -40.0
