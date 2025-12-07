@@ -48,11 +48,11 @@ theme_override_font_sizes/font_size = 32
 text = "THE BASE"
 horizontal_alignment = 1
 
-[node name="SoulsDisplay" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+[node name="GoldDisplay" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.4, 0.9, 1)
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
 theme_override_font_sizes/font_size = 20
-text = "Chaos Souls: 0"
+text = "Gold: 0"
 horizontal_alignment = 2
 
 [node name="MainContent" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
@@ -214,34 +214,6 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="RelicGrid" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RelicPanel/RelicContent/ScrollContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 4
-
-[node name="TrinketPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="TrinketContent" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/TrinketPanel"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="TrinketTitle" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrinketPanel/TrinketContent"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.8, 0.6, 1)
-theme_override_font_sizes/font_size = 18
-text = "TRINKET WORKSHOP"
-horizontal_alignment = 1
-
-[node name="Separator" type="HSeparator" parent="MarginContainer/VBoxContainer/MainContent/TrinketPanel/TrinketContent"]
-layout_mode = 2
-
-[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/TrinketPanel/TrinketContent"]
-layout_mode = 2
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="TrinketGrid" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/TrinketPanel/TrinketContent/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4

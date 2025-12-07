@@ -7,9 +7,8 @@ extends Node
 
 # Signals
 signal run_started
-signal run_ended(souls_earned: int)
+signal run_ended(gold_earned: int)
 signal relic_collected(relic: Resource)
-signal trinket_collected(trinket: Resource)
 signal stats_changed
 signal gold_changed(new_amount: int)
 signal wave_completed(wave_number: int)
@@ -18,12 +17,11 @@ signal wave_completed(wave_number: int)
 var run_data: Dictionary = {
 	"current_gold": 0,
 	"current_wave": 0,
-	"souls_earned": 0,
+	"gold_earned": 0,
 	"kills_this_run": 0,
 	"run_active": false,
 
 	"collected_relics": [],
-	"collected_trinkets": [],
 
 	"calculated_stats": {
 		"max_health": 100.0,
@@ -64,11 +62,10 @@ func start_new_run():
 	# Reset run data
 	run_data.current_gold = 0
 	run_data.current_wave = 0
-	run_data.souls_earned = 0
+	run_data.gold_earned = 0
 	run_data.kills_this_run = 0
 	run_data.run_active = true
 	run_data.collected_relics.clear()
-	run_data.collected_trinkets.clear()
 
 	# Apply training bonuses from SaveManager
 	_apply_training_bonuses()
@@ -89,19 +86,18 @@ func end_run():
 
 	run_data.run_active = false
 
-	# Calculate souls earned
-	var wave_bonus = run_data.current_wave * 2
-	var kill_bonus = run_data.kills_this_run / 10
-	var total_souls = wave_bonus + kill_bonus
-	run_data.souls_earned = total_souls
+	# Gold earned = remaining gold + wave bonus (no kill bonus)
+	var wave_bonus = run_data.current_wave * 5  # 5 gold per wave survived
+	var total_gold = run_data.current_gold + wave_bonus
+	run_data.gold_earned = total_gold
 
 	# Update statistics in SaveManager
 	SaveManager.update_statistics(run_data.current_wave, run_data.kills_this_run)
 
-	run_ended.emit(total_souls)
-	print("[RunManager] Run ended. Souls earned: %d (wave: %d, kills: %d)" % [total_souls, wave_bonus, kill_bonus])
+	run_ended.emit(total_gold)
+	print("[RunManager] Run ended. Gold earned: %d (kept: %d, wave: %d)" % [total_gold, run_data.current_gold, wave_bonus])
 
-	return total_souls
+	return total_gold
 
 func is_run_active() -> bool:
 	return run_data.run_active
@@ -159,19 +155,8 @@ func add_relic(relic: Resource):
 		var relic_display_name = relic.relic_name if "relic_name" in relic else relic.id
 		print("[RunManager] Relic collected: %s" % relic_display_name)
 
-func add_trinket(trinket: Resource):
-	if trinket:
-		run_data.collected_trinkets.append(trinket)
-		trinket_collected.emit(trinket)
-		recalculate_stats()
-		var trinket_display_name = trinket.trinket_name if "trinket_name" in trinket else trinket.id
-		print("[RunManager] Trinket collected: %s" % trinket_display_name)
-
 func get_collected_relics() -> Array:
 	return run_data.collected_relics.duplicate()
-
-func get_collected_trinkets() -> Array:
-	return run_data.collected_trinkets.duplicate()
 
 # ============================================
 # STATS CALCULATION
@@ -184,10 +169,6 @@ func recalculate_stats():
 	# Add relic bonuses
 	for relic in run_data.collected_relics:
 		_apply_item_stats(relic)
-
-	# Add trinket bonuses
-	for trinket in run_data.collected_trinkets:
-		_apply_item_stats(trinket)
 
 	stats_changed.emit()
 
@@ -255,10 +236,9 @@ func complete_wave(wave_number: int = -1):
 func get_current_wave() -> int:
 	return run_data.current_wave
 
-func get_souls_for_run() -> int:
-	var wave_bonus = run_data.current_wave * 2
-	var kill_bonus = run_data.kills_this_run / 10
-	return wave_bonus + kill_bonus
+func get_gold_for_run() -> int:
+	var wave_bonus = run_data.current_wave * 5
+	return run_data.current_gold + wave_bonus
 
 # ============================================
 # SPECIAL EFFECTS CHECK

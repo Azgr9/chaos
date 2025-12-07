@@ -120,6 +120,65 @@ text = "Enemies: 0"
 horizontal_alignment = 2
 vertical_alignment = 1
 
+; ============ TOP RIGHT - Relic Section (below wave info) ============
+[node name="RelicSection" type="Control" parent="Control"]
+layout_mode = 0
+offset_left = 1060.0
+offset_top = 58.0
+offset_right = 1260.0
+offset_bottom = 100.0
+
+[node name="RelicLabel" type="Label" parent="Control/RelicSection"]
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "Relics:"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="RelicContainer" type="HBoxContainer" parent="Control/RelicSection"]
+layout_mode = 0
+offset_top = 16.0
+offset_right = 200.0
+offset_bottom = 42.0
+theme_override_constants/separation = 6
+alignment = 2
+
+; Relic Tooltip - Shown on hover (positioned below relic icons)
+[node name="RelicTooltip" type="PanelContainer" parent="Control/RelicSection"]
+visible = false
+layout_mode = 0
+offset_left = 0.0
+offset_top = 44.0
+offset_right = 200.0
+offset_bottom = 140.0
+mouse_filter = 2
+
+[node name="VBox" type="VBoxContainer" parent="Control/RelicSection/RelicTooltip"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="RelicName" type="Label" parent="Control/RelicSection/RelicTooltip/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Relic Name"
+
+[node name="RelicDesc" type="Label" parent="Control/RelicSection/RelicTooltip/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+text = "Effect description"
+autowrap_mode = 2
+
+[node name="FlavorText" type="Label" parent="Control/RelicSection/RelicTooltip/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+text = "Flavor text..."
+autowrap_mode = 2
+
 ; ============ BOTTOM LEFT - Sword Skill (Q) ============
 [node name="SwordSkillContainer" type="Control" parent="Control"]
 layout_mode = 0

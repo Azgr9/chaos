@@ -8,18 +8,18 @@ extends Node
 const SAVE_PATH = "user://save_data.json"
 
 # Signals
-signal souls_changed(new_amount: int)
+signal gold_changed(new_amount: int)
 signal training_upgraded(stat_name: String, new_level: int)
 signal item_unlocked(item_id: String)
 
 # Save data structure
 var save_data: Dictionary = {
-	"chaos_souls": 0,
+	"gold": 0,
 	"statistics": {
 		"highest_wave": 0,
 		"total_runs": 0,
 		"total_kills": 0,
-		"total_souls_earned": 0
+		"total_gold_earned": 0
 	},
 	"training_levels": {
 		"vitality": 0,
@@ -28,8 +28,7 @@ var save_data: Dictionary = {
 		"reflexes": 0,
 		"fortune": 0
 	},
-	"unlocked_relics": [],
-	"unlocked_trinkets": []
+	"unlocked_relics": []
 }
 
 # Training cost per level (index = level, value = cost)
@@ -87,13 +86,19 @@ func load_game():
 
 func _merge_save_data(loaded: Dictionary):
 	# Merge loaded data into save_data, preserving structure
-	if loaded.has("chaos_souls"):
-		save_data.chaos_souls = loaded.chaos_souls
+	if loaded.has("gold"):
+		save_data.gold = loaded.gold
+	# Legacy support: convert old chaos_souls to gold
+	elif loaded.has("chaos_souls"):
+		save_data.gold = loaded.chaos_souls
 
 	if loaded.has("statistics"):
 		for key in loaded.statistics:
 			if save_data.statistics.has(key):
 				save_data.statistics[key] = loaded.statistics[key]
+		# Legacy support: convert old total_souls_earned
+		if loaded.statistics.has("total_souls_earned") and not loaded.statistics.has("total_gold_earned"):
+			save_data.statistics.total_gold_earned = loaded.statistics.total_souls_earned
 
 	if loaded.has("training_levels"):
 		for key in loaded.training_levels:
@@ -103,39 +108,31 @@ func _merge_save_data(loaded: Dictionary):
 	if loaded.has("unlocked_relics"):
 		save_data.unlocked_relics = loaded.unlocked_relics
 
-	if loaded.has("unlocked_trinkets"):
-		save_data.unlocked_trinkets = loaded.unlocked_trinkets
-
 func _ensure_starter_items_unlocked():
 	# Ensure free starter items are always unlocked
-	var starter_relics = ["iron_ring"]
-	var starter_trinkets = ["chipped_fang", "trolls_heart", "thiefs_anklet"]
+	var starter_relics = ["iron_ring", "chipped_fang", "trolls_heart", "thiefs_anklet"]
 
 	for relic_id in starter_relics:
 		if relic_id not in save_data.unlocked_relics:
 			save_data.unlocked_relics.append(relic_id)
 
-	for trinket_id in starter_trinkets:
-		if trinket_id not in save_data.unlocked_trinkets:
-			save_data.unlocked_trinkets.append(trinket_id)
-
 # ============================================
-# CHAOS SOULS
+# GOLD (Permanent Currency)
 # ============================================
 
-func get_chaos_souls() -> int:
-	return save_data.chaos_souls
+func get_gold() -> int:
+	return save_data.gold
 
-func add_chaos_souls(amount: int):
-	save_data.chaos_souls += amount
-	save_data.statistics.total_souls_earned += amount
-	souls_changed.emit(save_data.chaos_souls)
+func add_gold(amount: int):
+	save_data.gold += amount
+	save_data.statistics.total_gold_earned += amount
+	gold_changed.emit(save_data.gold)
 	save_game()
 
-func spend_chaos_souls(amount: int) -> bool:
-	if save_data.chaos_souls >= amount:
-		save_data.chaos_souls -= amount
-		souls_changed.emit(save_data.chaos_souls)
+func spend_gold(amount: int) -> bool:
+	if save_data.gold >= amount:
+		save_data.gold -= amount
+		gold_changed.emit(save_data.gold)
 		save_game()
 		return true
 	return false
@@ -164,7 +161,7 @@ func upgrade_training(stat_name: String) -> bool:
 		return false
 
 	var cost = TRAINING_COSTS[level]
-	if spend_chaos_souls(cost):
+	if spend_gold(cost):
 		save_data.training_levels[stat_name] += 1
 		training_upgraded.emit(stat_name, save_data.training_levels[stat_name])
 		save_game()
@@ -184,9 +181,6 @@ func get_training_bonus(stat_name: String) -> float:
 func is_relic_unlocked(relic_id: String) -> bool:
 	return relic_id in save_data.unlocked_relics
 
-func is_trinket_unlocked(trinket_id: String) -> bool:
-	return trinket_id in save_data.unlocked_trinkets
-
 func unlock_relic(relic_id: String) -> bool:
 	if relic_id not in save_data.unlocked_relics:
 		save_data.unlocked_relics.append(relic_id)
@@ -195,19 +189,8 @@ func unlock_relic(relic_id: String) -> bool:
 		return true
 	return false
 
-func unlock_trinket(trinket_id: String) -> bool:
-	if trinket_id not in save_data.unlocked_trinkets:
-		save_data.unlocked_trinkets.append(trinket_id)
-		item_unlocked.emit(trinket_id)
-		save_game()
-		return true
-	return false
-
 func get_unlocked_relics() -> Array:
 	return save_data.unlocked_relics.duplicate()
-
-func get_unlocked_trinkets() -> Array:
-	return save_data.unlocked_trinkets.duplicate()
 
 # ============================================
 # STATISTICS
@@ -229,12 +212,12 @@ func get_statistics() -> Dictionary:
 
 func reset_save():
 	save_data = {
-		"chaos_souls": 0,
+		"gold": 0,
 		"statistics": {
 			"highest_wave": 0,
 			"total_runs": 0,
 			"total_kills": 0,
-			"total_souls_earned": 0
+			"total_gold_earned": 0
 		},
 		"training_levels": {
 			"vitality": 0,
@@ -243,9 +226,8 @@ func reset_save():
 			"reflexes": 0,
 			"fortune": 0
 		},
-		"unlocked_relics": [],
-		"unlocked_trinkets": []
+		"unlocked_relics": []
 	}
 	_ensure_starter_items_unlocked()
 	save_game()
-	souls_changed.emit(0)
+	gold_changed.emit(0)

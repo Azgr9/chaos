@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/RelicResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "trolls_heart"
+relic_name = "Troll's Heart"
+emoji = "💚"
+rarity = 0
+flavor_text = "Still beating. Barely."
+effect_description = "+20 Max Health"
+unlock_cost = 0
+max_health_bonus = 20

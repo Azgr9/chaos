@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/RelicResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "cracked_knuckle"
+relic_name = "Cracked Knuckle"
+emoji = "👊"
+rarity = 1
+flavor_text = "From a statue of a forgotten champion."
+effect_description = "+10% Critical Hit Chance"
+unlock_cost = 50
+crit_chance = 0.1

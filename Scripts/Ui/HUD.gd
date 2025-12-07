@@ -16,6 +16,13 @@ extends Control
 @onready var gold_icon: ColorRect = $PlayerStatus/GoldSection/GoldIcon
 @onready var gold_label: Label = $PlayerStatus/GoldSection/GoldLabel
 
+# Relic Display (top-right, below wave info)
+@onready var relic_container: HBoxContainer = $RelicSection/RelicContainer
+@onready var relic_tooltip: PanelContainer = $RelicSection/RelicTooltip
+@onready var tooltip_name: Label = $RelicSection/RelicTooltip/VBox/RelicName
+@onready var tooltip_desc: Label = $RelicSection/RelicTooltip/VBox/RelicDesc
+@onready var tooltip_flavor: Label = $RelicSection/RelicTooltip/VBox/FlavorText
+
 # Wave Info (new paths)
 @onready var wave_label: Label = $WaveInfo/WaveLabel
 @onready var enemies_label: Label = $WaveInfo/EnemiesLabel
@@ -96,6 +103,10 @@ func _connect_signals():
 		if game_manager.has_signal("gold_changed"):
 			game_manager.gold_changed.connect(_on_gold_changed)
 
+	# RunManager signals for relics
+	if RunManager:
+		RunManager.relic_collected.connect(_on_relic_collected)
+
 func _initialize_ui():
 	# Set initial values
 	wave_label.text = "WAVE 0/5"
@@ -108,6 +119,13 @@ func _initialize_ui():
 
 	# Initialize stats display
 	_update_stats_display()
+
+	# Hide relic tooltip initially
+	if relic_tooltip:
+		relic_tooltip.visible = false
+
+	# Load existing relics from RunManager
+	_refresh_relic_display()
 
 func _process(delta):
 	time_alive += delta
@@ -269,3 +287,77 @@ func _animate_gold_icon():
 	var pulse = abs(sin(time_alive * 2.5)) * 0.15 + 0.9
 	gold_icon.scale = Vector2(pulse, pulse)
 	gold_icon.rotation += 0.015
+
+# ============================================
+# RELIC DISPLAY
+# ============================================
+
+func _on_relic_collected(relic: Resource):
+	_add_relic_icon(relic)
+
+func _refresh_relic_display():
+	if not relic_container:
+		return
+
+	# Clear existing icons
+	for child in relic_container.get_children():
+		child.queue_free()
+
+	# Add icons for all collected relics
+	var relics = RunManager.get_collected_relics()
+	for relic in relics:
+		_add_relic_icon(relic)
+
+func _add_relic_icon(relic: Resource):
+	if not relic_container or not relic:
+		return
+
+	# Create emoji label for relic
+	var relic_label = Label.new()
+	relic_label.text = relic.emoji if "emoji" in relic else "💎"
+	relic_label.add_theme_font_size_override("font_size", 24)
+	relic_label.mouse_filter = Control.MOUSE_FILTER_STOP
+
+	# Store relic data for tooltip
+	relic_label.set_meta("relic", relic)
+
+	# Connect hover signals
+	relic_label.mouse_entered.connect(_on_relic_hover.bind(relic_label))
+	relic_label.mouse_exited.connect(_on_relic_unhover)
+
+	relic_container.add_child(relic_label)
+
+	# Animate entry
+	relic_label.scale = Vector2(0, 0)
+	relic_label.modulate = Color(1, 1, 1, 0)
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(relic_label, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(relic_label, "modulate", Color.WHITE, 0.3)
+
+func _on_relic_hover(relic_label: Label):
+	var relic = relic_label.get_meta("relic")
+	if not relic or not relic_tooltip:
+		return
+
+	# Set tooltip content
+	var rarity_color = relic.get_rarity_color() if relic.has_method("get_rarity_color") else Color.WHITE
+	tooltip_name.text = relic.emoji + " " + relic.relic_name if "relic_name" in relic else "Unknown Relic"
+	tooltip_name.modulate = rarity_color
+	tooltip_desc.text = relic.effect_description if "effect_description" in relic else ""
+	tooltip_flavor.text = relic.flavor_text if "flavor_text" in relic else ""
+	tooltip_flavor.modulate = Color(0.7, 0.7, 0.7, 1)
+
+	# Position tooltip - show below relic section but aligned to screen
+	# Reset to local position within RelicSection
+	relic_tooltip.position = Vector2(0, 44)
+	relic_tooltip.visible = true
+
+	# Animate in
+	relic_tooltip.modulate = Color(1, 1, 1, 0)
+	var tween = create_tween()
+	tween.tween_property(relic_tooltip, "modulate", Color.WHITE, 0.15)
+
+func _on_relic_unhover():
+	if relic_tooltip:
+		relic_tooltip.visible = false

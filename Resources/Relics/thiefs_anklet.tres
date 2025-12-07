@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/RelicResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "thiefs_anklet"
+relic_name = "Thief's Anklet"
+emoji = "👟"
+rarity = 0
+flavor_text = "Previous owner didn't run fast enough."
+effect_description = "+8% Movement Speed"
+unlock_cost = 0
+speed_percent = 0.08

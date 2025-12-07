@@ -98,7 +98,8 @@ func _on_player_died():
 	var stats = {
 		"waves": waves_completed,
 		"enemies_killed": enemies_killed_total,
-		"gold_collected": total_gold_collected,
+		"gold": gold,  # Current unspent gold
+		"score": total_gold_collected,
 		"time": time_played,
 		"damage_dealt": damage_dealt,
 		"damage_taken": damage_taken
@@ -174,7 +175,8 @@ func _show_victory_screen():
 	var stats = {
 		"waves": 5,
 		"enemies_killed": enemies_killed_total,
-		"gold_collected": total_gold_collected,
+		"gold": gold,  # Current unspent gold
+		"score": total_gold_collected,
 		"time": time_played
 	}
 
