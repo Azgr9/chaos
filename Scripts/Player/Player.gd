@@ -53,9 +53,13 @@ var is_invulnerable: bool = false
 # Debug mode
 var debug_mode: bool = false
 
+# Phoenix Feather revive tracking
+var phoenix_revive_used: bool = false
+
 # Signals
 signal health_changed(current_health: float, max_health: float)
 signal player_died
+signal player_revived
 signal weapon_switched(weapon: Node2D)
 
 func _ready():
@@ -371,8 +375,68 @@ func take_damage(amount: float):
 	sprite.modulate = Color.WHITE
 
 	if is_dead:
+		# Check for Phoenix Feather revive
+		if _try_phoenix_revive():
+			return
+
 		player_died.emit()
 		queue_free()
+
+func _try_phoenix_revive() -> bool:
+	# Check if we already used a revive this run
+	if phoenix_revive_used:
+		return false
+
+	# Check if player has Phoenix Feather relic
+	if RunManager and RunManager.has_special_effect("phoenix_revive"):
+		phoenix_revive_used = true
+
+		# Revive with 50% health
+		var revive_health = stats.max_health * 0.5
+		stats.current_health = revive_health
+		health_changed.emit(stats.current_health, stats.max_health)
+
+		# Visual feedback - golden burst
+		_phoenix_revive_effect()
+
+		player_revived.emit()
+		print("[Player] Phoenix Feather activated! Revived with %d HP" % int(revive_health))
+		return true
+
+	return false
+
+func _phoenix_revive_effect():
+	# Make player invulnerable briefly
+	is_invulnerable = true
+
+	# Golden flash
+	sprite.modulate = Color(1, 0.8, 0.2, 1)
+
+	# Screen shake
+	if camera and camera.has_method("add_trauma"):
+		camera.add_trauma(0.6)
+
+	# Create expanding ring effect
+	var ring = ColorRect.new()
+	ring.color = Color(1, 0.7, 0.2, 0.6)
+	ring.size = Vector2(20, 20)
+	ring.position = Vector2(-10, -10)
+	ring.pivot_offset = ring.size / 2
+	add_child(ring)
+
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(ring, "scale", Vector2(15, 15), 0.5)
+	tween.tween_property(ring, "modulate:a", 0.0, 0.5)
+	tween.chain().tween_callback(ring.queue_free)
+
+	# Flash back to normal
+	await get_tree().create_timer(0.5).timeout
+	sprite.modulate = Color.WHITE
+
+	# Brief invulnerability window
+	await get_tree().create_timer(1.0).timeout
+	is_invulnerable = false
 
 func _on_hurt_box_area_entered(_area: Area2D):
 	pass

@@ -17,9 +17,9 @@ extends CanvasLayer
 @onready var skip_button: Button = $Control/SkipButton
 
 const KATANA_SCENE = preload("res://Scenes/Weapons/Katana.tscn")
-const KATANA_PRICE = 1
+const KATANA_PRICE = 10  # Gold price
 const LIGHTNING_STAFF_SCENE = preload("res://Scenes/Weapons/LightningStaff.tscn")
-const STAFF_PRICE = 1
+const STAFF_PRICE = 10  # Gold price
 
 # Card references
 var card_panels: Array = []
@@ -183,9 +183,9 @@ func _on_weapon_shop_pressed():
 	if not game_manager:
 		return
 
-	# Check if player has enough crystals
-	if game_manager.get_crystal_count() >= KATANA_PRICE:
-		if game_manager.spend_crystals(KATANA_PRICE):
+	# Check if player has enough gold
+	if game_manager.get_gold() >= KATANA_PRICE:
+		if game_manager.spend_gold(KATANA_PRICE):
 			_swap_weapon_to_katana()
 			_update_weapon_shop_button()
 
@@ -203,13 +203,13 @@ func _update_weapon_shop_button():
 	if not game_manager:
 		return
 
-	var crystals = game_manager.get_crystal_count()
-	if crystals >= KATANA_PRICE:
+	var current_gold = game_manager.get_gold()
+	if current_gold >= KATANA_PRICE:
 		weapon_shop_button.disabled = false
-		weapon_shop_button.text = "Buy Katana (%d Crystal)" % KATANA_PRICE
+		weapon_shop_button.text = "Buy Katana (%d Gold)" % KATANA_PRICE
 	else:
 		weapon_shop_button.disabled = true
-		weapon_shop_button.text = "Need %d Crystals" % KATANA_PRICE
+		weapon_shop_button.text = "Need %d Gold" % KATANA_PRICE
 
 func _swap_weapon_to_katana():
 	if not player_reference:
@@ -265,9 +265,9 @@ func _on_staff_shop_pressed():
 	if not game_manager:
 		return
 
-	# Check if player has enough crystals
-	if game_manager.get_crystal_count() >= STAFF_PRICE:
-		if game_manager.spend_crystals(STAFF_PRICE):
+	# Check if player has enough gold
+	if game_manager.get_gold() >= STAFF_PRICE:
+		if game_manager.spend_gold(STAFF_PRICE):
 			_swap_weapon_to_staff()
 			_update_staff_shop_button()
 
@@ -286,13 +286,13 @@ func _update_staff_shop_button():
 	if not game_manager:
 		return
 
-	var crystals = game_manager.get_crystal_count()
-	if crystals >= STAFF_PRICE:
+	var current_gold = game_manager.get_gold()
+	if current_gold >= STAFF_PRICE:
 		staff_shop_button.disabled = false
-		staff_shop_button.text = "Buy Lightning Staff (%d Crystal)" % STAFF_PRICE
+		staff_shop_button.text = "Buy Lightning Staff (%d Gold)" % STAFF_PRICE
 	else:
 		staff_shop_button.disabled = true
-		staff_shop_button.text = "Need %d Crystals" % STAFF_PRICE
+		staff_shop_button.text = "Need %d Gold" % STAFF_PRICE
 
 func _swap_weapon_to_staff():
 	if not player_reference:

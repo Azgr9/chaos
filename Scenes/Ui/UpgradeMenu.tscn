@@ -184,7 +184,7 @@ offset_bottom = -140.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_font_sizes/font_size = 16
-text = "Buy Katana (1 Crystal)"
+text = "Buy Katana (10 Gold)"
 
 [node name="StaffShopButton" type="Button" parent="Control"]
 layout_mode = 1
@@ -200,7 +200,7 @@ offset_bottom = -80.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_font_sizes/font_size = 16
-text = "Buy Lightning Staff (1 Crystal)"
+text = "Buy Lightning Staff (10 Gold)"
 
 [node name="SkipButton" type="Button" parent="Control"]
 layout_mode = 1

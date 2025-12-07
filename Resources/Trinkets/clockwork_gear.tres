@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TrinketResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/TrinketResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "clockwork_gear"
+trinket_name = "Clockwork Gear"
+flavor_text = "Tick tock, reload."
+effect_description = "-15% Cooldowns"
+unlock_cost = 50
+cooldown_percent = -0.15
+shop_price_min = 40
+shop_price_max = 70

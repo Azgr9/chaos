@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/RelicResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "vampiric_fang"
+relic_name = "Vampiric Fang"
+emoji = "🦷"
+rarity = 1
+flavor_text = "Drink deep."
+effect_description = "3% Lifesteal"
+unlock_cost = 75
+lifesteal = 0.03

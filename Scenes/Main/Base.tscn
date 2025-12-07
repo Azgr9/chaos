@@ -1,0 +1,312 @@
+[gd_scene load_steps=2 format=3 uid="uid://dxbase001"]
+
+[ext_resource type="Script" path="res://Scripts/Ui/Base.gd" id="1"]
+
+[node name="Base" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.06, 0.12, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.9, 0.8, 0.6, 1)
+theme_override_font_sizes/font_size = 32
+text = "THE BASE"
+horizontal_alignment = 1
+
+[node name="SoulsDisplay" type="Label" parent="MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.4, 0.9, 1)
+theme_override_font_sizes/font_size = 20
+text = "Chaos Souls: 0"
+horizontal_alignment = 2
+
+[node name="MainContent" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 15
+
+[node name="TrainingPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TrainingContent" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TrainingTitle" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 18
+text = "TRAINING GROUNDS"
+horizontal_alignment = 1
+
+[node name="Separator" type="HSeparator" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent"]
+layout_mode = 2
+
+[node name="TrainingStats" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="VitalityRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats"]
+layout_mode = 2
+
+[node name="StatName" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/VitalityRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.8, 0.3, 0.3, 1)
+theme_override_font_sizes/font_size = 14
+text = "Vitality (+20 HP)"
+
+[node name="StatLevel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/VitalityRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Lv. 0/5"
+
+[node name="UpgradeBtn" type="Button" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/VitalityRow"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "20"
+
+[node name="StrengthRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats"]
+layout_mode = 2
+
+[node name="StatName" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/StrengthRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.9, 0.5, 0.2, 1)
+theme_override_font_sizes/font_size = 14
+text = "Strength (+5% Dmg)"
+
+[node name="StatLevel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/StrengthRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Lv. 0/5"
+
+[node name="UpgradeBtn" type="Button" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/StrengthRow"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "20"
+
+[node name="AgilityRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats"]
+layout_mode = 2
+
+[node name="StatName" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/AgilityRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.3, 0.8, 0.4, 1)
+theme_override_font_sizes/font_size = 14
+text = "Agility (+4% Spd)"
+
+[node name="StatLevel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/AgilityRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Lv. 0/5"
+
+[node name="UpgradeBtn" type="Button" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/AgilityRow"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "20"
+
+[node name="ReflexesRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats"]
+layout_mode = 2
+
+[node name="StatName" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/ReflexesRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.3, 0.6, 0.9, 1)
+theme_override_font_sizes/font_size = 14
+text = "Reflexes (-5% CD)"
+
+[node name="StatLevel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/ReflexesRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Lv. 0/5"
+
+[node name="UpgradeBtn" type="Button" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/ReflexesRow"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "20"
+
+[node name="FortuneRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats"]
+layout_mode = 2
+
+[node name="StatName" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/FortuneRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.9, 0.8, 0.2, 1)
+theme_override_font_sizes/font_size = 14
+text = "Fortune (+20 Gold)"
+
+[node name="StatLevel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/FortuneRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Lv. 0/5"
+
+[node name="UpgradeBtn" type="Button" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent/TrainingStats/FortuneRow"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "20"
+
+[node name="TrainingInfo" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrainingPanel/TrainingContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
+theme_override_font_sizes/font_size = 11
+text = "Bonuses apply at run start"
+horizontal_alignment = 1
+
+[node name="RelicPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RelicContent" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RelicPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="RelicTitle" type="Label" parent="MarginContainer/VBoxContainer/MainContent/RelicPanel/RelicContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.4, 0.9, 1)
+theme_override_font_sizes/font_size = 18
+text = "RELIC SHRINE"
+horizontal_alignment = 1
+
+[node name="Separator" type="HSeparator" parent="MarginContainer/VBoxContainer/MainContent/RelicPanel/RelicContent"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/RelicPanel/RelicContent"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="RelicGrid" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/RelicPanel/RelicContent/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="TrinketPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TrinketContent" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/TrinketPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TrinketTitle" type="Label" parent="MarginContainer/VBoxContainer/MainContent/TrinketPanel/TrinketContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.8, 0.6, 1)
+theme_override_font_sizes/font_size = 18
+text = "TRINKET WORKSHOP"
+horizontal_alignment = 1
+
+[node name="Separator" type="HSeparator" parent="MarginContainer/VBoxContainer/MainContent/TrinketPanel/TrinketContent"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer/MainContent/TrinketPanel/TrinketContent"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="TrinketGrid" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/TrinketPanel/TrinketContent/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="BottomBar" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="StatsPanel" type="VBoxContainer" parent="MarginContainer/VBoxContainer/BottomBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StatsTitle" type="Label" parent="MarginContainer/VBoxContainer/BottomBar/StatsPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "STATISTICS"
+
+[node name="HighestWave" type="Label" parent="MarginContainer/VBoxContainer/BottomBar/StatsPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Highest Wave: 0"
+
+[node name="TotalRuns" type="Label" parent="MarginContainer/VBoxContainer/BottomBar/StatsPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Total Runs: 0"
+
+[node name="TotalKills" type="Label" parent="MarginContainer/VBoxContainer/BottomBar/StatsPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Total Kills: 0"
+
+[node name="StartingStats" type="VBoxContainer" parent="MarginContainer/VBoxContainer/BottomBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StatsTitle" type="Label" parent="MarginContainer/VBoxContainer/BottomBar/StartingStats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "STARTING STATS"
+
+[node name="HealthStat" type="Label" parent="MarginContainer/VBoxContainer/BottomBar/StartingStats"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Max Health: 100"
+
+[node name="DamageStat" type="Label" parent="MarginContainer/VBoxContainer/BottomBar/StartingStats"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Damage: +0%"
+
+[node name="SpeedStat" type="Label" parent="MarginContainer/VBoxContainer/BottomBar/StartingStats"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Speed: +0%"
+
+[node name="GoldStat" type="Label" parent="MarginContainer/VBoxContainer/BottomBar/StartingStats"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Starting Gold: 0"
+
+[node name="EnterArenaButton" type="Button" parent="MarginContainer/VBoxContainer/BottomBar"]
+custom_minimum_size = Vector2(180, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "ENTER ARENA"

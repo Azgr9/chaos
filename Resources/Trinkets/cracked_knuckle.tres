@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TrinketResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/TrinketResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "cracked_knuckle"
+trinket_name = "Cracked Knuckle"
+flavor_text = "From a statue of a forgotten champion."
+effect_description = "+10% Critical Hit Chance"
+unlock_cost = 50
+crit_chance = 0.1
+shop_price_min = 45
+shop_price_max = 75

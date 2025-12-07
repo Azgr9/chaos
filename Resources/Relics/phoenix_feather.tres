@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/RelicResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "phoenix_feather"
+relic_name = "Phoenix Feather"
+emoji = "🔥"
+rarity = 2
+flavor_text = "From ashes, rise."
+effect_description = "Revive once per run with 50% HP"
+unlock_cost = 200
+special_effect = "phoenix_revive"

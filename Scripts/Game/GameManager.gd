@@ -10,14 +10,13 @@ enum GameState { MENU, PLAYING, PAUSED, UPGRADE, GAME_OVER, VICTORY }
 var current_state: GameState = GameState.PLAYING
 
 # Stats tracking
-var score: int = 0
 var waves_completed: int = 0
 var enemies_killed_total: int = 0
 var time_played: float = 0.0
 var damage_dealt: float = 0.0
 var damage_taken: float = 0.0
-var chaos_crystals: int = 0
-var total_crystals_collected: int = 0
+var gold: int = 0
+var total_gold_collected: int = 0
 
 # References
 @onready var wave_manager: WaveManager = $"../WaveManager"
@@ -32,8 +31,7 @@ signal game_over()
 signal game_paused()
 @warning_ignore("unused_signal")
 signal game_resumed()
-signal score_changed(new_score: int)
-signal crystals_changed(current_crystals: int, total_collected: int)
+signal gold_changed(current_gold: int)
 
 func _ready():
 	# Find player
@@ -65,16 +63,15 @@ func _process(delta):
 
 func start_game():
 	current_state = GameState.PLAYING
-	score = 0
 	waves_completed = 0
 	enemies_killed_total = 0
 	time_played = 0.0
 	damage_dealt = 0.0
 	damage_taken = 0.0
-	chaos_crystals = 0
-	total_crystals_collected = 0
+	gold = 0
+	total_gold_collected = 0
 	game_started.emit()
-	crystals_changed.emit(chaos_crystals, total_crystals_collected)
+	gold_changed.emit(gold)
 
 func _create_game_over_screen():
 	var game_over_scene = load("res://Scenes/Ui/GameOverScreen.tscn")
@@ -101,7 +98,7 @@ func _on_player_died():
 	var stats = {
 		"waves": waves_completed,
 		"enemies_killed": enemies_killed_total,
-		"score": score,
+		"gold_collected": total_gold_collected,
 		"time": time_played,
 		"damage_dealt": damage_dealt,
 		"damage_taken": damage_taken
@@ -118,8 +115,6 @@ func _on_wave_completed(wave_number: int):
 		return
 
 	waves_completed = wave_number
-	score += wave_number * 100
-	score_changed.emit(score)
 
 	# Show upgrade menu after wave (except last wave)
 	if wave_number < 5:
@@ -133,8 +128,6 @@ func _on_wave_completed(wave_number: int):
 
 func _on_all_waves_completed():
 	current_state = GameState.VICTORY
-	score += 1000  # Victory bonus
-	score_changed.emit(score)
 
 	# Show victory screen
 	_show_victory_screen()
@@ -144,13 +137,6 @@ func _on_enemy_killed(enemies_remaining: int):
 		return
 
 	enemies_killed_total += 1
-	score += 10
-
-	# Combo bonus for quick kills
-	if enemies_remaining > 0:
-		score += 5  # Combo points
-
-	score_changed.emit(score)
 
 func _on_player_damaged(_current_health: float, _max_health: float):
 	# Track damage taken (could be expanded for more complex tracking)
@@ -188,7 +174,7 @@ func _show_victory_screen():
 	var stats = {
 		"waves": 5,
 		"enemies_killed": enemies_killed_total,
-		"score": score,
+		"gold_collected": total_gold_collected,
 		"time": time_played
 	}
 
@@ -205,8 +191,8 @@ func _check_achievements():
 	if enemies_killed_total >= 50:
 		_unlock_achievement("Slime Slayer")
 
-	if score >= 1000:
-		_unlock_achievement("High Scorer")
+	if total_gold_collected >= 100:
+		_unlock_achievement("Gold Hoarder")
 
 func _unlock_achievement(achievement_name: String):
 	# Show achievement notification
@@ -223,17 +209,17 @@ func _unlock_achievement(achievement_name: String):
 	tween.tween_property(achievement_label, "modulate:a", 0.0, 0.5)
 	tween.tween_callback(achievement_label.queue_free)
 
-func add_crystals(amount: int):
-	chaos_crystals += amount
-	total_crystals_collected += amount
-	crystals_changed.emit(chaos_crystals, total_crystals_collected)
+func add_gold(amount: int):
+	gold += amount
+	total_gold_collected += amount
+	gold_changed.emit(gold)
 
-func spend_crystals(amount: int) -> bool:
-	if chaos_crystals >= amount:
-		chaos_crystals -= amount
-		crystals_changed.emit(chaos_crystals, total_crystals_collected)
+func spend_gold(amount: int) -> bool:
+	if gold >= amount:
+		gold -= amount
+		gold_changed.emit(gold)
 		return true
 	return false
 
-func get_crystal_count() -> int:
-	return chaos_crystals
+func get_gold() -> int:
+	return gold

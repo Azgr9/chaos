@@ -18,6 +18,8 @@ const ChaosCrystal = preload("res://Scenes/Items/ChaosCrystal.tscn")
 @export var crystal_drop_chance: float = 0.7
 @export var min_crystals: int = 1
 @export var max_crystals: int = 3
+@export var gold_drop_min: int = 2
+@export var gold_drop_max: int = 5
 
 # State
 var current_health: float
@@ -152,11 +154,19 @@ func die():
 	# Spawn chaos crystals
 	_spawn_crystals()
 
+	# Drop gold
+	_drop_gold()
+
 	# Notify player for lifesteal
 	if player_reference and player_reference.has_method("on_enemy_killed"):
 		player_reference.on_enemy_killed()
 
 	_on_death()
+
+func _drop_gold():
+	if RunManager:
+		var gold_amount = randi_range(gold_drop_min, gold_drop_max)
+		RunManager.add_gold(gold_amount)
 
 func _spawn_crystals():
 	# Random chance to drop crystals

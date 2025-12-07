@@ -7,7 +7,6 @@ extends Node2D
 
 # Staff stats
 @export var projectile_scene: PackedScene
-@export var mana_cost: float = 5.0
 @export var attack_cooldown: float = 0.3
 @export var projectile_spread: float = 5.0  # Degrees of random spread
 @export var multi_shot: int = 1  # Number of projectiles per shot

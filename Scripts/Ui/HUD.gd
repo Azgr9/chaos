@@ -12,10 +12,9 @@ extends Control
 @onready var health_shine: ColorRect = $PlayerStatus/HealthSection/HealthBar/Shine
 @onready var health_icon: ColorRect = $PlayerStatus/HealthSection/HealthIcon
 
-# Crystal and Score (new paths)
-@onready var crystal_icon: ColorRect = $PlayerStatus/CrystalSection/CrystalIcon
-@onready var crystal_label: Label = $PlayerStatus/CrystalSection/CrystalLabel
-@onready var score_label: Label = $PlayerStatus/ScoreSection/ScoreLabel
+# Gold Display (new paths)
+@onready var gold_icon: ColorRect = $PlayerStatus/GoldSection/GoldIcon
+@onready var gold_label: Label = $PlayerStatus/GoldSection/GoldLabel
 
 # Wave Info (new paths)
 @onready var wave_label: Label = $WaveInfo/WaveLabel
@@ -94,17 +93,14 @@ func _connect_signals():
 
 	# Game manager signals
 	if game_manager:
-		if game_manager.has_signal("score_changed"):
-			game_manager.score_changed.connect(_on_score_changed)
-		if game_manager.has_signal("crystals_changed"):
-			game_manager.crystals_changed.connect(_on_crystals_changed)
+		if game_manager.has_signal("gold_changed"):
+			game_manager.gold_changed.connect(_on_gold_changed)
 
 func _initialize_ui():
 	# Set initial values
 	wave_label.text = "WAVE 0/5"
 	enemies_label.text = "Enemies: 0"
-	score_label.text = "0"
-	crystal_label.text = "0"
+	gold_label.text = "0"
 
 	# Set initial health
 	if player and player.stats:
@@ -133,8 +129,8 @@ func _process(delta):
 		health_background.color = Color(0.15, 0.05, 0.05)
 		health_icon.color = Color(0.9, 0.2, 0.2)
 
-	# Animate crystal icon
-	_animate_crystal_icon()
+	# Animate gold icon
+	_animate_gold_icon()
 
 	# Update skill cooldowns
 	_update_skill_cooldowns()
@@ -248,38 +244,28 @@ func _on_enemy_killed(enemies_remaining: int):
 	var tween = create_tween()
 	tween.tween_property(enemies_label, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK)
 
-func _on_score_changed(new_score: int):
-	score_label.text = "%d" % new_score
-
-	# Grow animation
-	score_label.scale = Vector2(1.3, 1.3)
-	score_label.modulate = Color.GOLD
-	var tween = create_tween()
-	tween.tween_property(score_label, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
-	tween.parallel().tween_property(score_label, "modulate", Color.WHITE, 0.5)
-
 func _pulse_bar(bar: ColorRect):
 	var original_scale = bar.scale
 	bar.scale = Vector2(1.0, 1.3)
 	var tween = create_tween()
 	tween.tween_property(bar, "scale", original_scale, 0.2).set_trans(Tween.TRANS_ELASTIC)
 
-func _on_crystals_changed(current_crystals: int, _total_collected: int):
-	crystal_label.text = "%d" % current_crystals
+func _on_gold_changed(new_gold: int):
+	gold_label.text = "%d" % new_gold
 
 	# Pulse animation
-	crystal_label.scale = Vector2(1.3, 1.3)
-	crystal_icon.scale = Vector2(1.5, 1.5)
-	crystal_label.modulate = Color(0.2, 0.95, 1.0, 1)
+	gold_label.scale = Vector2(1.3, 1.3)
+	gold_icon.scale = Vector2(1.5, 1.5)
+	gold_label.modulate = Color.GOLD
 
 	var tween = create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(crystal_label, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
-	tween.tween_property(crystal_icon, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
-	tween.tween_property(crystal_label, "modulate", Color.WHITE, 0.5)
+	tween.tween_property(gold_label, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(gold_icon, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(gold_label, "modulate", Color.WHITE, 0.5)
 
-func _animate_crystal_icon():
+func _animate_gold_icon():
 	# Gentle pulse and rotate
 	var pulse = abs(sin(time_alive * 2.5)) * 0.15 + 0.9
-	crystal_icon.scale = Vector2(pulse, pulse)
-	crystal_icon.rotation += 0.015
+	gold_icon.scale = Vector2(pulse, pulse)
+	gold_icon.rotation += 0.015

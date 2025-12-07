@@ -1,6 +1,6 @@
 # SCRIPT: GameOverScreen.gd
 # ATTACH TO: GameOverScreen (CanvasLayer) root in GameOverScreen.tscn
-# LOCATION: res://scripts/ui/GameOverScreen.gd
+# LOCATION: res://Scripts/Ui/GameOverScreen.gd
 
 class_name GameOverScreen
 extends CanvasLayer
@@ -16,40 +16,41 @@ extends CanvasLayer
 @onready var wave_value: Label = $Control/Container/StatsContainer/WaveStat/Value
 @onready var enemies_value: Label = $Control/Container/StatsContainer/EnemiesStat/Value
 @onready var score_value: Label = $Control/Container/StatsContainer/ScoreStat/Value
-@onready var best_value: Label = $Control/Container/StatsContainer/BestStat/Value
+
+# Souls display
+@onready var wave_bonus_value: Label = $Control/Container/SoulsSection/WaveBonus/Value
+@onready var kill_bonus_value: Label = $Control/Container/SoulsSection/KillBonus/Value
+@onready var total_souls_value: Label = $Control/Container/SoulsSection/TotalSouls/Value
 
 # Buttons
+@onready var return_to_base_button: Button = $Control/Container/ButtonContainer/ReturnToBaseButton
 @onready var restart_button: Button = $Control/Container/ButtonContainer/RestartButton
-@onready var quit_button: Button = $Control/Container/ButtonContainer/QuitButton
 @onready var tip_label: Label = $Control/Container/TipLabel
 
 # Stats tracking
 var waves_survived: int = 0
 var enemies_killed: int = 0
 var final_score: int = 0
-var best_score: int = 0
+var souls_earned: int = 0
 
 # Death messages
 var death_tips = [
 	"Tip: Keep your distance from enemies!",
 	"Tip: Magic attacks can hit multiple enemies!",
-	"Tip: Health upgrades also heal you!",
+	"Tip: Upgrade at the Base to get stronger!",
 	"Tip: Movement is key to survival!",
 	"Tip: Each wave gets progressively harder!",
-	"Tip: Lifesteal helps sustain through waves!",
+	"Tip: Collect Chaos Souls to unlock new items!",
 	"Tip: Use dash to avoid enemy attacks!",
-	"Tip: Collect crystals for future upgrades!"
+	"Tip: Trinkets stack - collect many!"
 ]
 
 func _ready():
 	visible = false
 
 	# Connect buttons
+	return_to_base_button.pressed.connect(_on_return_to_base_pressed)
 	restart_button.pressed.connect(_on_restart_pressed)
-	quit_button.pressed.connect(_on_quit_pressed)
-
-	# Load best score
-	_load_best_score()
 
 func show_game_over(stats: Dictionary):
 	# Set stats
@@ -57,17 +58,20 @@ func show_game_over(stats: Dictionary):
 	enemies_killed = stats.get("enemies_killed", 0)
 	final_score = stats.get("score", 0)
 
-	# Update best score
-	if final_score > best_score:
-		best_score = final_score
-		_save_best_score()
-		_show_new_record()
+	# Calculate souls
+	var wave_bonus = waves_survived * 2
+	var kill_bonus = enemies_killed / 10
+	souls_earned = wave_bonus + kill_bonus
 
 	# Update display
 	wave_value.text = str(waves_survived)
 	enemies_value.text = str(enemies_killed)
 	score_value.text = str(final_score)
-	best_value.text = str(best_score)
+
+	# Update souls display
+	wave_bonus_value.text = "+%d" % wave_bonus
+	kill_bonus_value.text = "+%d" % kill_bonus
+	total_souls_value.text = "+%d" % souls_earned
 
 	# Random tip
 	tip_label.text = death_tips[randi() % death_tips.size()]
@@ -114,47 +118,50 @@ func _animate_in():
 		stat_tween.tween_property(stat_node, "modulate:a", 1.0, 0.3)
 		delay += 0.1
 
-func _show_new_record():
-	# Special effect for new record
-	var record_label = Label.new()
-	record_label.text = "NEW RECORD!"
-	record_label.add_theme_font_size_override("font_size", 36)
-	record_label.modulate = Color.GOLD
-	container.add_child(record_label)
-	container.move_child(record_label, 2)  # After title
+	# Souls section appears after stats
+	var souls_section = $Control/Container/SoulsSection
+	souls_section.modulate.a = 0.0
+	var souls_tween = create_tween()
+	souls_tween.tween_interval(delay + 0.2)
+	souls_tween.tween_property(souls_section, "modulate:a", 1.0, 0.4)
 
-	# Animate
-	record_label.scale = Vector2(0.5, 0.5)
-	var tween = create_tween()
-	tween.tween_property(record_label, "scale", Vector2(1.2, 1.2), 0.3)\
-		.set_trans(Tween.TRANS_BACK)
-	tween.tween_property(record_label, "scale", Vector2.ONE, 0.2)
+	# Animate total souls with dramatic effect
+	souls_tween.tween_callback(func():
+		total_souls_value.scale = Vector2(1.5, 1.5)
+		total_souls_value.modulate = Color(1, 0.8, 1, 1)
+		var total_tween = create_tween()
+		total_tween.tween_property(total_souls_value, "scale", Vector2.ONE, 0.3)\
+			.set_trans(Tween.TRANS_BACK)
+		total_tween.parallel().tween_property(total_souls_value, "modulate", Color.WHITE, 0.5)
+	)
 
-	# Pulse
-	tween.tween_property(record_label, "modulate:v", 1.5, 0.5)
-	tween.tween_property(record_label, "modulate:v", 1.0, 0.5)
-	tween.set_loops(3)
+func _on_return_to_base_pressed():
+	# End the run and calculate souls
+	if RunManager:
+		var total_souls = RunManager.end_run()
+		if SaveManager:
+			SaveManager.add_chaos_souls(total_souls)
 
-func _on_restart_pressed():
-	# Quick fade out
+	# Transition to base scene
 	var tween = create_tween()
 	tween.tween_property(control, "modulate:a", 0.0, 0.3)
-	tween.tween_callback(func(): get_tree().reload_current_scene())
+	tween.tween_callback(func():
+		get_tree().change_scene_to_file("res://Scenes/Main/Base.tscn")
+	)
 
-func _on_quit_pressed():
-	# For now, just quit the game
-	# Later you can make this go to main menu
-	get_tree().quit()
+func _on_restart_pressed():
+	# End current run (souls are still earned)
+	if RunManager:
+		var total_souls = RunManager.end_run()
+		if SaveManager:
+			SaveManager.add_chaos_souls(total_souls)
 
-func _save_best_score():
-	var save_file = FileAccess.open("user://chaos_save.dat", FileAccess.WRITE)
-	if save_file:
-		save_file.store_32(best_score)
-		save_file.close()
-
-func _load_best_score():
-	if FileAccess.file_exists("user://chaos_save.dat"):
-		var save_file = FileAccess.open("user://chaos_save.dat", FileAccess.READ)
-		if save_file:
-			best_score = save_file.get_32()
-			save_file.close()
+	# Quick fade out and restart
+	var tween = create_tween()
+	tween.tween_property(control, "modulate:a", 0.0, 0.3)
+	tween.tween_callback(func():
+		# Start a new run
+		if RunManager:
+			RunManager.start_new_run()
+		get_tree().reload_current_scene()
+	)

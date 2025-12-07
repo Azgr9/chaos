@@ -71,46 +71,23 @@ text = "100/100"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-; Crystal Section
-[node name="CrystalSection" type="Control" parent="Control/PlayerStatus"]
+; Gold Section
+[node name="GoldSection" type="Control" parent="Control/PlayerStatus"]
 layout_mode = 0
 offset_top = 36.0
 offset_right = 130.0
 offset_bottom = 56.0
 
-[node name="CrystalIcon" type="ColorRect" parent="Control/PlayerStatus/CrystalSection"]
+[node name="GoldIcon" type="ColorRect" parent="Control/PlayerStatus/GoldSection"]
 layout_mode = 0
 offset_right = 16.0
 offset_bottom = 16.0
-color = Color(0.2, 0.9, 1.0, 1)
+color = Color(1, 0.85, 0.4, 1)
 
-[node name="CrystalLabel" type="Label" parent="Control/PlayerStatus/CrystalSection"]
+[node name="GoldLabel" type="Label" parent="Control/PlayerStatus/GoldSection"]
 layout_mode = 0
 offset_left = 22.0
 offset_right = 130.0
-offset_bottom = 18.0
-theme_override_font_sizes/font_size = 14
-text = "0"
-vertical_alignment = 1
-
-; Score Section
-[node name="ScoreSection" type="Control" parent="Control/PlayerStatus"]
-layout_mode = 0
-offset_left = 140.0
-offset_top = 36.0
-offset_right = 276.0
-offset_bottom = 56.0
-
-[node name="ScoreIcon" type="ColorRect" parent="Control/PlayerStatus/ScoreSection"]
-layout_mode = 0
-offset_right = 16.0
-offset_bottom = 16.0
-color = Color(1, 0.85, 0.2, 1)
-
-[node name="ScoreLabel" type="Label" parent="Control/PlayerStatus/ScoreSection"]
-layout_mode = 0
-offset_left = 22.0
-offset_right = 136.0
 offset_bottom = 18.0
 theme_override_font_sizes/font_size = 14
 text = "0"

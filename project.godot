@@ -11,9 +11,14 @@ config_version=5
 [application]
 
 config/name="Chaos"
-run/main_scene="uid://dk43727mj1esl"
+run/main_scene="res://Scenes/Main/Base.tscn"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+SaveManager="*res://Scripts/Autoloads/SaveManager.gd"
+RunManager="*res://Scripts/Autoloads/RunManager.gd"
 
 [display]
 

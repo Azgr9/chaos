@@ -1,10 +1,11 @@
 # SCRIPT: ChaosCrystal.gd
 # ATTACH TO: ChaosCrystal (Area2D) root node in ChaosCrystal.tscn
 # LOCATION: res://Scripts/Items/ChaosCrystal.gd
+# NOTE: Drops Gold currency (was Crystals)
 
 extends Area2D
 
-@export var crystal_value: int = 1
+@export var gold_value: int = 1
 @export var magnet_range: float = 240.0
 @export var magnet_speed: float = 600.0
 
@@ -18,7 +19,7 @@ var is_magnetized: bool = false
 var spawn_animation_done: bool = false
 var time_alive: float = 0.0
 
-signal crystal_collected(value: int)
+signal gold_collected(value: int)
 
 func _ready():
 	# Connect signals
@@ -112,12 +113,12 @@ func _collect():
 		return
 
 	# Emit signal
-	crystal_collected.emit(crystal_value)
+	gold_collected.emit(gold_value)
 
-	# Notify game manager
+	# Notify game manager to add gold
 	var game_manager = get_tree().get_first_node_in_group("game_manager")
-	if game_manager and game_manager.has_method("add_crystals"):
-		game_manager.add_crystals(crystal_value)
+	if game_manager and game_manager.has_method("add_gold"):
+		game_manager.add_gold(gold_value)
 
 	# Collection animation
 	_collection_animation()
