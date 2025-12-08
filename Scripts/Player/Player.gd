@@ -449,9 +449,6 @@ func _phoenix_revive_effect():
 	await get_tree().create_timer(1.0).timeout
 	is_invulnerable = false
 
-func _on_hurt_box_area_entered(_area: Area2D):
-	pass
-
 func heal(amount: float):
 	stats.heal(amount)
 	health_changed.emit(stats.current_health, stats.max_health)

@@ -5,61 +5,57 @@
 class_name Imp
 extends Enemy
 
-# Imp specific stats
-@export var unlocks_at_wave: int = 1  # Imps available from wave 1
+# ============================================
+# IMP-SPECIFIC SETTINGS
+# ============================================
+@export var unlocks_at_wave: int = 1
+@export var dash_cooldown: float = 2.0
+@export var dash_speed: float = 600.0
+@export var dash_duration: float = 0.3
 
-# Nodes
+# Movement constants
+const ZIGZAG_FREQUENCY: float = 8.0
+const ZIGZAG_AMPLITUDE: float = 60.0
+const DASH_TRIGGER_DISTANCE: float = 400.0
+
+# ============================================
+# NODES
+# ============================================
 @onready var visuals_pivot: Node2D = $VisualsPivot
 @onready var sprite: ColorRect = $VisualsPivot/Sprite
 @onready var eye1: ColorRect = $VisualsPivot/Eye1
 @onready var eye2: ColorRect = $VisualsPivot/Eye2
 @onready var hurt_box: Area2D = $HurtBox
-@onready var health_bar: Node2D = $HealthBar
-@onready var health_fill: ColorRect = $HealthBar/Fill
 
-# State
+# ============================================
+# STATE
+# ============================================
 var time_alive: float = 0.0
 var dash_timer: float = 0.0
 var is_dashing: bool = false
 var dash_direction: Vector2 = Vector2.ZERO
-@export var dash_cooldown: float = 2.0
-@export var dash_speed: float = 600.0
-@export var dash_duration: float = 0.3
 
 func _setup_enemy():
 	# Imp stats - fast, weak, low health
-	max_health = 10.0  # Very low health
-	move_speed = 360.0  # Fastest enemy
-	damage = 5.0  # Low damage
+	max_health = 10.0
+	move_speed = 360.0
+	damage = 5.0
 	current_health = max_health
+	health_bar_width = 64.0
 
-	# Imp is worth less XP but drops crystals more often
+	# Drop settings
 	experience_value = 3
-	crystal_drop_chance = 0.5  # 50% chance
+	crystal_drop_chance = 0.5
 	min_crystals = 1
 	max_crystals = 2
 
-	# Hide health bar initially
-	health_bar.visible = false
-
-	# Enable contact damage
+	# Connect contact damage
 	hurt_box.monitoring = true
 	hurt_box.area_entered.connect(_on_hurt_box_area_entered)
 
-	# Color variation for visual interest
+	# Color variation
 	var color_variation = Color(randf_range(0.9, 1.1), randf_range(0.9, 1.1), randf_range(0.9, 1.1))
 	sprite.color = Color(0.6, 0.1, 0.2) * color_variation
-
-func _on_hurt_box_area_entered(area: Area2D):
-	# Don't deal damage if dead
-	if is_dead:
-		return
-
-	# Deal contact damage to player
-	var parent = area.get_parent()
-	if parent and parent.is_in_group("player"):
-		if parent.has_method("take_damage"):
-			parent.take_damage(damage)
 
 func _physics_process(delta):
 	if is_dead:
@@ -68,10 +64,7 @@ func _physics_process(delta):
 	time_alive += delta
 	dash_timer -= delta
 
-	# Update health bar
-	_update_health_bar()
-
-	# Jittery animation when not dashing
+	# Jittery animation
 	if not is_dashing:
 		var jitter = Vector2(randf_range(-0.5, 0.5), randf_range(-0.5, 0.5))
 		visuals_pivot.position = jitter
@@ -85,29 +78,24 @@ func _physics_process(delta):
 
 func _update_movement(_delta):
 	if not player_reference:
-		return  # Player reference set in base Enemy._ready()
+		return
 
 	var distance_to_player = global_position.distance_to(player_reference.global_position)
 	var direction_to_player = (player_reference.global_position - global_position).normalized()
 
-	# Face the player
-	if direction_to_player.x < 0:
-		visuals_pivot.scale.x = -1
-	else:
-		visuals_pivot.scale.x = 1
+	# Face player
+	visuals_pivot.scale.x = -1 if direction_to_player.x < 0 else 1
 
-	# Dash behavior
 	if is_dashing:
-		# Continue dash
 		velocity = dash_direction * dash_speed
 	else:
-		# Normal movement - zigzag toward player
-		var zigzag = sin(time_alive * 8.0) * 60.0
+		# Zigzag movement
+		var zigzag = sin(time_alive * ZIGZAG_FREQUENCY) * ZIGZAG_AMPLITUDE
 		var perpendicular = Vector2(-direction_to_player.y, direction_to_player.x)
 		velocity = (direction_to_player * move_speed) + (perpendicular * zigzag)
 
-		# Try to dash when close enough
-		if distance_to_player < 400 and dash_timer <= 0:
+		# Dash when close
+		if distance_to_player < DASH_TRIGGER_DISTANCE and dash_timer <= 0:
 			_perform_dash(direction_to_player)
 
 func _perform_dash(direction: Vector2):
@@ -115,7 +103,7 @@ func _perform_dash(direction: Vector2):
 	dash_direction = direction
 	dash_timer = dash_cooldown
 
-	# Visual feedback - stretch in dash direction
+	# Stretch visual
 	var tween = create_tween()
 	tween.tween_property(visuals_pivot, "scale", Vector2(1.5, 0.7) * Vector2(visuals_pivot.scale.x, 1), 0.1)
 	tween.tween_property(visuals_pivot, "scale", Vector2.ONE * Vector2(visuals_pivot.scale.x, 1), 0.2)
@@ -125,12 +113,12 @@ func _perform_dash(direction: Vector2):
 	var color_tween = create_tween()
 	color_tween.tween_property(sprite, "color", Color(0.6, 0.1, 0.2), 0.3)
 
-	# End dash after duration
+	# End dash
 	await get_tree().create_timer(dash_duration).timeout
 	is_dashing = false
 
 func _on_damage_taken():
-	# Flash white on hit
+	# Flash white
 	sprite.color = Color.WHITE
 	eye1.color = Color.WHITE
 	eye2.color = Color.WHITE
@@ -140,49 +128,35 @@ func _on_damage_taken():
 	tween.parallel().tween_property(eye1, "color", Color(1, 0.8, 0), 0.15)
 	tween.parallel().tween_property(eye2, "color", Color(1, 0.8, 0), 0.15)
 
-	# Show health bar when damaged
-	health_bar.visible = true
-
-	# Knockback squash animation
+	# Knockback squash
 	visuals_pivot.scale = Vector2(1.3, 0.7) * Vector2(visuals_pivot.scale.x, 1)
 	var scale_tween = create_tween()
 	scale_tween.tween_property(visuals_pivot, "scale", Vector2.ONE * Vector2(visuals_pivot.scale.x, 1), 0.2)\
 		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 func _on_death():
-	is_dead = true
 	set_physics_process(false)
 
-	# Death animation - explode into particles
-	var tween = create_tween()
-
 	# Spin and shrink
+	var tween = create_tween()
 	tween.tween_property(visuals_pivot, "rotation", deg_to_rad(360), 0.3)
 	tween.parallel().tween_property(visuals_pivot, "scale", Vector2(1.5, 1.5), 0.15)
 	tween.tween_property(visuals_pivot, "scale", Vector2.ZERO, 0.15)
-
-	# Fade out
 	tween.parallel().tween_property(sprite, "modulate:a", 0.0, 0.3)
-	tween.parallel().tween_property(health_bar, "modulate:a", 0.0, 0.3)
 
-	# Create explosion particles
-	for i in range(6):
-		var particle = ColorRect.new()
-		particle.size = Vector2(12, 12)
-		particle.position = Vector2.ZERO
-		particle.color = Color(0.6, 0.1, 0.2)
-		add_child(particle)
-
-		var particle_tween = create_tween()
-		var random_dir = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
-		particle_tween.tween_property(particle, "position",
-			particle.position + random_dir * 100, 0.4)
-		particle_tween.parallel().tween_property(particle, "modulate:a", 0.0, 0.4)
-
-	# Remove after animation
 	tween.tween_callback(queue_free)
 
-func _update_health_bar():
-	if health_bar.visible:
-		var health_percentage = current_health / max_health
-		health_fill.size.x = 64 * health_percentage
+func _get_death_particle_color() -> Color:
+	return Color(0.6, 0.1, 0.2)
+
+func _get_death_particle_count() -> int:
+	return 6
+
+func _on_hurt_box_area_entered(area: Area2D):
+	if is_dead:
+		return
+
+	var parent = area.get_parent()
+	if parent and parent.is_in_group("player"):
+		if parent.has_method("take_damage"):
+			parent.take_damage(damage)

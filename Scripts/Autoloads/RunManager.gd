@@ -176,7 +176,12 @@ func _apply_item_stats(item: Resource):
 	if not item:
 		return
 
-	# Apply stat bonuses from item
+	# Use relic's apply method if available (new system)
+	if item is RelicResource and item.has_method("apply_to_stats"):
+		run_data.calculated_stats = item.apply_to_stats(run_data.calculated_stats)
+		return
+
+	# Legacy fallback for items without apply method
 	if "max_health_bonus" in item and item.max_health_bonus != 0:
 		run_data.calculated_stats.max_health += item.max_health_bonus
 

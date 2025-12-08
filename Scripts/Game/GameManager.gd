@@ -27,10 +27,6 @@ var pause_menu: PauseMenu = null
 # Signals
 signal game_started()
 signal game_over()
-@warning_ignore("unused_signal")
-signal game_paused()
-@warning_ignore("unused_signal")
-signal game_resumed()
 signal gold_changed(current_gold: int)
 
 func _ready():
@@ -139,9 +135,12 @@ func _on_enemy_killed(enemies_remaining: int):
 
 	enemies_killed_total += 1
 
-func _on_player_damaged(_current_health: float, _max_health: float):
-	# Track damage taken (could be expanded for more complex tracking)
-	pass
+func _on_player_damaged(current_health: float, max_health: float):
+	# Track damage taken (this is called when health changes, so we need to track the delta)
+	# Note: This receives the new health value, so we track damage as the difference from max
+	var health_lost = max_health - current_health
+	if health_lost > damage_taken:
+		damage_taken = health_lost
 
 func _show_upgrade_menu():
 	# Get upgrade menu (it's a sibling in the Game scene)
