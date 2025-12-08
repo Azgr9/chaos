@@ -147,9 +147,6 @@ func _process(delta):
 		health_background.color = Color(0.15, 0.05, 0.05)
 		health_icon.color = Color(0.9, 0.2, 0.2)
 
-	# Animate gold icon
-	_animate_gold_icon()
-
 	# Update skill cooldowns
 	_update_skill_cooldowns()
 
@@ -281,12 +278,6 @@ func _on_gold_changed(new_gold: int):
 	tween.tween_property(gold_label, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
 	tween.tween_property(gold_icon, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
 	tween.tween_property(gold_label, "modulate", Color.WHITE, 0.5)
-
-func _animate_gold_icon():
-	# Gentle pulse and rotate
-	var pulse = abs(sin(time_alive * 2.5)) * 0.15 + 0.9
-	gold_icon.scale = Vector2(pulse, pulse)
-	gold_icon.rotation += 0.015
 
 # ============================================
 # RELIC DISPLAY

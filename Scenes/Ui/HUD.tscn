@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bwx8h5j2k3n4p"]
 
-[ext_resource type="Script" path="res://Scripts/Ui/HUD.gd" id="1_hud"]
+[ext_resource type="Script" uid="uid://ctomxb7p5at6e" path="res://Scripts/Ui/HUD.gd" id="1_hud"]
 
 [node name="HUD" type="CanvasLayer"]
 
@@ -14,17 +14,15 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_hud")
 
-; ============ TOP LEFT - Player Status ============
 [node name="PlayerStatus" type="Control" parent="Control"]
-layout_mode = 0
+anchors_preset = 0
 offset_left = 20.0
 offset_top = 20.0
 offset_right = 320.0
 offset_bottom = 100.0
 
-; Health Section
 [node name="HealthSection" type="Control" parent="Control/PlayerStatus"]
-layout_mode = 0
+anchors_preset = 0
 offset_right = 276.0
 offset_bottom = 36.0
 
@@ -35,7 +33,7 @@ offset_bottom = 28.0
 color = Color(0.9, 0.2, 0.2, 1)
 
 [node name="HealthBar" type="Control" parent="Control/PlayerStatus/HealthSection"]
-layout_mode = 0
+anchors_preset = 0
 offset_left = 36.0
 offset_right = 276.0
 offset_bottom = 28.0
@@ -71,9 +69,8 @@ text = "100/100"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-; Gold Section
 [node name="GoldSection" type="Control" parent="Control/PlayerStatus"]
-layout_mode = 0
+anchors_preset = 0
 offset_top = 36.0
 offset_right = 130.0
 offset_bottom = 56.0
@@ -93,9 +90,8 @@ theme_override_font_sizes/font_size = 14
 text = "0"
 vertical_alignment = 1
 
-; ============ TOP RIGHT - Wave Info ============
 [node name="WaveInfo" type="Control" parent="Control"]
-layout_mode = 0
+anchors_preset = 0
 offset_left = 1060.0
 offset_top = 20.0
 offset_right = 1260.0
@@ -120,9 +116,8 @@ text = "Enemies: 0"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-; ============ TOP RIGHT - Relic Section (below wave info) ============
 [node name="RelicSection" type="Control" parent="Control"]
-layout_mode = 0
+anchors_preset = 0
 offset_left = 1060.0
 offset_top = 58.0
 offset_right = 1260.0
@@ -132,8 +127,8 @@ offset_bottom = 100.0
 layout_mode = 0
 offset_right = 200.0
 offset_bottom = 14.0
-theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 10
 text = "Relics:"
 horizontal_alignment = 2
 vertical_alignment = 1
@@ -146,11 +141,9 @@ offset_bottom = 42.0
 theme_override_constants/separation = 6
 alignment = 2
 
-; Relic Tooltip - Shown on hover (positioned below relic icons)
 [node name="RelicTooltip" type="PanelContainer" parent="Control/RelicSection"]
 visible = false
 layout_mode = 0
-offset_left = 0.0
 offset_top = 44.0
 offset_right = 200.0
 offset_bottom = 140.0
@@ -167,28 +160,27 @@ text = "Relic Name"
 
 [node name="RelicDesc" type="Label" parent="Control/RelicSection/RelicTooltip/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_font_sizes/font_size = 11
 text = "Effect description"
 autowrap_mode = 2
 
 [node name="FlavorText" type="Label" parent="Control/RelicSection/RelicTooltip/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 10
 text = "Flavor text..."
 autowrap_mode = 2
 
-; ============ BOTTOM LEFT - Sword Skill (Q) ============
 [node name="SwordSkillContainer" type="Control" parent="Control"]
-layout_mode = 0
+anchors_preset = 0
 offset_left = 20.0
 offset_top = 640.0
 offset_right = 90.0
 offset_bottom = 710.0
 
 [node name="SwordSkill" type="Control" parent="Control/SwordSkillContainer"]
-layout_mode = 0
+anchors_preset = 0
 offset_right = 64.0
 offset_bottom = 64.0
 
@@ -229,16 +221,15 @@ offset_bottom = 20.0
 theme_override_font_sizes/font_size = 12
 text = "Q"
 
-; ============ BOTTOM RIGHT - Staff Skill (E) ============
 [node name="StaffSkillContainer" type="Control" parent="Control"]
-layout_mode = 0
+anchors_preset = 0
 offset_left = 1190.0
 offset_top = 640.0
 offset_right = 1260.0
 offset_bottom = 710.0
 
 [node name="StaffSkill" type="Control" parent="Control/StaffSkillContainer"]
-layout_mode = 0
+anchors_preset = 0
 offset_right = 64.0
 offset_bottom = 64.0
 
@@ -279,9 +270,8 @@ offset_bottom = 20.0
 theme_override_font_sizes/font_size = 12
 text = "E"
 
-; ============ BOTTOM RIGHT - Character Stats (above E skill) ============
 [node name="StatsPanel" type="Control" parent="Control"]
-layout_mode = 0
+anchors_preset = 0
 offset_left = 1060.0
 offset_top = 480.0
 offset_right = 1260.0
@@ -303,9 +293,8 @@ offset_right = 200.0
 offset_bottom = 23.0
 color = Color(0.5, 0.5, 0.6, 0.5)
 
-; Movement Speed
 [node name="MovementSpeed" type="Control" parent="Control/StatsPanel"]
-layout_mode = 0
+anchors_preset = 0
 offset_top = 28.0
 offset_right = 200.0
 offset_bottom = 48.0
@@ -336,9 +325,8 @@ text = "450"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-; Attack Power (Melee)
 [node name="AttackPower" type="Control" parent="Control/StatsPanel"]
-layout_mode = 0
+anchors_preset = 0
 offset_top = 48.0
 offset_right = 200.0
 offset_bottom = 68.0
@@ -369,9 +357,8 @@ text = "100%"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-; Magic Power
 [node name="MagicPower" type="Control" parent="Control/StatsPanel"]
-layout_mode = 0
+anchors_preset = 0
 offset_top = 68.0
 offset_right = 200.0
 offset_bottom = 88.0
@@ -402,9 +389,8 @@ text = "100%"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-; Attack Speed
 [node name="AttackSpeed" type="Control" parent="Control/StatsPanel"]
-layout_mode = 0
+anchors_preset = 0
 offset_top = 88.0
 offset_right = 200.0
 offset_bottom = 108.0
@@ -435,9 +421,8 @@ text = "100%"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-; Crit Chance
 [node name="CritChance" type="Control" parent="Control/StatsPanel"]
-layout_mode = 0
+anchors_preset = 0
 offset_top = 108.0
 offset_right = 200.0
 offset_bottom = 128.0
@@ -447,7 +432,7 @@ layout_mode = 0
 offset_left = 100.0
 offset_right = 112.0
 offset_bottom = 12.0
-color = Color(1.0, 0.5, 0.2, 1)
+color = Color(1, 0.5, 0.2, 1)
 
 [node name="Label" type="Label" parent="Control/StatsPanel/CritChance"]
 layout_mode = 0
@@ -468,9 +453,8 @@ text = "0%"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-; Lifesteal
 [node name="Lifesteal" type="Control" parent="Control/StatsPanel"]
-layout_mode = 0
+anchors_preset = 0
 offset_top = 128.0
 offset_right = 200.0
 offset_bottom = 148.0
@@ -501,13 +485,12 @@ text = "0"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-; ============ Legacy nodes for compatibility (hidden) ============
 [node name="PlayerBars" type="Control" parent="Control"]
 visible = false
-layout_mode = 0
+anchors_preset = 0
 
 [node name="HealthBar" type="Control" parent="Control/PlayerBars"]
-layout_mode = 0
+anchors_preset = 0
 
 [node name="Background" type="ColorRect" parent="Control/PlayerBars/HealthBar"]
 layout_mode = 0
@@ -520,14 +503,14 @@ layout_mode = 0
 
 [node name="WeaponInfo" type="Control" parent="Control"]
 visible = false
-layout_mode = 0
+anchors_preset = 0
 
 [node name="WeaponIcon" type="ColorRect" parent="Control/WeaponInfo"]
 layout_mode = 0
 
 [node name="GameInfo" type="Control" parent="Control"]
 visible = false
-layout_mode = 0
+anchors_preset = 0
 
 [node name="WaveLabel" type="Label" parent="Control/GameInfo"]
 layout_mode = 0
@@ -540,7 +523,7 @@ layout_mode = 0
 
 [node name="CrystalDisplay" type="Control" parent="Control"]
 visible = false
-layout_mode = 0
+anchors_preset = 0
 
 [node name="CrystalIcon" type="ColorRect" parent="Control/CrystalDisplay"]
 layout_mode = 0
@@ -548,19 +531,18 @@ layout_mode = 0
 [node name="CrystalLabel" type="Label" parent="Control/CrystalDisplay"]
 layout_mode = 0
 
-; Legacy Skills container (hidden)
 [node name="Skills" type="Control" parent="Control"]
 visible = false
-layout_mode = 0
+anchors_preset = 0
 
 [node name="SwordSkill" type="Control" parent="Control/Skills"]
-layout_mode = 0
+anchors_preset = 0
 
 [node name="Cooldown" type="ColorRect" parent="Control/Skills/SwordSkill"]
 layout_mode = 0
 
 [node name="StaffSkill" type="Control" parent="Control/Skills"]
-layout_mode = 0
+anchors_preset = 0
 
 [node name="Cooldown" type="ColorRect" parent="Control/Skills/StaffSkill"]
 layout_mode = 0
