@@ -12,6 +12,7 @@ extends Resource
 @export var lifesteal_amount: float = 0.0
 @export var crit_chance: float = 0.0
 @export var crit_damage: float = 1.5
+@export var damage_reduction: float = 0.0
 
 # Current values
 var current_health: float

@@ -70,15 +70,22 @@ func _ready():
 	if not stats:
 		stats = PlayerStats.new()
 
+	# Apply relic stats from RunManager before resetting health
+	apply_relic_stats()
+
+	# Connect to RunManager to update stats when relics are collected
+	if RunManager:
+		RunManager.stats_changed.connect(_on_relic_stats_changed)
+
 	stats.reset_health()
 	health_changed.emit(stats.current_health, stats.max_health)
 
 	# Connect hurt box for enemy attacks
 	hurt_box.area_entered.connect(_on_hurt_box_area_entered)
-	
+
 	# Ensure pixel-perfect positioning
 	position = position.round()
-	
+
 	# Spawn starting weapon
 	if starting_weapon_scene:
 		_spawn_and_equip_weapon(starting_weapon_scene)
@@ -355,7 +362,11 @@ func take_damage(amount: float):
 		print("Debug: Damage blocked - player is invulnerable")
 		return
 
-	var is_dead = stats.take_damage(amount)
+	# Apply damage reduction from relics
+	var reduced_amount = amount * (1.0 - stats.damage_reduction)
+	reduced_amount = max(1.0, reduced_amount)  # Minimum 1 damage
+
+	var is_dead = stats.take_damage(reduced_amount)
 	health_changed.emit(stats.current_health, stats.max_health)
 
 	# Screen shake on player damage - scale with percentage of health lost
@@ -545,3 +556,59 @@ func _debug_kill_all_enemies():
 		if enemy.has_method("take_damage"):
 			enemy.take_damage(9999)
 	print("Debug: Killed ", count, " enemies")
+
+# ============================================
+# RELIC STATS APPLICATION
+# ============================================
+
+func apply_relic_stats():
+	if not RunManager:
+		return
+
+	var calculated = RunManager.run_data.calculated_stats
+
+	# Apply max health bonus (preserve health percentage)
+	var health_ratio = stats.get_health_percentage() if stats.current_health > 0 else 1.0
+	stats.max_health = calculated.max_health
+	stats.current_health = stats.max_health * health_ratio
+
+	# Apply damage multipliers
+	stats.melee_damage_multiplier = calculated.damage_multiplier
+	stats.magic_damage_multiplier = calculated.damage_multiplier
+
+	# Apply speed multiplier
+	var base_speed = 450.0  # Base move speed
+	stats.move_speed = base_speed * calculated.speed_multiplier
+
+	# Apply attack speed (cooldown reduction)
+	stats.attack_speed_multiplier = calculated.cooldown_multiplier
+
+	# Apply crit stats
+	stats.crit_chance = calculated.crit_chance
+	stats.crit_damage = calculated.crit_damage
+
+	# Apply lifesteal
+	stats.lifesteal_amount = calculated.lifesteal
+
+	# Apply damage reduction
+	stats.damage_reduction = calculated.damage_reduction
+
+	print("[Player] Applied relic stats: HP=%d, DMG=%.2f, SPD=%.2f, CRIT=%.2f, LS=%.2f, DR=%.2f" % [
+		int(stats.max_health),
+		stats.melee_damage_multiplier,
+		stats.move_speed,
+		stats.crit_chance,
+		stats.lifesteal_amount,
+		stats.damage_reduction
+	])
+
+func _on_relic_stats_changed():
+	var old_max_health = stats.max_health
+	apply_relic_stats()
+
+	# If max health increased, heal for the difference
+	if stats.max_health > old_max_health:
+		var health_gained = stats.max_health - old_max_health
+		stats.current_health = min(stats.current_health + health_gained, stats.max_health)
+
+	health_changed.emit(stats.current_health, stats.max_health)
