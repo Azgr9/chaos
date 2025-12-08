@@ -376,7 +376,7 @@ func _set_circle_fill(circle: Control, color: Color, fill_percent: float):
 		circle.set("fill_percent", fill_percent)
 		circle.queue_redraw()
 
-func _flash_circular_skill_ready(outer: Control, icon: Label, flash_color: Color):
+func _flash_circular_skill_ready(outer: Control, icon: Label, _flash_color: Color):
 	# Big flash when skill becomes ready
 	var tween = create_tween()
 	outer.scale = Vector2(1.3, 1.3)
