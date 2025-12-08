@@ -58,6 +58,7 @@ var health_fill: ColorRect = null
 # SIGNALS
 # ============================================
 signal enemy_died(enemy: Enemy)
+@warning_ignore("unused_signal")  # Emitted by subclasses (e.g., Slime)
 signal damage_dealt(amount: float)
 signal health_changed(current: float, max_val: float)
 
@@ -186,26 +187,31 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback
 	current_health -= amount
 	health_changed.emit(current_health, max_health)
 
+	# Check for death first - don't apply hitstun to dead enemies
+	if current_health <= 0:
+		# Show health bar and damage number before death
+		show_health_bar()
+		_spawn_damage_number(amount)
+		die()
+		return
+
 	# Show health bar when damaged
 	show_health_bar()
 
 	# Spawn damage number
 	_spawn_damage_number(amount)
 
-	# Apply knockback
+	# Apply knockback (only if alive)
 	if from_position != Vector2.ZERO:
 		var knockback_direction = (global_position - from_position).normalized()
 		knockback_velocity = knockback_direction * (knockback_power * (1.0 - knockback_resistance))
 
-	# Apply hitstun
+	# Apply hitstun (only if alive)
 	if stun_duration > 0:
 		hitstun_timer = stun_duration
 
 	# Visual feedback (subclass override)
 	_on_damage_taken()
-
-	if current_health <= 0:
-		die()
 
 func _spawn_damage_number(damage_amount: float):
 	var damage_number = DamageNumber.instantiate()

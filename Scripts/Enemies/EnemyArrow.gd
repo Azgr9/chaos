@@ -42,8 +42,9 @@ func _physics_process(delta):
 
 func _on_area_entered(area: Area2D):
 	# Hit player hurtbox
-	if area.get_parent().has_method("take_damage"):
-		area.get_parent().take_damage(damage)
+	var parent = area.get_parent()
+	if parent and parent.has_method("take_damage"):
+		parent.take_damage(damage, global_position)
 		_destroy_arrow()
 
 func _on_body_entered(body: Node2D):

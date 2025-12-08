@@ -103,7 +103,10 @@ func show_upgrades(player: Node2D):
 func _setup_cards():
 	for i in range(min(card_data.size(), card_panels.size())):
 		var card = card_panels[i]
-		var data = card_data[i]
+		var upgrade = card_data[i]
+
+		# Get display data (handles both UpgradeResource and Dictionary)
+		var data = upgrade_system.get_upgrade_display_data(upgrade)
 
 		# Set card info
 		var icon = card.get_node("VBox/Icon")
@@ -111,11 +114,11 @@ func _setup_cards():
 		var desc_label = card.get_node("VBox/Description")
 
 		if icon:
-			icon.color = data.icon_color
+			icon.color = data.get("icon_color", Color.WHITE)
 		if name_label:
-			name_label.text = data.name
+			name_label.text = data.get("name", "Unknown")
 		if desc_label:
-			desc_label.text = data.description
+			desc_label.text = data.get("description", "")
 
 		# Style the panel
 		var style = StyleBoxFlat.new()
@@ -124,7 +127,7 @@ func _setup_cards():
 		style.border_width_right = 2
 		style.border_width_top = 2
 		style.border_width_bottom = 2
-		style.border_color = data.icon_color * 0.8
+		style.border_color = data.get("icon_color", Color.WHITE) * 0.8
 		style.corner_radius_top_left = 8
 		style.corner_radius_top_right = 8
 		style.corner_radius_bottom_left = 8

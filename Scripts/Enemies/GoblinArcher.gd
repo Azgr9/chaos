@@ -17,6 +17,7 @@ extends Enemy
 # Movement constants
 const RETREAT_SPEED_MULTIPLIER: float = 1.5
 const ARROW_SPREAD: float = 40.0
+const GOBLIN_COLOR: Color = Color("#2d5016")
 
 # ============================================
 # NODES
@@ -47,7 +48,7 @@ func _setup_enemy():
 
 	# Color variation
 	var color_variation = Color(randf_range(0.9, 1.1), randf_range(0.9, 1.1), randf_range(0.9, 1.1))
-	sprite.color = Color("#2d5016") * color_variation
+	sprite.color = GOBLIN_COLOR * color_variation
 
 func _physics_process(delta):
 	if is_dead:
@@ -100,7 +101,7 @@ func _shoot_arrow():
 
 	# Flash before shooting
 	sprite.color = Color.YELLOW
-	tween.tween_property(sprite, "color", Color("#2d5016"), 0.1)
+	tween.tween_property(sprite, "color", GOBLIN_COLOR, 0.1)
 
 	# Spawn arrow
 	tween.tween_callback(_spawn_arrow)

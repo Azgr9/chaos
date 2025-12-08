@@ -5,6 +5,11 @@
 class_name GameManager
 extends Node
 
+# Constants
+const MAX_WAVES: int = 5
+const GAME_OVER_DELAY: float = 1.0
+const UPGRADE_MENU_DELAY: float = 0.5
+
 # Game state
 enum GameState { MENU, PLAYING, PAUSED, UPGRADE, GAME_OVER, VICTORY }
 var current_state: GameState = GameState.PLAYING
@@ -102,7 +107,7 @@ func _on_player_died():
 	}
 
 	# Show game over with delay for drama
-	await get_tree().create_timer(1.0).timeout
+	await get_tree().create_timer(GAME_OVER_DELAY).timeout
 
 	if game_over_screen:
 		game_over_screen.show_game_over(stats)
@@ -114,10 +119,10 @@ func _on_wave_completed(wave_number: int):
 	waves_completed = wave_number
 
 	# Show upgrade menu after wave (except last wave)
-	if wave_number < 5:
+	if wave_number < MAX_WAVES:
 		current_state = GameState.UPGRADE
-		# Wait 0.5 seconds after last enemy dies before showing upgrade menu
-		await get_tree().create_timer(0.5).timeout
+		# Wait before showing upgrade menu
+		await get_tree().create_timer(UPGRADE_MENU_DELAY).timeout
 		_show_upgrade_menu()
 
 	# Achievement check
@@ -129,7 +134,7 @@ func _on_all_waves_completed():
 	# Show victory screen
 	_show_victory_screen()
 
-func _on_enemy_killed(enemies_remaining: int):
+func _on_enemy_killed(_enemies_remaining: int):
 	if current_state != GameState.PLAYING and current_state != GameState.UPGRADE:
 		return
 
@@ -172,7 +177,7 @@ func _on_upgrade_menu_closed():
 func _show_victory_screen():
 	# Similar to game over but with victory message
 	var stats = {
-		"waves": 5,
+		"waves": MAX_WAVES,
 		"enemies_killed": enemies_killed_total,
 		"gold": gold,  # Current unspent gold
 		"score": total_gold_collected,

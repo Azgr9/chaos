@@ -157,6 +157,6 @@ func _on_hurt_box_area_entered(area: Area2D):
 		return
 
 	var parent = area.get_parent()
-	if parent and parent.is_in_group("player"):
+	if parent and is_instance_valid(parent) and parent.is_in_group("player"):
 		if parent.has_method("take_damage"):
-			parent.take_damage(damage)
+			parent.take_damage(damage, global_position)

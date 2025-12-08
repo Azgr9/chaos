@@ -148,12 +148,12 @@ func _perform_skill() -> bool:
 	# Override for weapon-specific skill
 	return false
 
-func _get_hit_color(is_combo_finisher: bool, is_dash_attack: bool, is_crit: bool) -> Color:
-	if is_crit:
+func _get_hit_color(combo_finisher: bool, dash_attack: bool, crit: bool) -> Color:
+	if crit:
 		return Color.RED
-	elif is_combo_finisher:
+	elif combo_finisher:
 		return Color.GOLD
-	elif is_dash_attack:
+	elif dash_attack:
 		return Color.CYAN
 	return weapon_color
 
@@ -208,9 +208,11 @@ func attack(_direction: Vector2, player_damage_multiplier: float = 1.0) -> bool:
 	if not can_attack or is_attacking:
 		return false
 
-	damage_multiplier = player_damage_multiplier
-	is_attacking = true
+	# Set flags immediately to prevent race conditions
 	can_attack = false
+	is_attacking = true
+
+	damage_multiplier = player_damage_multiplier
 	hits_this_swing.clear()
 
 	# Increment combo
@@ -451,14 +453,9 @@ func _process_hit(target: Node2D):
 	_create_hit_effect(is_finisher, is_crit)
 	_create_impact_particles(target.global_position, is_finisher, is_crit)
 
-	# Hitstop
-	var freeze_duration = clamp(final_damage / 100.0, 0.01, 0.05)
-	if is_finisher:
-		freeze_duration *= 1.5
-
-	Engine.time_scale = 0.05
-	await get_tree().create_timer(freeze_duration, true, false, true).timeout
-	Engine.time_scale = 1.0
+	# Brief weapon shake for hitstop feel (no time_scale - it causes issues when player gets hit)
+	if is_finisher or is_crit:
+		_do_weapon_shake()
 
 var _was_last_hit_crit: bool = false
 
@@ -527,20 +524,34 @@ func _create_impact_particles(hit_position: Vector2, is_finisher: bool, is_crit:
 		tween.tween_property(particle, "scale", Vector2(0.5, 0.5), 0.3)
 		tween.tween_callback(particle.queue_free)
 
-func _spawn_crit_text(position: Vector2):
+func _spawn_crit_text(spawn_position: Vector2):
 	var label = Label.new()
 	label.text = "CRIT!"
 	label.add_theme_font_size_override("font_size", 24)
 	label.modulate = Color.RED
 	get_tree().current_scene.add_child(label)
-	label.global_position = position + Vector2(-80, -120)
+	label.global_position = spawn_position + Vector2(-80, -120)
 
 	var tween = create_tween()
-	tween.tween_property(label, "global_position:y", position.y - 200, 0.5)
+	tween.tween_property(label, "global_position:y", spawn_position.y - 200, 0.5)
 	tween.parallel().tween_property(label, "scale", Vector2(1.5, 1.5), 0.2)
 	tween.tween_property(label, "scale", Vector2(1.0, 1.0), 0.3)
 	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.5)
 	tween.tween_callback(label.queue_free)
+
+func _do_weapon_shake():
+	# Quick shake effect for impactful hits (no time_scale manipulation)
+	if not pivot:
+		return
+
+	var original_pos = pivot.position
+	var shake_amount = 3.0
+
+	var tween = create_tween()
+	tween.tween_property(pivot, "position", original_pos + Vector2(shake_amount, 0), 0.02)
+	tween.tween_property(pivot, "position", original_pos + Vector2(-shake_amount, 0), 0.02)
+	tween.tween_property(pivot, "position", original_pos + Vector2(shake_amount * 0.5, 0), 0.02)
+	tween.tween_property(pivot, "position", original_pos, 0.02)
 
 func _create_swing_trail(is_finisher: bool, is_dash: bool):
 	var trail_count = 5 if (is_finisher or is_dash) else 3

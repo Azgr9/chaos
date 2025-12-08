@@ -5,6 +5,9 @@
 class_name Player
 extends CharacterBody2D
 
+# Constants
+const BASE_MOVE_SPEED: float = 450.0
+
 # Stats
 @export var stats: PlayerStats
 
@@ -79,9 +82,6 @@ func _ready():
 
 	stats.reset_health()
 	health_changed.emit(stats.current_health, stats.max_health)
-
-	# Connect hurt box for enemy attacks
-	hurt_box.area_entered.connect(_on_hurt_box_area_entered)
 
 	# Ensure pixel-perfect positioning
 	position = position.round()
@@ -318,17 +318,21 @@ func perform_magic_attack():
 		is_attacking = false
 		is_magic_attacking = false
 func _spawn_and_equip_weapon(weapon_scene: PackedScene):
-	# Remove current weapon if exists
+	# Disconnect signals from old weapon before removing
 	if current_weapon:
+		if current_weapon.has_signal("attack_finished") and current_weapon.attack_finished.is_connected(_on_attack_finished):
+			current_weapon.attack_finished.disconnect(_on_attack_finished)
+		if current_weapon.has_signal("weapon_broke") and current_weapon.weapon_broke.is_connected(_on_weapon_broke):
+			current_weapon.weapon_broke.disconnect(_on_weapon_broke)
 		current_weapon.queue_free()
-	
+
 	# Spawn new weapon
 	var weapon_instance = weapon_scene.instantiate()
 	weapon_holder.add_child(weapon_instance)
 	weapon_instance.position = Vector2.ZERO
-	
+
 	current_weapon = weapon_instance
-	
+
 	# Connect weapon signals
 	if weapon_instance.has_signal("weapon_broke"):
 		weapon_instance.weapon_broke.connect(_on_weapon_broke)
@@ -356,7 +360,7 @@ func _on_weapon_broke():
 	else:
 		print("No weapons left!")
 
-func take_damage(amount: float):
+func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO):
 	# Ignore damage if invulnerable
 	if is_invulnerable:
 		print("Debug: Damage blocked - player is invulnerable")
@@ -380,10 +384,11 @@ func take_damage(amount: float):
 		var trauma_amount = clamp(trauma_base, 0.15, 0.85)
 		camera.add_trauma(trauma_amount)
 
-	# Visual feedback - flash red
-	sprite.modulate = Color.RED
-	await get_tree().create_timer(0.1).timeout
-	sprite.modulate = Color.WHITE
+	# Hit knockback jiggle - small recoil in opposite direction of damage source
+	_apply_hit_recoil(from_position)
+
+	# Visual feedback - flash red and squash
+	_play_hit_effect()
 
 	if is_dead:
 		# Check for Phoenix Feather revive
@@ -448,6 +453,37 @@ func _phoenix_revive_effect():
 	# Brief invulnerability window
 	await get_tree().create_timer(1.0).timeout
 	is_invulnerable = false
+
+func _apply_hit_recoil(from_position: Vector2):
+	# Small knockback jiggle when hit
+	var recoil_direction: Vector2
+	if from_position != Vector2.ZERO:
+		recoil_direction = (global_position - from_position).normalized()
+	else:
+		# Random direction if no source specified
+		recoil_direction = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
+
+	# Quick jolt backwards then return
+	var original_pos = visuals_pivot.position
+	var recoil_offset = recoil_direction * 8.0  # Small 8 pixel recoil
+
+	var tween = create_tween()
+	tween.tween_property(visuals_pivot, "position", original_pos + recoil_offset, 0.05)
+	tween.tween_property(visuals_pivot, "position", original_pos, 0.1).set_trans(Tween.TRANS_ELASTIC)
+
+func _play_hit_effect():
+	# Flash red
+	sprite.modulate = Color.RED
+
+	# Squash effect - flatten slightly on hit
+	var original_scale = visuals_pivot.scale
+	visuals_pivot.scale = Vector2(original_scale.x * 1.2, original_scale.y * 0.8)
+
+	var tween = create_tween()
+	# Return to normal with bounce
+	tween.tween_property(visuals_pivot, "scale", original_scale, 0.15).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	# Flash back to white
+	tween.parallel().tween_property(sprite, "modulate", Color.WHITE, 0.1)
 
 func heal(amount: float):
 	stats.heal(amount)
@@ -574,8 +610,7 @@ func apply_relic_stats():
 	stats.magic_damage_multiplier = calculated.damage_multiplier
 
 	# Apply speed multiplier
-	var base_speed = 450.0  # Base move speed
-	stats.move_speed = base_speed * calculated.speed_multiplier
+	stats.move_speed = BASE_MOVE_SPEED * calculated.speed_multiplier
 
 	# Apply attack speed (cooldown reduction)
 	stats.attack_speed_multiplier = calculated.cooldown_multiplier

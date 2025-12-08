@@ -137,8 +137,8 @@ func _on_attack_box_area_entered(area: Area2D):
 		return
 
 	var parent = area.get_parent()
-	if parent.has_method("take_damage"):
-		parent.take_damage(damage)
+	if parent and parent.has_method("take_damage"):
+		parent.take_damage(damage, global_position)
 		damage_dealt.emit(damage)
 
 		# Yellow flash when hitting

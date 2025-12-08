@@ -41,12 +41,12 @@ func _get_attack_pattern(attack_index: int) -> String:
 		3: return "overhead"
 		_: return "horizontal"
 
-func _get_hit_color(is_combo_finisher: bool, is_dash_attack: bool, is_crit: bool) -> Color:
-	if is_crit:
+func _get_hit_color(combo_finisher: bool, dash_attack: bool, crit: bool) -> Color:
+	if crit:
 		return Color.RED
-	elif is_combo_finisher:
+	elif combo_finisher:
 		return Color.GOLD
-	elif is_dash_attack or is_dash_slashing:
+	elif dash_attack or is_dash_slashing:
 		return Color(1.0, 0.3, 0.3)  # Red-ish for katana dash
 	return weapon_color
 
@@ -109,7 +109,7 @@ func _calculate_safe_dash_position(player: Node2D, desired: Vector2, direction: 
 
 	var result = space_state.intersect_ray(query)
 
-	if result:
+	if result and result.has("position"):
 		return result.position - direction * 16.0
 	return desired
 

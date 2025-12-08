@@ -27,11 +27,22 @@ extends Control
 @onready var wave_label: Label = $WaveInfo/WaveLabel
 @onready var enemies_label: Label = $WaveInfo/EnemiesLabel
 
-# Skill UI (Q on left, E on right)
-@onready var sword_skill_cooldown: ColorRect = $SwordSkillContainer/SwordSkill/Cooldown
-@onready var sword_skill_border: ColorRect = $SwordSkillContainer/SwordSkill/Border
-@onready var staff_skill_cooldown: ColorRect = $StaffSkillContainer/StaffSkill/Cooldown
-@onready var staff_skill_border: ColorRect = $StaffSkillContainer/StaffSkill/Border
+# Skill UI containers
+@onready var sword_skill_container: Control = $SwordSkillContainer/SwordSkill
+@onready var staff_skill_container: Control = $StaffSkillContainer/StaffSkill
+
+# Circular skill UI elements (created dynamically)
+var sword_outer_circle: Control = null
+var sword_inner_circle: Control = null
+var sword_fill_circle: Control = null
+var sword_icon_label: Label = null
+var sword_keybind_label: Label = null
+
+var staff_outer_circle: Control = null
+var staff_inner_circle: Control = null
+var staff_fill_circle: Control = null
+var staff_icon_label: Label = null
+var staff_keybind_label: Label = null
 
 # Stats Panel
 @onready var move_speed_value: Label = $StatsPanel/MovementSpeed/Value
@@ -127,6 +138,9 @@ func _initialize_ui():
 	# Load existing relics from RunManager
 	_refresh_relic_display()
 
+	# Create skill fill rects for bottom-to-top cooldown display
+	_setup_skill_fills()
+
 func _process(delta):
 	time_alive += delta
 
@@ -154,28 +168,223 @@ func _process(delta):
 	if Engine.get_process_frames() % 10 == 0:
 		_update_stats_display()
 
+var sword_skill_was_ready: bool = false
+var staff_skill_was_ready: bool = false
+
+# Skill colors
+const SWORD_SKILL_COLOR: Color = Color(1.0, 0.85, 0.3, 1.0)  # Gold/yellow
+const SWORD_SKILL_READY_GLOW: Color = Color(1.0, 0.9, 0.4, 1.0)
+const STAFF_SKILL_COLOR: Color = Color(0.7, 0.4, 1.0, 1.0)  # Purple
+const STAFF_SKILL_READY_GLOW: Color = Color(0.8, 0.5, 1.0, 1.0)
+const SKILL_GRAY: Color = Color(0.3, 0.3, 0.3, 1.0)  # Gray when on cooldown
+const SKILL_SIZE: float = 64.0
+const OUTER_RING_SIZE: float = 70.0
+const INNER_CIRCLE_SIZE: float = 54.0
+
+# Skill emojis
+const SWORD_SKILL_EMOJI: String = "⚔️"
+const STAFF_SKILL_EMOJI: String = "⚡"
+
+func _setup_skill_fills():
+	# Clear old children from containers
+	for child in sword_skill_container.get_children():
+		child.queue_free()
+	for child in staff_skill_container.get_children():
+		child.queue_free()
+
+	# Create circular sword skill button
+	_create_circular_skill(sword_skill_container, true)
+
+	# Create circular staff skill button
+	_create_circular_skill(staff_skill_container, false)
+
+func _create_circular_skill(container: Control, is_sword: bool):
+	var center = Vector2(SKILL_SIZE / 2, SKILL_SIZE / 2)
+	var skill_color = SWORD_SKILL_COLOR if is_sword else STAFF_SKILL_COLOR
+	var emoji = SWORD_SKILL_EMOJI if is_sword else STAFF_SKILL_EMOJI
+	var keybind = "Q" if is_sword else "E"
+
+	# Outer ring (border)
+	var outer = _create_circle_control(OUTER_RING_SIZE, skill_color)
+	outer.position = center - Vector2(OUTER_RING_SIZE / 2, OUTER_RING_SIZE / 2)
+	container.add_child(outer)
+
+	# Fill circle (shows cooldown progress)
+	var fill = _create_circle_control(SKILL_SIZE, skill_color)
+	fill.position = center - Vector2(SKILL_SIZE / 2, SKILL_SIZE / 2)
+	container.add_child(fill)
+
+	# Inner circle (dark background)
+	var inner = _create_circle_control(INNER_CIRCLE_SIZE, Color(0.1, 0.1, 0.12, 1.0))
+	inner.position = center - Vector2(INNER_CIRCLE_SIZE / 2, INNER_CIRCLE_SIZE / 2)
+	container.add_child(inner)
+
+	# Emoji icon in center
+	var icon = Label.new()
+	icon.text = emoji
+	icon.add_theme_font_size_override("font_size", 28)
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon.size = Vector2(SKILL_SIZE, SKILL_SIZE)
+	icon.position = Vector2(0, 0)
+	container.add_child(icon)
+
+	# Keybind label (bottom right)
+	var key_label = Label.new()
+	key_label.text = keybind
+	key_label.add_theme_font_size_override("font_size", 14)
+	key_label.add_theme_color_override("font_color", Color.WHITE)
+	key_label.position = Vector2(SKILL_SIZE - 16, SKILL_SIZE - 20)
+	container.add_child(key_label)
+
+	# Store references
+	if is_sword:
+		sword_outer_circle = outer
+		sword_fill_circle = fill
+		sword_inner_circle = inner
+		sword_icon_label = icon
+		sword_keybind_label = key_label
+	else:
+		staff_outer_circle = outer
+		staff_fill_circle = fill
+		staff_inner_circle = inner
+		staff_icon_label = icon
+		staff_keybind_label = key_label
+
+func _create_circle_control(diameter: float, color: Color) -> Control:
+	var control = Control.new()
+	control.size = Vector2(diameter, diameter)
+	control.set_script(_get_circle_script())
+	control.set("circle_color", color)
+	return control
+
+func _get_circle_script() -> GDScript:
+	# Return a simple script that draws a circle
+	var script = GDScript.new()
+	script.source_code = """
+extends Control
+
+var circle_color: Color = Color.WHITE
+var fill_percent: float = 1.0  # 0 to 1, fills from bottom
+
+func _draw():
+	var center = size / 2
+	var radius = min(size.x, size.y) / 2
+
+	if fill_percent >= 1.0:
+		# Full circle
+		draw_circle(center, radius, circle_color)
+	elif fill_percent > 0.0:
+		# Partial circle - draw arc from bottom
+		# Calculate the y position where fill starts
+		var fill_height = size.y * fill_percent
+		var fill_top = size.y - fill_height
+
+		# Draw using polygon for bottom-to-top fill effect
+		var points = PackedVector2Array()
+		var segments = 64
+
+		for i in range(segments + 1):
+			var angle = PI + (i * TAU / segments)  # Start from bottom
+			var point = center + Vector2(cos(angle), sin(angle)) * radius
+			# Only include points that are below fill_top or at the edge
+			if point.y >= fill_top:
+				points.append(point)
+
+		if points.size() >= 3:
+			draw_colored_polygon(points, circle_color)
+	# If fill_percent <= 0, draw nothing
+"""
+	script.reload()
+	return script
+
 func _update_skill_cooldowns():
+	var pulse = (sin(time_alive * 6.0) + 1.0) / 2.0  # 0 to 1 pulse
+
 	# Update sword skill cooldown (Q - bottom left)
 	if player and player.current_weapon and player.current_weapon.has_method("get_skill_cooldown_percent"):
 		var percent = player.current_weapon.get_skill_cooldown_percent()
-		sword_skill_cooldown.size.y = 64 * (1.0 - percent)
-		if percent >= 1.0:
-			sword_skill_cooldown.color = Color(0.1, 0.1, 0.1, 0.0)  # Fully transparent when ready
-			sword_skill_border.color = Color(0.9, 0.8, 0.4, 1)  # Glow when ready
-		else:
-			sword_skill_cooldown.color = Color(0.1, 0.1, 0.1, 0.7)
-			sword_skill_border.color = Color(0.7, 0.6, 0.3, 1)
+		_update_circular_skill(percent, true, pulse)
 
 	# Update staff skill cooldown (E - bottom right)
 	if player and player.current_staff and player.current_staff.has_method("get_skill_cooldown_percent"):
 		var percent = player.current_staff.get_skill_cooldown_percent()
-		staff_skill_cooldown.size.y = 64 * (1.0 - percent)
-		if percent >= 1.0:
-			staff_skill_cooldown.color = Color(0.1, 0.1, 0.1, 0.0)  # Fully transparent when ready
-			staff_skill_border.color = Color(0.7, 0.5, 0.95, 1)  # Glow when ready
+		_update_circular_skill(percent, false, pulse)
+
+func _update_circular_skill(percent: float, is_sword: bool, pulse: float):
+	var outer = sword_outer_circle if is_sword else staff_outer_circle
+	var fill = sword_fill_circle if is_sword else staff_fill_circle
+	var inner = sword_inner_circle if is_sword else staff_inner_circle
+	var icon = sword_icon_label if is_sword else staff_icon_label
+	var skill_color = SWORD_SKILL_COLOR if is_sword else STAFF_SKILL_COLOR
+	var glow_color = SWORD_SKILL_READY_GLOW if is_sword else STAFF_SKILL_READY_GLOW
+
+	if not outer or not fill or not inner or not icon:
+		return
+
+	if percent >= 1.0:
+		# Skill ready - full color, pulsing glow
+		_set_circle_color(outer, glow_color.lerp(Color.WHITE, pulse * 0.4))
+		_set_circle_fill(fill, skill_color, 1.0)
+		_set_circle_color(inner, skill_color.darkened(0.7))
+		icon.modulate = Color.WHITE.lerp(glow_color, pulse * 0.3)
+
+		# Pulsing scale
+		outer.scale = Vector2(1.0, 1.0).lerp(Vector2(1.06, 1.06), pulse * 0.5)
+		fill.scale = Vector2.ONE
+
+		# Flash when skill becomes ready
+		if is_sword:
+			if not sword_skill_was_ready:
+				sword_skill_was_ready = true
+				_flash_circular_skill_ready(outer, icon, glow_color)
 		else:
-			staff_skill_cooldown.color = Color(0.1, 0.1, 0.1, 0.7)
-			staff_skill_border.color = Color(0.5, 0.3, 0.7, 1)
+			if not staff_skill_was_ready:
+				staff_skill_was_ready = true
+				_flash_circular_skill_ready(outer, icon, glow_color)
+	else:
+		# On cooldown - gray with colored fill showing progress from bottom
+		if is_sword:
+			sword_skill_was_ready = false
+		else:
+			staff_skill_was_ready = false
+
+		# Outer ring gray
+		_set_circle_color(outer, SKILL_GRAY.lightened(0.1))
+
+		# Fill shows progress - fills from bottom to top
+		_set_circle_fill(fill, skill_color, percent)
+
+		# Inner dark
+		_set_circle_color(inner, Color(0.15, 0.15, 0.18, 1.0))
+
+		# Icon grayed out
+		icon.modulate = Color(0.5, 0.5, 0.5, 1.0)
+
+		# Reset scales
+		outer.scale = Vector2.ONE
+		fill.scale = Vector2.ONE
+
+func _set_circle_color(circle: Control, color: Color):
+	if circle:
+		circle.set("circle_color", color)
+		circle.queue_redraw()
+
+func _set_circle_fill(circle: Control, color: Color, fill_percent: float):
+	if circle:
+		circle.set("circle_color", color)
+		circle.set("fill_percent", fill_percent)
+		circle.queue_redraw()
+
+func _flash_circular_skill_ready(outer: Control, icon: Label, flash_color: Color):
+	# Big flash when skill becomes ready
+	var tween = create_tween()
+	outer.scale = Vector2(1.3, 1.3)
+	outer.modulate = Color.WHITE * 2.0
+	icon.modulate = Color.WHITE * 1.5
+	tween.tween_property(outer, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_ELASTIC)
+	tween.parallel().tween_property(outer, "modulate", Color.WHITE, 0.2)
+	tween.parallel().tween_property(icon, "modulate", Color.WHITE, 0.3)
 
 func _update_stats_display():
 	if not player or not player.stats:

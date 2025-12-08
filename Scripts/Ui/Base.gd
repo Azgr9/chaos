@@ -136,7 +136,7 @@ func _on_training_upgrade_pressed(stat_name: String):
 		_update_all_training_rows()
 		_update_starting_stats_display()
 
-func _on_training_upgraded(stat_name: String, new_level: int):
+func _on_training_upgraded(stat_name: String, _new_level: int):
 	_update_training_row(stat_name)
 	_update_starting_stats_display()
 
