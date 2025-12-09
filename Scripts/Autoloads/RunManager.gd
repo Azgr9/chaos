@@ -23,6 +23,9 @@ var run_data: Dictionary = {
 
 	"collected_relics": [],
 
+	# Bestiary - kills by enemy type this run
+	"kills_by_type": {},
+
 	"calculated_stats": {
 		"max_health": 100.0,
 		"damage_multiplier": 1.0,
@@ -66,6 +69,7 @@ func start_new_run():
 	run_data.kills_this_run = 0
 	run_data.run_active = true
 	run_data.collected_relics.clear()
+	run_data.kills_by_type.clear()
 
 	# Apply training bonuses from SaveManager
 	_apply_training_bonuses()
@@ -228,8 +232,20 @@ func get_all_stats() -> Dictionary:
 func add_kill():
 	run_data.kills_this_run += 1
 
+func add_kill_by_type(enemy_type: String):
+	run_data.kills_this_run += 1
+	if not run_data.kills_by_type.has(enemy_type):
+		run_data.kills_by_type[enemy_type] = 0
+	run_data.kills_by_type[enemy_type] += 1
+
+	# Also update permanent bestiary in SaveManager
+	SaveManager.add_bestiary_kill(enemy_type)
+
 func get_kills() -> int:
 	return run_data.kills_this_run
+
+func get_kills_by_type() -> Dictionary:
+	return run_data.kills_by_type.duplicate()
 
 func complete_wave(wave_number: int = -1):
 	if wave_number > 0:

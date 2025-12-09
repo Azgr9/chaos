@@ -34,6 +34,10 @@ var base_scale: Vector2 = Vector2.ONE
 var time_alive: float = 0.0
 
 func _setup_enemy():
+	# Bestiary info
+	enemy_type = "slime"
+	enemy_display_name = "Slime"
+
 	# Slime stats
 	max_health = 30.0
 	move_speed = 240.0

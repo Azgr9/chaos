@@ -28,7 +28,17 @@ var save_data: Dictionary = {
 		"reflexes": 0,
 		"fortune": 0
 	},
-	"unlocked_relics": []
+	"unlocked_relics": [],
+	# Bestiary - total kills per enemy type (permanent)
+	"bestiary": {}
+}
+
+# Enemy display names for bestiary UI
+const ENEMY_DISPLAY_NAMES = {
+	"slime": "Slime",
+	"imp": "Imp",
+	"goblin_archer": "Goblin Archer",
+	"unknown": "Unknown"
 }
 
 # Training cost per level (index = level, value = cost)
@@ -107,6 +117,9 @@ func _merge_save_data(loaded: Dictionary):
 
 	if loaded.has("unlocked_relics"):
 		save_data.unlocked_relics = loaded.unlocked_relics
+
+	if loaded.has("bestiary"):
+		save_data.bestiary = loaded.bestiary
 
 func _ensure_starter_items_unlocked():
 	# Ensure free starter items are always unlocked
@@ -207,6 +220,36 @@ func get_statistics() -> Dictionary:
 	return save_data.statistics.duplicate()
 
 # ============================================
+# BESTIARY
+# ============================================
+
+func add_bestiary_kill(enemy_type: String):
+	if not save_data.bestiary.has(enemy_type):
+		save_data.bestiary[enemy_type] = 0
+	save_data.bestiary[enemy_type] += 1
+	# Don't save on every kill, that's handled by end_run
+	# Save is called when run ends via update_statistics
+
+func get_bestiary() -> Dictionary:
+	return save_data.bestiary.duplicate()
+
+func get_bestiary_kill_count(enemy_type: String) -> int:
+	if save_data.bestiary.has(enemy_type):
+		return save_data.bestiary[enemy_type]
+	return 0
+
+func get_enemy_display_name(enemy_type: String) -> String:
+	if ENEMY_DISPLAY_NAMES.has(enemy_type):
+		return ENEMY_DISPLAY_NAMES[enemy_type]
+	return enemy_type.capitalize().replace("_", " ")
+
+func get_total_bestiary_kills() -> int:
+	var total = 0
+	for enemy_type in save_data.bestiary:
+		total += save_data.bestiary[enemy_type]
+	return total
+
+# ============================================
 # RESET (for testing)
 # ============================================
 
@@ -226,7 +269,8 @@ func reset_save():
 			"reflexes": 0,
 			"fortune": 0
 		},
-		"unlocked_relics": []
+		"unlocked_relics": [],
+		"bestiary": {}
 	}
 	_ensure_starter_items_unlocked()
 	save_game()

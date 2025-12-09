@@ -23,6 +23,10 @@ const KNOCKBACK_MIN_THRESHOLD: float = 5.0
 # ============================================
 # EXPORTED STATS
 # ============================================
+@export_group("Info")
+@export var enemy_type: String = "unknown"  # For bestiary tracking
+@export var enemy_display_name: String = "Unknown Enemy"  # Display name in bestiary
+
 @export_group("Stats")
 @export var max_health: float = 30.0
 @export var move_speed: float = 240.0
@@ -225,6 +229,10 @@ func _spawn_damage_number(damage_amount: float):
 func die():
 	is_dead = true
 	enemy_died.emit(self)
+
+	# Track kill in bestiary
+	if RunManager:
+		RunManager.add_kill_by_type(enemy_type)
 
 	# Screen shake
 	_add_screen_shake(0.3)

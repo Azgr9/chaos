@@ -27,6 +27,10 @@ func _ready():
 	body_entered.connect(_on_body_entered)
 	lifetime_timer.timeout.connect(_on_lifetime_expired)
 
+	# Set gold color (override any cached values)
+	crystal_sprite.color = Color(1, 0.85, 0.2, 1)  # Gold
+	glow.color = Color(1, 0.75, 0.1, 0.3)  # Gold glow
+
 	# Find player
 	var players = get_tree().get_nodes_in_group("player")
 	if players.size() > 0:

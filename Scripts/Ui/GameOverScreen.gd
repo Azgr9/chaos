@@ -27,11 +27,22 @@ extends CanvasLayer
 @onready var restart_button: Button = $Control/Container/ButtonContainer/RestartButton
 @onready var tip_label: Label = $Control/Container/TipLabel
 
+# Kill breakdown (dynamically created)
+var kill_breakdown_container: VBoxContainer = null
+
 # Stats tracking
 var waves_survived: int = 0
 var enemies_killed: int = 0
 var final_score: int = 0
 var gold_earned: int = 0
+
+# Enemy display info
+const ENEMY_INFO = {
+	"slime": {"emoji": "🟢", "color": Color(0.0, 1.0, 0.0), "name": "Slime"},
+	"imp": {"emoji": "👿", "color": Color(0.6, 0.1, 0.2), "name": "Imp"},
+	"goblin_archer": {"emoji": "🏹", "color": Color(0.18, 0.31, 0.09), "name": "Goblin Archer"},
+	"unknown": {"emoji": "❓", "color": Color.GRAY, "name": "Unknown"}
+}
 
 # Death messages
 var death_tips = [
@@ -77,8 +88,87 @@ func show_game_over(stats: Dictionary):
 	# Random tip
 	tip_label.text = death_tips[randi() % death_tips.size()]
 
+	# Create kill breakdown display
+	_create_kill_breakdown()
+
 	# Show screen with animation
 	_animate_in()
+
+func _create_kill_breakdown():
+	# Remove existing breakdown if present
+	if kill_breakdown_container:
+		kill_breakdown_container.queue_free()
+
+	# Get kills by type from RunManager
+	var kills_by_type = {}
+	if RunManager:
+		kills_by_type = RunManager.get_kills_by_type()
+
+	if kills_by_type.is_empty():
+		return
+
+	# Create container for kill breakdown
+	kill_breakdown_container = VBoxContainer.new()
+	kill_breakdown_container.add_theme_constant_override("separation", 4)
+
+	# Title
+	var title = Label.new()
+	title.text = "ENEMIES SLAIN"
+	title.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))
+	title.add_theme_font_size_override("font_size", 16)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kill_breakdown_container.add_child(title)
+
+	# Separator
+	var sep = HSeparator.new()
+	kill_breakdown_container.add_child(sep)
+
+	# Sort by kill count (descending)
+	var sorted_enemies: Array = []
+	for enemy_type in kills_by_type:
+		sorted_enemies.append({"type": enemy_type, "kills": kills_by_type[enemy_type]})
+	sorted_enemies.sort_custom(func(a, b): return a.kills > b.kills)
+
+	# Create entry for each enemy type
+	for entry in sorted_enemies:
+		var row = _create_kill_entry(entry.type, entry.kills)
+		kill_breakdown_container.add_child(row)
+
+	# Insert after stats container
+	var stats_container = $Control/Container/StatsContainer
+	var stats_index = stats_container.get_index()
+	container.add_child(kill_breakdown_container)
+	container.move_child(kill_breakdown_container, stats_index + 1)
+
+func _create_kill_entry(enemy_type: String, kill_count: int) -> HBoxContainer:
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+
+	# Get enemy info
+	var info = ENEMY_INFO.get(enemy_type, ENEMY_INFO["unknown"])
+
+	# Emoji
+	var emoji = Label.new()
+	emoji.text = info.emoji
+	emoji.add_theme_font_size_override("font_size", 18)
+	row.add_child(emoji)
+
+	# Name
+	var name_label = Label.new()
+	name_label.text = info.name
+	name_label.add_theme_color_override("font_color", info.color)
+	name_label.add_theme_font_size_override("font_size", 14)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name_label)
+
+	# Kill count
+	var count_label = Label.new()
+	count_label.text = "x%d" % kill_count
+	count_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
+	count_label.add_theme_font_size_override("font_size", 14)
+	row.add_child(count_label)
+
+	return row
 
 func _animate_in():
 	visible = true

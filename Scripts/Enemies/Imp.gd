@@ -36,6 +36,10 @@ var is_dashing: bool = false
 var dash_direction: Vector2 = Vector2.ZERO
 
 func _setup_enemy():
+	# Bestiary info
+	enemy_type = "imp"
+	enemy_display_name = "Imp"
+
 	# Imp stats - fast, weak, low health
 	max_health = 10.0
 	move_speed = 360.0
