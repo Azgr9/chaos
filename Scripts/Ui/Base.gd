@@ -35,7 +35,6 @@ const ENEMY_INFO = {
 	"imp": {"emoji": "👿", "color": Color(0.6, 0.1, 0.2), "name": "Imp"},
 	"goblin_archer": {"emoji": "🏹", "color": Color(0.18, 0.31, 0.09), "name": "Goblin Archer"},
 	"healer": {"emoji": "✚", "color": Color(0.2, 0.8, 0.4), "name": "Healer"},
-	"tank": {"emoji": "🛡️", "color": Color(0.4, 0.35, 0.5), "name": "Tank"},
 	"spawner": {"emoji": "👁️", "color": Color(0.5, 0.2, 0.6), "name": "Spawner"},
 	"unknown": {"emoji": "❓", "color": Color.GRAY, "name": "Unknown"}
 }
