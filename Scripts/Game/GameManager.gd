@@ -28,6 +28,7 @@ var total_gold_collected: int = 0
 var player_reference: Node2D = null
 var game_over_screen: GameOverScreen = null
 var pause_menu: PauseMenu = null
+var debug_menu: DebugMenu = null
 
 # Signals
 signal game_started()
@@ -51,9 +52,10 @@ func _ready():
 	# Add to game_manager group so crystals can find us
 	add_to_group("game_manager")
 
-	# Create game over screen and pause menu
+	# Create game over screen, pause menu, and debug menu
 	await _create_game_over_screen()
 	await _create_pause_menu()
+	await _create_debug_menu()
 
 	# Start game
 	start_game()
@@ -85,6 +87,13 @@ func _create_pause_menu():
 	var pause_scene = load("res://Scenes/Ui/PauseMenu.tscn")
 	pause_menu = pause_scene.instantiate()
 	get_parent().add_child.call_deferred(pause_menu)
+	# Wait for it to be ready
+	await get_tree().process_frame
+
+func _create_debug_menu():
+	var debug_scene = load("res://Scenes/Ui/DebugMenu.tscn")
+	debug_menu = debug_scene.instantiate()
+	get_parent().add_child.call_deferred(debug_menu)
 	# Wait for it to be ready
 	await get_tree().process_frame
 

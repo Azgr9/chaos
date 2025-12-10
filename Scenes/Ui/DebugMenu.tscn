@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://debug_menu_001"]
+
+[ext_resource type="Script" path="res://Scripts/Ui/DebugMenu.gd" id="1_debug"]
+
+[node name="DebugMenu" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_debug")

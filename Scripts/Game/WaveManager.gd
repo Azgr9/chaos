@@ -32,6 +32,20 @@ const ENEMY_TYPES = {
 		"unlocks_at_wave": 2,
 		"base_weight": 1.0,
 		"max_alive": 6
+	},
+	"healer": {
+		"scene": preload("res://Scenes/Enemies/Healer.tscn"),
+		"cost": 4,
+		"unlocks_at_wave": 4,
+		"base_weight": 0.8,
+		"max_alive": 2
+	},
+	"spawner": {
+		"scene": preload("res://Scenes/Enemies/Spawner.tscn"),
+		"cost": 6,
+		"unlocks_at_wave": 5,
+		"base_weight": 0.4,
+		"max_alive": 2
 	}
 }
 
@@ -233,14 +247,18 @@ func _get_scaled_weight(enemy_type: String) -> float:
 	var base = enemy_data["base_weight"]
 	var cost = enemy_data["cost"]
 
-	# Weight scaling by wave - cheap enemies become rarer, expensive become common
+	# Weight scaling by wave - cheap enemies become rarer, expensive become more common
 	match cost:
-		1:  # Cheap (imp) - becomes rarer
+		1:  # Very cheap (imp) - becomes rarer over time
 			return max(0.5, base - (current_wave * 0.3))
-		2:  # Medium (slime) - stays stable
+		2:  # Cheap (slime) - stays stable
 			return base
-		3:  # Expensive (goblin) - becomes more common
-			return base + (current_wave * 0.4)
+		3:  # Medium (goblin) - becomes more common
+			return base + (current_wave * 0.3)
+		4:  # Medium-expensive (healer) - gradual increase
+			return base + (current_wave * 0.2)
+		6:  # Very expensive (spawner) - rare but increases
+			return base + (current_wave * 0.1)
 
 	return base
 

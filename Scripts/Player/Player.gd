@@ -158,27 +158,7 @@ func handle_input():
 		if current_staff.has_method("use_skill"):
 			current_staff.use_skill()
 
-	# Debug controls
-	if Input.is_physical_key_pressed(KEY_O):  # O key
-		if not debug_mode:
-			debug_mode = true
-			print("Debug mode: ON")
-
-	if Input.is_physical_key_pressed(KEY_L):  # L key to turn off
-		if debug_mode:
-			debug_mode = false
-			print("Debug mode: OFF")
-
-	if debug_mode:
-		if Input.is_physical_key_pressed(KEY_P):  # P key - Full heal
-			stats.current_health = stats.max_health
-			health_changed.emit(stats.current_health, stats.max_health)
-			print("Debug: Health restored")
-			await get_tree().create_timer(0.2).timeout  # Prevent spam
-
-		if Input.is_physical_key_pressed(KEY_I):  # I key - Kill all enemies
-			_debug_kill_all_enemies()
-			await get_tree().create_timer(0.2).timeout  # Prevent spam
+	# Debug mode is now handled by DebugMenu (press O to open)
 
 func move_player_pixel_perfect(delta):
 	# Calculate intended movement

@@ -38,6 +38,9 @@ const ENEMY_DISPLAY_NAMES = {
 	"slime": "Slime",
 	"imp": "Imp",
 	"goblin_archer": "Goblin Archer",
+	"healer": "Healer",
+	"tank": "Tank",
+	"spawner": "Spawner",
 	"unknown": "Unknown"
 }
 

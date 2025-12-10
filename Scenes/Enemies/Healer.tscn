@@ -1,0 +1,73 @@
+[gd_scene load_steps=4 format=3 uid="uid://healer_enemy_001"]
+
+[ext_resource type="Script" path="res://Scripts/Enemies/Healer.gd" id="1_healer"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_physics"]
+radius = 20.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hurtbox"]
+radius = 28.0
+
+[node name="Healer" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 9
+script = ExtResource("1_healer")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_physics")
+
+[node name="VisualsPivot" type="Node2D" parent="."]
+
+[node name="HealAura" type="ColorRect" parent="VisualsPivot"]
+offset_left = -50.0
+offset_top = -50.0
+offset_right = 50.0
+offset_bottom = 50.0
+pivot_offset = Vector2(50, 50)
+color = Color(0.3, 1, 0.5, 0.2)
+
+[node name="Sprite" type="ColorRect" parent="VisualsPivot"]
+offset_left = -28.0
+offset_top = -28.0
+offset_right = 28.0
+offset_bottom = 28.0
+pivot_offset = Vector2(28, 28)
+color = Color(0.2, 0.8, 0.4, 1)
+
+[node name="Cross" type="Label" parent="VisualsPivot"]
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+text = "✚"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HurtBox" type="Area2D" parent="."]
+collision_layer = 16
+collision_mask = 96
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HurtBox"]
+shape = SubResource("CircleShape2D_hurtbox")
+
+[node name="HealTimer" type="Timer" parent="."]
+wait_time = 1.5
+autostart = true
+
+[node name="HealthBar" type="Node2D" parent="."]
+visible = false
+
+[node name="Background" type="ColorRect" parent="HealthBar"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -48.0
+color = Color(0.2, 0, 0, 1)
+
+[node name="Fill" type="ColorRect" parent="HealthBar"]
+offset_left = -30.0
+offset_top = -60.0
+offset_right = 30.0
+offset_bottom = -48.0
+color = Color(0.2, 0.8, 0.4, 1)
