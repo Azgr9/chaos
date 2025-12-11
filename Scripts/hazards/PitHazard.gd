@@ -27,6 +27,13 @@ func _setup_hazard() -> void:
 	is_instant_kill = true
 	damage = 0.0  # Instant kill, no damage value needed
 
+	# Pits are always visible - no warning needed
+	warning_duration = 0.0
+
+	# Force ActiveSprite visible immediately
+	if active_sprite:
+		active_sprite.visible = true
+
 	# Add to death zone group for enemy avoidance
 	add_to_group("death_zone_hazards")
 

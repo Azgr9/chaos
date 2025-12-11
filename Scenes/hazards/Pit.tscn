@@ -35,21 +35,34 @@ offset_bottom = 34.0
 color = Color(1, 0.3, 0.1, 0.8)
 
 [node name="ActiveSprite" type="Sprite2D" parent="."]
-visible = false
 z_index = -2
 
-[node name="PitCenter" type="ColorRect" parent="ActiveSprite"]
-offset_left = -28.0
-offset_top = -28.0
-offset_right = 28.0
-offset_bottom = 28.0
-color = Color(0.05, 0.02, 0.08, 1)
-
-[node name="PitEdge" type="ColorRect" parent="ActiveSprite"]
+[node name="PitOuter" type="ColorRect" parent="ActiveSprite"]
 offset_left = -32.0
 offset_top = -32.0
 offset_right = 32.0
 offset_bottom = 32.0
-color = Color(0.15, 0.05, 0.2, 1)
+color = Color(0.3, 0.3, 0.3, 1)
+
+[node name="PitMiddle" type="ColorRect" parent="ActiveSprite"]
+offset_left = -24.0
+offset_top = -24.0
+offset_right = 24.0
+offset_bottom = 24.0
+color = Color(0.4, 0.4, 0.4, 1)
+
+[node name="PitCenter" type="ColorRect" parent="ActiveSprite"]
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+color = Color(0.5, 0.5, 0.5, 1)
+
+[node name="PitHighlight" type="ColorRect" parent="ActiveSprite"]
+offset_left = -8.0
+offset_top = -8.0
+offset_right = 8.0
+offset_bottom = 8.0
+color = Color(0.6, 0.6, 0.6, 1)
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]

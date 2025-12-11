@@ -25,7 +25,12 @@ enum StatType {
 	CRIT_DAMAGE,
 	LIFESTEAL,
 	DAMAGE_REDUCTION,
-	MULTI_SHOT
+	MULTI_SHOT,
+	# Hazard resistance
+	HAZARD_RESISTANCE,
+	FIRE_RESISTANCE,
+	SPIKE_RESISTANCE,
+	PIT_IMMUNITY
 }
 
 enum Rarity {
@@ -140,6 +145,14 @@ func _apply_stat_upgrade(player: Node2D) -> bool:
 			stats.lifesteal_amount += value
 		StatType.DAMAGE_REDUCTION:
 			stats.damage_reduction += value
+		StatType.HAZARD_RESISTANCE:
+			stats.hazard_resistance = min(stats.hazard_resistance + value, 1.0)
+		StatType.FIRE_RESISTANCE:
+			stats.fire_resistance = min(stats.fire_resistance + value, 1.0)
+		StatType.SPIKE_RESISTANCE:
+			stats.spike_resistance = min(stats.spike_resistance + value, 1.0)
+		StatType.PIT_IMMUNITY:
+			stats.pit_immunity = true
 		_:
 			return false
 

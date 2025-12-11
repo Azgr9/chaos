@@ -14,6 +14,12 @@ extends Resource
 @export var crit_damage: float = 1.5
 @export var damage_reduction: float = 0.0
 
+# Hazard resistance (0.0 = no resistance, 1.0 = immune)
+@export var hazard_resistance: float = 0.0  # General hazard damage reduction
+@export var fire_resistance: float = 0.0    # Fire grate resistance
+@export var spike_resistance: float = 0.0   # Floor spikes and spike wall resistance
+@export var pit_immunity: bool = false       # Immune to pit instant kill
+
 # Current values
 var current_health: float
 

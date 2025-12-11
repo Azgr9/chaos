@@ -192,20 +192,64 @@ func apply_damage(body: Node2D) -> void:
 	if not is_instance_valid(body):
 		return
 
+	# Calculate final damage after resistances
+	var final_damage = _calculate_damage_after_resistance(body, damage)
+
+	# If fully resisted, skip
+	if final_damage <= 0:
+		return
+
 	if body.has_method("take_damage"):
 		# Player has signature: take_damage(amount, from_position)
 		# Enemy has signature: take_damage(amount, from_position, knockback_power, stun_duration)
 		if body.is_in_group("player"):
-			body.take_damage(damage, global_position)
+			body.take_damage(final_damage, global_position)
 		else:
-			body.take_damage(damage, global_position, 0.0, 0.0)  # No knockback from hazards by default
+			body.take_damage(final_damage, global_position, 0.0, 0.0)  # No knockback from hazards by default
 
-		body_damaged.emit(body, damage)
-		_spawn_damage_number(body, damage)
+		body_damaged.emit(body, final_damage)
+		_spawn_damage_number(body, final_damage)
+
+func _calculate_damage_after_resistance(body: Node2D, base_damage: float) -> float:
+	# Only player has resistance stats
+	if not body.is_in_group("player"):
+		return base_damage
+
+	if not "stats" in body or body.stats == null:
+		return base_damage
+
+	var stats = body.stats
+	var final_damage = base_damage
+
+	# Apply general hazard resistance
+	if "hazard_resistance" in stats:
+		final_damage *= (1.0 - stats.hazard_resistance)
+
+	# Apply type-specific resistance
+	match hazard_type:
+		HazardType.ZONE:  # Fire grates
+			if "fire_resistance" in stats:
+				final_damage *= (1.0 - stats.fire_resistance)
+		HazardType.HIDDEN, HazardType.IMPACT:  # Floor spikes, spike walls
+			if "spike_resistance" in stats:
+				final_damage *= (1.0 - stats.spike_resistance)
+		HazardType.TIMED:  # Crushers - apply spike resistance too
+			if "spike_resistance" in stats:
+				final_damage *= (1.0 - stats.spike_resistance)
+
+	return final_damage
 
 func apply_instant_kill(body: Node2D) -> void:
 	if not is_instance_valid(body):
 		return
+
+	# Check for pit immunity (player only)
+	if body.is_in_group("player") and hazard_type == HazardType.DEATH_ZONE:
+		if "stats" in body and body.stats != null:
+			if "pit_immunity" in body.stats and body.stats.pit_immunity:
+				# Player survives! Teleport them to safety
+				_rescue_from_pit(body)
+				return
 
 	body_killed.emit(body)
 
@@ -217,6 +261,34 @@ func apply_instant_kill(body: Node2D) -> void:
 			body.take_damage(9999.0, global_position)
 		else:
 			body.take_damage(9999.0, global_position, 0.0, 0.0)
+
+func _rescue_from_pit(body: Node2D) -> void:
+	# Find a safe position away from the pit
+	var safe_offset = Vector2(100, 0).rotated(randf() * TAU)
+	var safe_pos = global_position + safe_offset
+
+	# Re-enable physics processing if it was disabled
+	if body.has_method("set_physics_process"):
+		body.set_physics_process(true)
+
+	# Reset velocity
+	if body is CharacterBody2D:
+		body.velocity = Vector2.ZERO
+
+	# Teleport to safety
+	body.global_position = safe_pos
+
+	# Reset visual effects (scale, rotation, modulate)
+	var visual_node = body.get_node_or_null("VisualsPivot")
+	if visual_node:
+		visual_node.scale = Vector2.ONE
+		visual_node.rotation = 0
+		visual_node.modulate.a = 1.0
+
+	# Small screen shake for feedback
+	add_screen_shake(0.2)
+
+	print("[Hazard] Player rescued from pit by Feather Fall!")
 
 func _spawn_damage_number(body: Node2D, damage_amount: float) -> void:
 	var damage_number = DamageNumber.instantiate()

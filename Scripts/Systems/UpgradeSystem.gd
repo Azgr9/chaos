@@ -160,6 +160,91 @@ var _legacy_upgrades: Array = [
 		"value": 0.5,
 		"weight": 0.5,
 		"rarity": "rare"
+	},
+	# Hazard Upgrades
+	{
+		"id": "hazard_resist_small",
+		"name": "Thick Skin",
+		"description": "Take 25% less damage from hazards",
+		"icon_color": Color.SLATE_GRAY,
+		"type": "stat",
+		"stat_type": "hazard_resistance",
+		"value": 0.25,
+		"weight": 0.8,
+		"rarity": "common",
+		"min_wave": 2
+	},
+	{
+		"id": "hazard_resist_large",
+		"name": "Iron Hide",
+		"description": "Take 50% less damage from hazards",
+		"icon_color": Color.DIM_GRAY,
+		"type": "stat",
+		"stat_type": "hazard_resistance",
+		"value": 0.5,
+		"weight": 0.4,
+		"rarity": "rare",
+		"min_wave": 3
+	},
+	{
+		"id": "fire_resist",
+		"name": "Firewalker",
+		"description": "Take 50% less damage from fire",
+		"icon_color": Color.ORANGE_RED,
+		"type": "stat",
+		"stat_type": "fire_resistance",
+		"value": 0.5,
+		"weight": 0.7,
+		"rarity": "uncommon",
+		"min_wave": 2
+	},
+	{
+		"id": "fire_immunity",
+		"name": "Flame Ward",
+		"description": "Immune to fire damage",
+		"icon_color": Color.DARK_ORANGE,
+		"type": "stat",
+		"stat_type": "fire_resistance",
+		"value": 1.0,
+		"weight": 0.2,
+		"rarity": "legendary",
+		"min_wave": 4
+	},
+	{
+		"id": "spike_resist",
+		"name": "Spiked Boots",
+		"description": "Take 50% less damage from spikes",
+		"icon_color": Color.DARK_SLATE_GRAY,
+		"type": "stat",
+		"stat_type": "spike_resistance",
+		"value": 0.5,
+		"weight": 0.7,
+		"rarity": "uncommon",
+		"min_wave": 2
+	},
+	{
+		"id": "spike_immunity",
+		"name": "Steel Soles",
+		"description": "Immune to spike damage",
+		"icon_color": Color.SILVER,
+		"type": "stat",
+		"stat_type": "spike_resistance",
+		"value": 1.0,
+		"weight": 0.2,
+		"rarity": "legendary",
+		"min_wave": 4
+	},
+	{
+		"id": "pit_immunity",
+		"name": "Feather Fall",
+		"description": "Survive falling into pits",
+		"icon_color": Color.SKY_BLUE,
+		"type": "stat",
+		"stat_type": "pit_immunity",
+		"value": 1.0,
+		"weight": 0.15,
+		"rarity": "legendary",
+		"min_wave": 3
 	}
 ]
 
@@ -231,6 +316,14 @@ func _convert_legacy_upgrades():
 				upgrade.stat_type = UpgradeResource.StatType.LIFESTEAL
 			"multi_shot":
 				upgrade.stat_type = UpgradeResource.StatType.MULTI_SHOT
+			"hazard_resistance":
+				upgrade.stat_type = UpgradeResource.StatType.HAZARD_RESISTANCE
+			"fire_resistance":
+				upgrade.stat_type = UpgradeResource.StatType.FIRE_RESISTANCE
+			"spike_resistance":
+				upgrade.stat_type = UpgradeResource.StatType.SPIKE_RESISTANCE
+			"pit_immunity":
+				upgrade.stat_type = UpgradeResource.StatType.PIT_IMMUNITY
 
 		# Convert rarity
 		match data.get("rarity", "common"):
