@@ -49,6 +49,9 @@ const ENEMY_TYPES = {
 	}
 }
 
+# Hazard Manager reference
+var hazard_manager: HazardManager = null
+
 # Wave state
 var current_wave: int = 0
 var total_points: int = 0
@@ -91,9 +94,26 @@ func _ready():
 	# Initialize breather checkpoints
 	_reset_checkpoints()
 
+	# Setup HazardManager
+	_setup_hazard_manager()
+
 	# Wait a moment before starting
 	await get_tree().create_timer(1.0).timeout
 	start_next_wave()
+
+func _setup_hazard_manager():
+	# Create and add HazardManager as child
+	hazard_manager = HazardManager.new()
+	hazard_manager.name = "HazardManager"
+	add_child(hazard_manager)
+
+	# Set player reference
+	if player_reference:
+		hazard_manager.set_player_reference(player_reference)
+
+	# Configure arena bounds (playable area inside walls: 64-2496 x 64-1376)
+	# Add padding to keep hazards away from walls
+	hazard_manager.arena_bounds = Rect2(128, 128, 2304, 1184)
 
 func _process(delta):
 	if not wave_active or points_remaining <= 0:
@@ -128,8 +148,13 @@ func start_next_wave():
 	_reset_checkpoints()
 	recent_spawn_angles.clear()
 
-	# Set initial spawn timer
-	spawn_timer = 1.0
+	# Spawn hazards for this wave
+	if hazard_manager:
+		hazard_manager.spawn_hazards_for_wave(current_wave)
+
+	# Set initial spawn timer (wait for hazard warnings to complete)
+	var hazard_warning_time = hazard_manager.warning_duration if hazard_manager else 0.0
+	spawn_timer = 1.0 + hazard_warning_time
 
 	wave_started.emit(current_wave)
 	_show_wave_notification()
@@ -486,3 +511,7 @@ func reset_waves():
 
 	# Clean up any remaining enemies
 	get_tree().call_group("enemies", "queue_free")
+
+	# Clear all hazards
+	if hazard_manager:
+		hazard_manager.clear_all_hazards()

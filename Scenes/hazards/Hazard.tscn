@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3 uid="uid://b5mrnp87vcmvb"]
+
+[ext_resource type="Script" path="res://Scripts/hazards/Hazard.gd" id="1_hazard"]
+
+[node name="Hazard" type="Area2D"]
+collision_layer = 1024
+collision_mask = 5
+script = ExtResource("1_hazard")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+
+[node name="WarningSprite" type="Sprite2D" parent="."]
+visible = false
+
+[node name="ActiveSprite" type="Sprite2D" parent="."]
+visible = false
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]

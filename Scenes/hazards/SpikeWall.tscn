@@ -1,0 +1,85 @@
+[gd_scene load_steps=3 format=3 uid="uid://bs7nv4h6ylqmx"]
+
+[ext_resource type="Script" path="res://Scripts/hazards/SpikeWallHazard.gd" id="1_spikewall"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
+size = Vector2(64, 16)
+
+[node name="SpikeWall" type="Area2D"]
+collision_layer = 1024
+collision_mask = 5
+script = ExtResource("1_spikewall")
+hazard_type = 1
+hazard_size = Vector2(64, 16)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_wall")
+
+[node name="WarningSprite" type="Sprite2D" parent="."]
+visible = false
+z_index = -1
+
+[node name="WarningRect" type="ColorRect" parent="WarningSprite"]
+offset_left = -32.0
+offset_top = -8.0
+offset_right = 32.0
+offset_bottom = 8.0
+color = Color(0.5, 0.2, 0.2, 0.5)
+
+[node name="ActiveSprite" type="Sprite2D" parent="."]
+z_index = 1
+
+[node name="WallBase" type="ColorRect" parent="ActiveSprite"]
+offset_left = -32.0
+offset_top = -4.0
+offset_right = 32.0
+offset_bottom = 8.0
+color = Color(0.3, 0.25, 0.25, 1)
+
+[node name="Spike1" type="ColorRect" parent="ActiveSprite"]
+offset_left = -28.0
+offset_top = -12.0
+offset_right = -22.0
+offset_bottom = -4.0
+rotation = 0.174533
+color = Color(0.55, 0.55, 0.6, 1)
+
+[node name="Spike2" type="ColorRect" parent="ActiveSprite"]
+offset_left = -18.0
+offset_top = -14.0
+offset_right = -12.0
+offset_bottom = -4.0
+color = Color(0.55, 0.55, 0.6, 1)
+
+[node name="Spike3" type="ColorRect" parent="ActiveSprite"]
+offset_left = -8.0
+offset_top = -12.0
+offset_right = -2.0
+offset_bottom = -4.0
+rotation = -0.0872665
+color = Color(0.55, 0.55, 0.6, 1)
+
+[node name="Spike4" type="ColorRect" parent="ActiveSprite"]
+offset_left = 2.0
+offset_top = -14.0
+offset_right = 8.0
+offset_bottom = -4.0
+color = Color(0.55, 0.55, 0.6, 1)
+
+[node name="Spike5" type="ColorRect" parent="ActiveSprite"]
+offset_left = 12.0
+offset_top = -12.0
+offset_right = 18.0
+offset_bottom = -4.0
+rotation = 0.0872665
+color = Color(0.55, 0.55, 0.6, 1)
+
+[node name="Spike6" type="ColorRect" parent="ActiveSprite"]
+offset_left = 22.0
+offset_top = -14.0
+offset_right = 28.0
+offset_bottom = -4.0
+rotation = -0.174533
+color = Color(0.55, 0.55, 0.6, 1)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]

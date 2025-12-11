@@ -98,6 +98,7 @@ staff_skill={
 2d_physics/layer_8="enemy_attack"
 2d_physics/layer_9="items"
 2d_physics/layer_10="trigger_zones"
+2d_physics/layer_11="hazards"
 
 [rendering]
 
