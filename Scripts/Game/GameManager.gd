@@ -20,6 +20,7 @@ var enemies_killed_total: int = 0
 var time_played: float = 0.0
 var damage_dealt: float = 0.0
 var damage_taken: float = 0.0
+var last_player_health: float = -1.0  # Track previous health for cumulative damage
 var gold: int = 0
 var total_gold_collected: int = 0
 
@@ -149,12 +150,16 @@ func _on_enemy_killed(_enemies_remaining: int):
 
 	enemies_killed_total += 1
 
-func _on_player_damaged(current_health: float, max_health: float):
-	# Track damage taken (this is called when health changes, so we need to track the delta)
-	# Note: This receives the new health value, so we track damage as the difference from max
-	var health_lost = max_health - current_health
-	if health_lost > damage_taken:
-		damage_taken = health_lost
+func _on_player_damaged(current_health: float, _max_health: float):
+	# Track cumulative damage taken
+	if last_player_health < 0:
+		last_player_health = current_health
+		return
+
+	var delta = last_player_health - current_health
+	if delta > 0:  # Only count actual damage, not healing
+		damage_taken += delta
+	last_player_health = current_health
 
 func _show_upgrade_menu():
 	# Get upgrade menu (it's a sibling in the Game scene)

@@ -27,6 +27,9 @@ extends Control
 @onready var wave_label: Label = $WaveInfo/WaveLabel
 @onready var enemies_label: Label = $WaveInfo/EnemiesLabel
 
+# Preload circle script (avoids runtime compilation)
+const CircleProgressScript = preload("res://Scripts/Ui/CircleProgress.gd")
+
 # Skill UI containers
 @onready var sword_skill_container: Control = $SwordSkillContainer/SwordSkill
 @onready var staff_skill_container: Control = $StaffSkillContainer/StaffSkill
@@ -108,6 +111,8 @@ func _connect_signals():
 			wave_manager.enemy_killed.connect(_on_enemy_killed)
 		if wave_manager.has_signal("wave_completed"):
 			wave_manager.wave_completed.connect(_on_wave_completed)
+		if wave_manager.has_signal("enemy_spawned"):
+			wave_manager.enemy_spawned.connect(_on_enemy_spawned)
 
 	# Game manager signals
 	if game_manager:
@@ -121,7 +126,7 @@ func _connect_signals():
 func _initialize_ui():
 	# Set initial values
 	wave_label.text = "WAVE 0/5"
-	enemies_label.text = "Enemies: 0"
+	enemies_label.text = "Waiting..."
 	gold_label.text = "0"
 
 	# Set initial health
@@ -254,49 +259,9 @@ func _create_circular_skill(container: Control, is_sword: bool):
 func _create_circle_control(diameter: float, color: Color) -> Control:
 	var control = Control.new()
 	control.size = Vector2(diameter, diameter)
-	control.set_script(_get_circle_script())
+	control.set_script(CircleProgressScript)
 	control.set("circle_color", color)
 	return control
-
-func _get_circle_script() -> GDScript:
-	# Return a simple script that draws a circle
-	var script = GDScript.new()
-	script.source_code = """
-extends Control
-
-var circle_color: Color = Color.WHITE
-var fill_percent: float = 1.0  # 0 to 1, fills from bottom
-
-func _draw():
-	var center = size / 2
-	var radius = min(size.x, size.y) / 2
-
-	if fill_percent >= 1.0:
-		# Full circle
-		draw_circle(center, radius, circle_color)
-	elif fill_percent > 0.0:
-		# Partial circle - draw arc from bottom
-		# Calculate the y position where fill starts
-		var fill_height = size.y * fill_percent
-		var fill_top = size.y - fill_height
-
-		# Draw using polygon for bottom-to-top fill effect
-		var points = PackedVector2Array()
-		var segments = 64
-
-		for i in range(segments + 1):
-			var angle = PI + (i * TAU / segments)  # Start from bottom
-			var point = center + Vector2(cos(angle), sin(angle)) * radius
-			# Only include points that are below fill_top or at the edge
-			if point.y >= fill_top:
-				points.append(point)
-
-		if points.size() >= 3:
-			draw_colored_polygon(points, circle_color)
-	# If fill_percent <= 0, draw nothing
-"""
-	script.reload()
-	return script
 
 func _update_skill_cooldowns():
 	var pulse = (sin(time_alive * 6.0) + 1.0) / 2.0  # 0 to 1 pulse
@@ -461,12 +426,27 @@ func _on_wave_completed(_wave_number: int):
 	tween.tween_property(wave_label, "modulate", Color.WHITE, 1.0)
 
 func _on_enemy_killed(enemies_remaining: int):
-	enemies_label.text = "Enemies: %d" % enemies_remaining
+	_update_enemies_display(enemies_remaining)
 
-	# Small pulse
+	# Green flash on kill
+	enemies_label.modulate = Color.GREEN
 	enemies_label.scale = Vector2(1.1, 1.1)
 	var tween = create_tween()
 	tween.tween_property(enemies_label, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK)
+	tween.parallel().tween_property(enemies_label, "modulate", Color.WHITE, 0.3)
+
+func _on_enemy_spawned(_enemy: Node):
+	if wave_manager:
+		_update_enemies_display(wave_manager.enemies_alive)
+
+func _update_enemies_display(alive_count: int):
+	if alive_count == 0:
+		enemies_label.text = "Clear!"
+		enemies_label.modulate = Color.GREEN
+	elif alive_count == 1:
+		enemies_label.text = "1 enemy"
+	else:
+		enemies_label.text = "%d enemies" % alive_count
 
 func _pulse_bar(bar: ColorRect):
 	var original_scale = bar.scale

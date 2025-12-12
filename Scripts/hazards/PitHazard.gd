@@ -30,9 +30,13 @@ func _setup_hazard() -> void:
 	# Pits are always visible - no warning needed
 	warning_duration = 0.0
 
-	# Force ActiveSprite visible immediately
-	if active_sprite:
-		active_sprite.visible = true
+	# Force ActiveSprite visible immediately (get node directly since @onready may not be ready)
+	var pit_sprite = get_node_or_null("ActiveSprite")
+	if pit_sprite:
+		pit_sprite.visible = true
+		print("[PitHazard] ActiveSprite set to visible")
+	else:
+		print("[PitHazard] WARNING: ActiveSprite not found!")
 
 	# Add to death zone group for enemy avoidance
 	add_to_group("death_zone_hazards")

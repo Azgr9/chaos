@@ -74,9 +74,11 @@ func _create_spawn_effect():
 
 func _on_area_entered(area: Area2D):
 	var parent = area.get_parent()
-	
+	if not parent:
+		return
+
 	# Check if it's an enemy hurtbox
-	if not parent in hit_enemies and parent.has_method("take_damage"):
+	if parent not in hit_enemies and parent.has_method("take_damage"):
 		hit_enemies.append(parent)
 
 		# Deal damage with knockback position

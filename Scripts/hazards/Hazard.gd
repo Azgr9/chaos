@@ -84,14 +84,16 @@ func _ready() -> void:
 	# Setup collision
 	_setup_collision()
 
+	# Call subclass setup FIRST so it can modify warning_duration etc
+	_setup_hazard()
+
 	# Start in warning state
 	if warning_duration > 0:
 		show_warning()
 	else:
 		activate()
 
-	# Call subclass setup
-	_setup_hazard()
+	print("[Hazard] Spawned %s at %s (type=%d, damage=%d, instant_kill=%s)" % [name, global_position, hazard_type, int(damage), is_instant_kill])
 
 func _setup_collision() -> void:
 	# Set collision layer to hazards (layer 11)
@@ -110,6 +112,8 @@ func _setup_hazard() -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if not can_affect(body):
 		return
+
+	print("[Hazard] %s entered %s (is_active=%s, is_warning=%s)" % [body.name, name, is_active, is_warning])
 
 	if body not in bodies_in_hazard:
 		bodies_in_hazard.append(body)
@@ -195,8 +199,13 @@ func apply_damage(body: Node2D) -> void:
 	# Calculate final damage after resistances
 	var final_damage = _calculate_damage_after_resistance(body, damage)
 
+	# Debug print
+	var type_name = _get_hazard_type_name()
+	print("[Hazard] %s dealing %.1f damage to %s (base: %.1f, after resistance: %.1f)" % [type_name, final_damage, body.name, damage, final_damage])
+
 	# If fully resisted, skip
 	if final_damage <= 0:
+		print("[Hazard] Damage fully resisted!")
 		return
 
 	if body.has_method("take_damage"):
@@ -209,6 +218,15 @@ func apply_damage(body: Node2D) -> void:
 
 		body_damaged.emit(body, final_damage)
 		_spawn_damage_number(body, final_damage)
+
+func _get_hazard_type_name() -> String:
+	match hazard_type:
+		HazardType.DEATH_ZONE: return "Pit"
+		HazardType.IMPACT: return "SpikeWall"
+		HazardType.HIDDEN: return "FloorSpikes"
+		HazardType.TIMED: return "Crusher"
+		HazardType.ZONE: return "FireGrate"
+	return "Unknown"
 
 func _calculate_damage_after_resistance(body: Node2D, base_damage: float) -> float:
 	# Only player has resistance stats
@@ -243,6 +261,9 @@ func apply_instant_kill(body: Node2D) -> void:
 	if not is_instance_valid(body):
 		return
 
+	var type_name = _get_hazard_type_name()
+	print("[Hazard] %s INSTANT KILL on %s at position %s!" % [type_name, body.name, global_position])
+
 	# Check for pit immunity (player only)
 	if body.is_in_group("player") and hazard_type == HazardType.DEATH_ZONE:
 		if "stats" in body and body.stats != null:
@@ -254,9 +275,11 @@ func apply_instant_kill(body: Node2D) -> void:
 	body_killed.emit(body)
 
 	if body.has_method("die"):
+		print("[Hazard] Calling die() on %s" % body.name)
 		body.die()
 	elif body.has_method("take_damage"):
 		# Deal massive damage as fallback
+		print("[Hazard] Calling take_damage(9999) on %s" % body.name)
 		if body.is_in_group("player"):
 			body.take_damage(9999.0, global_position)
 		else:

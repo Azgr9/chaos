@@ -18,11 +18,24 @@ const ENEMY_SCENES = {
 }
 
 # ============================================
+# HAZARD SCENES FOR SPAWNING
+# ============================================
+const HAZARD_SCENES = {
+	"Pit": preload("res://Scenes/hazards/Pit.tscn"),
+	"FireGrate": preload("res://Scenes/hazards/FireGrate.tscn"),
+	"FloorSpikes": preload("res://Scenes/hazards/FloorSpikes.tscn"),
+	"SpikeWall": preload("res://Scenes/hazards/SpikeWall.tscn"),
+	"Crusher": preload("res://Scenes/hazards/Crusher.tscn")
+}
+
+# ============================================
 # STATE
 # ============================================
 var is_open: bool = false
 var is_dragging_enemy: bool = false
+var is_dragging_hazard: bool = false
 var dragging_enemy_type: String = ""
+var dragging_hazard_type: String = ""
 var drag_preview: ColorRect = null
 var wave_manager: WaveManager = null
 var player_reference: Node2D = null
@@ -32,6 +45,7 @@ var enemies_frozen: bool = true  # Toggle for freezing enemies
 # UI References
 var panel: PanelContainer = null
 var enemy_buttons: Dictionary = {}
+var hazard_buttons: Dictionary = {}
 var freeze_button: Button = null
 
 # ============================================
@@ -70,15 +84,18 @@ func _input(event):
 		get_viewport().set_input_as_handled()
 		return
 
-	# Handle drag and drop for enemy spawning
-	if is_open and is_dragging_enemy:
+	# Handle drag and drop for enemy/hazard spawning
+	if is_open and (is_dragging_enemy or is_dragging_hazard):
 		if event is InputEventMouseMotion:
 			if drag_preview:
 				drag_preview.global_position = get_viewport().get_mouse_position() - Vector2(20, 20)
 
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 			if not event.pressed:  # Mouse released
-				_spawn_enemy_at_mouse()
+				if is_dragging_enemy:
+					_spawn_enemy_at_mouse()
+				elif is_dragging_hazard:
+					_spawn_hazard_at_mouse()
 				_end_drag()
 
 func toggle_debug_menu():
@@ -275,6 +292,47 @@ func _build_debug_ui():
 
 	vbox.add_child(HSeparator.new())
 
+	# === SPAWN HAZARDS ===
+	var hazard_label = Label.new()
+	hazard_label.text = "SPAWN HAZARDS"
+	hazard_label.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))
+	hazard_label.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(hazard_label)
+
+	var hazard_hint = Label.new()
+	hazard_hint.text = "Click & drag to arena"
+	hazard_hint.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	hazard_hint.add_theme_font_size_override("font_size", 11)
+	vbox.add_child(hazard_hint)
+
+	# Hazard spawn buttons (2 columns)
+	var hazard_grid = GridContainer.new()
+	hazard_grid.columns = 2
+	hazard_grid.add_theme_constant_override("h_separation", 5)
+	hazard_grid.add_theme_constant_override("v_separation", 5)
+	vbox.add_child(hazard_grid)
+
+	var hazard_colors = {
+		"Pit": Color(0.2, 0.2, 0.2),
+		"FireGrate": Color(1.0, 0.5, 0.1),
+		"FloorSpikes": Color(0.5, 0.5, 0.6),
+		"SpikeWall": Color(0.6, 0.6, 0.7),
+		"Crusher": Color(0.4, 0.3, 0.5)
+	}
+
+	for hazard_name in HAZARD_SCENES.keys():
+		var btn = _create_spawn_button(hazard_name, hazard_colors.get(hazard_name, Color.WHITE))
+		btn.pressed.connect(_on_hazard_button_pressed.bind(hazard_name))
+		hazard_grid.add_child(btn)
+		hazard_buttons[hazard_name] = btn
+
+	# Clear All Hazards button
+	var clear_hazards_btn = _create_button("Clear All Hazards", Color(0.8, 0.3, 0.3))
+	clear_hazards_btn.pressed.connect(_on_clear_hazards_pressed)
+	vbox.add_child(clear_hazards_btn)
+
+	vbox.add_child(HSeparator.new())
+
 	# === INFO ===
 	var info_label = Label.new()
 	info_label.text = "Waves are PAUSED"
@@ -430,7 +488,77 @@ func _spawn_enemy_at_mouse():
 
 func _end_drag():
 	is_dragging_enemy = false
+	is_dragging_hazard = false
 	dragging_enemy_type = ""
+	dragging_hazard_type = ""
 	if drag_preview:
 		drag_preview.queue_free()
 		drag_preview = null
+
+# ============================================
+# HAZARD SPAWNING
+# ============================================
+func _on_hazard_button_pressed(hazard_name: String):
+	is_dragging_hazard = true
+	dragging_hazard_type = hazard_name
+
+	# Create drag preview
+	drag_preview = ColorRect.new()
+	drag_preview.size = Vector2(40, 40)
+
+	# Color based on hazard type
+	var preview_colors = {
+		"Pit": Color(0.1, 0.1, 0.1, 0.9),
+		"FireGrate": Color(1.0, 0.5, 0.1, 0.7),
+		"FloorSpikes": Color(0.5, 0.5, 0.6, 0.7),
+		"SpikeWall": Color(0.6, 0.6, 0.7, 0.7),
+		"Crusher": Color(0.4, 0.3, 0.5, 0.7)
+	}
+	drag_preview.color = preview_colors.get(hazard_name, Color(0.8, 0.4, 0.4, 0.7))
+	drag_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(drag_preview)
+	drag_preview.global_position = get_viewport().get_mouse_position() - Vector2(20, 20)
+
+	# Add label to preview
+	var label = Label.new()
+	label.text = hazard_name[0]  # First letter
+	label.add_theme_font_size_override("font_size", 20)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.size = Vector2(40, 40)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	drag_preview.add_child(label)
+
+	print("[DEBUG] Dragging %s hazard - release to spawn" % hazard_name)
+
+func _spawn_hazard_at_mouse():
+	if dragging_hazard_type == "" or not HAZARD_SCENES.has(dragging_hazard_type):
+		return
+
+	var mouse_pos = get_viewport().get_mouse_position()
+
+	# Get camera offset to convert screen position to world position
+	var camera = get_viewport().get_camera_2d()
+	var world_pos = mouse_pos
+	if camera:
+		world_pos = camera.get_screen_center_position() - get_viewport().get_visible_rect().size / 2 + mouse_pos
+
+	# Spawn the hazard
+	var hazard_scene = HAZARD_SCENES[dragging_hazard_type]
+	var hazard = hazard_scene.instantiate()
+	hazard.global_position = world_pos
+
+	# Add to game scene
+	var game_scene = get_tree().current_scene
+	game_scene.add_child(hazard)
+
+	print("[DEBUG] Spawned %s hazard at %s" % [dragging_hazard_type, world_pos])
+
+func _on_clear_hazards_pressed():
+	var hazards = get_tree().get_nodes_in_group("hazards")
+	var count = 0
+	for hazard in hazards:
+		if is_instance_valid(hazard):
+			hazard.queue_free()
+			count += 1
+	print("[DEBUG] Cleared %d hazards" % count)

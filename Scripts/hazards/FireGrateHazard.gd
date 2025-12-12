@@ -120,21 +120,44 @@ func apply_tick_damage(body: Node2D) -> void:
 
 	var tick_damage = damage_per_second * damage_tick_rate
 
+	# Apply fire resistance for player
+	var final_damage = _calculate_fire_damage(body, tick_damage)
+	if final_damage <= 0:
+		return
+
 	if body.has_method("take_damage"):
 		if body.is_in_group("player"):
-			body.take_damage(tick_damage, global_position)
+			body.take_damage(final_damage, global_position)
 		else:
-			# No knockback for fire damage
-			body.take_damage(tick_damage, Vector2.ZERO, 0.0, 0.0)
+			body.take_damage(final_damage, Vector2.ZERO, 0.0, 0.0)
 
-		body_damaged.emit(body, tick_damage)
+		body_damaged.emit(body, final_damage)
 
 		# Show damage number (less frequently to avoid spam)
-		if randf() < 0.5:  # 50% chance to show number
-			_spawn_fire_damage_number(body, tick_damage)
+		if randf() < 0.5:
+			_spawn_fire_damage_number(body, final_damage)
 
-		# Play sizzle effect on body
 		_play_sizzle_effect(body)
+
+func _calculate_fire_damage(body: Node2D, base_damage: float) -> float:
+	if not body.is_in_group("player"):
+		return base_damage
+
+	if not "stats" in body or body.stats == null:
+		return base_damage
+
+	var final_damage = base_damage
+	var stats = body.stats
+
+	# General hazard resistance
+	if "hazard_resistance" in stats:
+		final_damage *= (1.0 - stats.hazard_resistance)
+
+	# Fire-specific resistance
+	if "fire_resistance" in stats:
+		final_damage *= (1.0 - stats.fire_resistance)
+
+	return final_damage
 
 func _spawn_fire_damage_number(body: Node2D, damage_amount: float) -> void:
 	var damage_number = DamageNumber.instantiate()

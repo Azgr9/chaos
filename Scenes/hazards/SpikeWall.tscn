@@ -17,7 +17,7 @@ shape = SubResource("RectangleShape2D_wall")
 
 [node name="WarningSprite" type="Sprite2D" parent="."]
 visible = false
-z_index = -1
+z_index = 2
 
 [node name="WarningRect" type="ColorRect" parent="WarningSprite"]
 offset_left = -32.0
