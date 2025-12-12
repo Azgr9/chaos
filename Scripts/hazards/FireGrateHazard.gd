@@ -129,7 +129,7 @@ func apply_tick_damage(body: Node2D) -> void:
 		if body.is_in_group("player"):
 			body.take_damage(final_damage, global_position)
 		else:
-			body.take_damage(final_damage, Vector2.ZERO, 0.0, 0.0)
+			body.take_damage(final_damage, Vector2.ZERO, 0.0, 0.0, null)
 
 		body_damaged.emit(body, final_damage)
 

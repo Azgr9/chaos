@@ -15,14 +15,12 @@ radius = 600.0
 collision_layer = 4
 collision_mask = 9
 script = ExtResource("1_goblin")
-max_health = null
-move_speed = null
-damage = null
-knockback_resistance = null
-experience_value = null
-crystal_drop_chance = null
-min_crystals = null
-max_crystals = null
+enemy_type = "goblin_archer"
+enemy_display_name = "Goblin Archer"
+max_health = 20.0
+move_speed = 180.0
+damage = 8.0
+health_bar_width = 80.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_physics")

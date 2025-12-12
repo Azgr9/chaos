@@ -12,6 +12,19 @@ radius = 40.0
 collision_layer = 4
 collision_mask = 9
 script = ExtResource("1_spawner")
+enemy_type = "spawner"
+enemy_display_name = "Spawner"
+max_health = 40.0
+move_speed = 100.0
+damage = 5.0
+knockback_resistance = 0.6
+experience_value = 25
+crystal_drop_chance = 1.0
+min_crystals = 3
+max_crystals = 6
+gold_drop_min = 8
+gold_drop_max = 15
+health_bar_width = 90.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_physics")

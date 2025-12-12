@@ -34,16 +34,9 @@ var base_scale: Vector2 = Vector2.ONE
 var time_alive: float = 0.0
 
 func _setup_enemy():
-	# Bestiary info
-	enemy_type = "slime"
-	enemy_display_name = "Slime"
 
-	# Slime stats
-	max_health = 30.0
-	move_speed = 240.0
-	damage = 10.0
+	# Stats loaded from scene file via 
 	current_health = max_health
-	health_bar_width = 80.0
 
 	# Connect attack box
 	attack_box.area_entered.connect(_on_attack_box_area_entered)

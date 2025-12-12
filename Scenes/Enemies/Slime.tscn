@@ -65,6 +65,12 @@ radius = 32.0
 collision_layer = 4
 collision_mask = 9
 script = ExtResource("1_slime")
+enemy_type = "slime"
+enemy_display_name = "Slime"
+max_health = 30.0
+move_speed = 240.0
+damage = 10.0
+health_bar_width = 80.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_physics")

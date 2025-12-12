@@ -33,22 +33,9 @@ var time_alive: float = 0.0
 var is_healing: bool = false
 
 func _setup_enemy():
-	# Bestiary info
-	enemy_type = "healer"
-	enemy_display_name = "Healer"
 
-	# Healer stats - fragile support unit
-	max_health = 15.0
-	move_speed = 220.0
-	damage = 3.0
+	# Stats loaded from scene file via 
 	current_health = max_health
-	health_bar_width = 60.0
-
-	# Drop settings - high value target
-	experience_value = 15
-	crystal_drop_chance = 0.8
-	min_crystals = 2
-	max_crystals = 4
 
 	# Connect timer
 	heal_timer.wait_time = heal_interval

@@ -24,17 +24,17 @@ var hazard_scenes: Dictionary = {}
 # WAVE SCALING
 # ============================================
 var hazards_per_wave: Dictionary = {
-	1: {"count": 2, "types": ["pit", "fire_grate"]},
-	2: {"count": 3, "types": ["pit", "fire_grate", "floor_spikes"]},
-	3: {"count": 4, "types": ["pit", "fire_grate", "floor_spikes", "spike_wall"]},
-	4: {"count": 5, "types": ["pit", "fire_grate", "floor_spikes", "spike_wall", "crusher"]},
-	5: {"count": 6, "types": ["pit", "fire_grate", "floor_spikes", "spike_wall", "crusher"]}
+	1: {"count": 2, "types": ["fire_grate"]},
+	2: {"count": 3, "types": ["fire_grate", "floor_spikes"]},
+	3: {"count": 4, "types": ["fire_grate", "floor_spikes", "spike_wall"]},
+	4: {"count": 5, "types": ["fire_grate", "floor_spikes", "spike_wall", "crusher"]},
+	5: {"count": 6, "types": ["fire_grate", "floor_spikes", "spike_wall", "crusher"]}
 }
 
 # Default config for waves beyond 5
 var default_wave_config: Dictionary = {
 	"count": 6,
-	"types": ["pit", "fire_grate", "floor_spikes", "spike_wall", "crusher"]
+	"types": ["fire_grate", "floor_spikes", "spike_wall", "crusher"]
 }
 
 # ============================================
@@ -67,7 +67,6 @@ func _ready() -> void:
 
 func _load_hazard_scenes() -> void:
 	hazard_scenes = {
-		"pit": load("res://Scenes/hazards/Pit.tscn"),
 		"floor_spikes": load("res://Scenes/hazards/FloorSpikes.tscn"),
 		"spike_wall": load("res://Scenes/hazards/SpikeWall.tscn"),
 		"fire_grate": load("res://Scenes/hazards/FireGrate.tscn"),
@@ -154,7 +153,7 @@ func _spawn_hazard(hazard_type: String, position: Vector2) -> Hazard:
 
 func get_random_hazard_type(available_types: Array) -> String:
 	if available_types.is_empty():
-		return "pit"  # Fallback
+		return "fire_grate"  # Fallback
 	return available_types[randi() % available_types.size()]
 
 func get_valid_spawn_position() -> Vector2:

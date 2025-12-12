@@ -46,6 +46,13 @@ const ENEMY_TYPES = {
 		"unlocks_at_wave": 5,
 		"base_weight": 0.4,
 		"max_alive": 2
+	},
+	"boss": {
+		"scene": preload("res://Scenes/Enemies/Boss.tscn"),
+		"cost": 50,
+		"unlocks_at_wave": 5,
+		"base_weight": 0.0,  # Never spawns randomly - use spawn_boss()
+		"max_alive": 1
 	}
 }
 
@@ -82,6 +89,9 @@ signal all_waves_completed()
 signal enemy_killed(enemies_remaining: int)
 
 func _ready():
+	# Add to group for easy lookup
+	add_to_group("wave_manager")
+
 	# Find player reference
 	var players = get_tree().get_nodes_in_group("player")
 	if players.size() > 0:
@@ -133,6 +143,11 @@ func _process(delta):
 func start_next_wave():
 	current_wave += 1
 
+	# Wave 5 is the BOSS WAVE
+	if current_wave == 5:
+		_start_boss_wave()
+		return
+
 	# Calculate wave point pool: (wave² × 2) + (wave × 2) + 2
 	total_points = (current_wave * current_wave * 2) + (current_wave * 2) + 2
 	points_remaining = total_points
@@ -158,6 +173,77 @@ func start_next_wave():
 
 	wave_started.emit(current_wave)
 	_show_wave_notification()
+
+func _start_boss_wave():
+	# Boss wave - special handling
+	total_points = 50  # Boss cost
+	points_remaining = 0  # Don't spawn regular enemies
+	points_spawned = 50
+	enemies_alive = 0
+	wave_active = true
+
+	# Reset enemy type counters
+	for enemy_type in ENEMY_TYPES.keys():
+		enemies_alive_by_type[enemy_type] = 0
+
+	wave_started.emit(current_wave)
+	_show_boss_wave_notification()
+
+	# Wait for dramatic effect then spawn boss
+	await get_tree().create_timer(2.0).timeout
+	_spawn_boss()
+
+func _spawn_boss():
+	var boss_data = ENEMY_TYPES["boss"]
+	var boss_scene = boss_data["scene"]
+
+	if not boss_scene:
+		push_error("Boss scene not found!")
+		return
+
+	var boss = boss_scene.instantiate()
+	get_parent().add_child(boss)
+	boss.global_position = arena_center
+
+	# Connect signals
+	if boss.has_signal("enemy_died"):
+		boss.enemy_died.connect(_on_boss_died)
+	if boss.has_signal("boss_defeated"):
+		boss.boss_defeated.connect(_on_boss_defeated)
+
+	# Set player reference
+	if boss.has_method("set_player_reference") and player_reference:
+		boss.set_player_reference(player_reference)
+
+	enemies_alive = 1
+	enemies_alive_by_type["boss"] = 1
+	enemy_spawned.emit(boss)
+
+func _on_boss_died(_enemy: Enemy):
+	enemies_alive = 0
+	enemies_alive_by_type["boss"] = 0
+	_complete_wave()
+
+func _on_boss_defeated():
+	# Additional boss defeat logic (victory screen, etc.)
+	pass
+
+func _show_boss_wave_notification():
+	var notification = Label.new()
+	notification.text = "FINAL WAVE\nBOSS INCOMING!"
+	notification.add_theme_font_size_override("font_size", 48)
+	notification.modulate = Color(1, 0.3, 0.3, 1)
+	notification.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+	get_parent().add_child(notification)
+	notification.global_position = Vector2(1280, 350) - notification.size / 2
+
+	var tween = create_tween()
+	tween.tween_property(notification, "scale", Vector2(1.3, 1.3), 0.4)
+	tween.tween_property(notification, "scale", Vector2(1.0, 1.0), 0.3)
+	tween.tween_interval(1.5)
+	tween.tween_property(notification, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(notification.queue_free)
 
 func _spawn_batch():
 	if points_remaining <= 0:
@@ -322,6 +408,9 @@ func _spawn_enemy_of_type(enemy_type: String):
 	if enemy.has_method("set_player_reference") and player_reference:
 		enemy.set_player_reference(player_reference)
 
+	# Check for elite spawn (chance increases with wave)
+	_try_make_elite(enemy)
+
 	# Update counters IMMEDIATELY (before activation delay)
 	enemies_alive += 1
 	enemies_alive_by_type[enemy_type] += 1
@@ -340,6 +429,20 @@ func _spawn_enemy_of_type(enemy_type: String):
 	await get_tree().create_timer(enemy_activation_time).timeout
 	if is_instance_valid(enemy):
 		enemy.set_physics_process(true)
+
+# Elite spawn chance: 5% base + 3% per wave (Wave 1: 8%, Wave 5: 20%)
+const ELITE_BASE_CHANCE: float = 0.05
+const ELITE_WAVE_BONUS: float = 0.03
+
+func _try_make_elite(enemy: Node2D):
+	if not enemy.has_method("make_random_elite"):
+		return
+
+	var elite_chance = ELITE_BASE_CHANCE + (current_wave * ELITE_WAVE_BONUS)
+
+	if randf() < elite_chance:
+		enemy.make_random_elite()
+		print("[WaveManager] Spawned ELITE enemy!")
 
 func _get_spawn_position() -> Vector2:
 	# SAFEGUARD 3: Spatial distribution - get well-distributed angle

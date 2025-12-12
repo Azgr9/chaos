@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://dp8kf7nxqyjkv"]
+[gd_scene load_steps=3 format=3 uid="uid://kg50d55c6tbq"]
 
 [ext_resource type="Script" path="res://Scripts/hazards/PitHazard.gd" id="1_pit"]
 
@@ -11,7 +11,6 @@ collision_mask = 5
 script = ExtResource("1_pit")
 hazard_type = 0
 is_instant_kill = true
-hazard_size = Vector2(64, 64)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_pit")
@@ -63,6 +62,6 @@ offset_left = -8.0
 offset_top = -8.0
 offset_right = 8.0
 offset_bottom = 8.0
-color = Color(0.0, 0.0, 0.0, 1)
+color = Color(0, 0, 0, 1)
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]

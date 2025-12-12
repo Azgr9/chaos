@@ -35,16 +35,9 @@ var is_shooting: bool = false
 var time_alive: float = 0.0
 
 func _setup_enemy():
-	# Bestiary info
-	enemy_type = "goblin_archer"
-	enemy_display_name = "Goblin Archer"
 
-	# Goblin archer stats
-	max_health = 20.0
-	move_speed = 180.0
-	damage = 8.0
+	# Stats loaded from scene file via 
 	current_health = max_health
-	health_bar_width = 80.0
 
 	# Connect timer
 	shoot_timer.timeout.connect(_on_shoot_timer_timeout)

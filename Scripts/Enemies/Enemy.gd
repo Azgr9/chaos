@@ -58,6 +58,13 @@ var is_stunned: bool = false
 var health_bar: Node2D = null
 var health_fill: ColorRect = null
 
+# Elite system
+var elite_modifier: EliteModifier = null
+var is_elite: bool = false
+
+# Status effects
+var status_effects: StatusEffects = null
+
 # ============================================
 # SIGNALS
 # ============================================
@@ -163,13 +170,6 @@ func _update_hitstun(delta):
 	else:
 		is_stunned = false
 
-func _apply_knockback(delta):
-	if knockback_velocity.length() > 0:
-		velocity = knockback_velocity
-		knockback_velocity = knockback_velocity.lerp(Vector2.ZERO, KNOCKBACK_DECAY_RATE * delta)
-		if knockback_velocity.length() < KNOCKBACK_MIN_THRESHOLD:
-			knockback_velocity = Vector2.ZERO
-
 func _avoid_player_overlap():
 	if not player_reference:
 		return
@@ -184,18 +184,23 @@ func _avoid_player_overlap():
 		if knockback_velocity.length() == 0:
 			velocity += push_direction * push_strength * OVERLAP_PUSH_STRENGTH
 
-func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback_power: float = DEFAULT_KNOCKBACK_POWER, stun_duration: float = 0.0):
+func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback_power: float = DEFAULT_KNOCKBACK_POWER, stun_duration: float = 0.0, attacker: Node2D = null):
 	if is_dead:
 		return
 
-	current_health -= amount
+	# Apply elite modifier damage reduction (thorns, shield, etc.)
+	var final_damage = amount
+	if elite_modifier and is_elite:
+		final_damage = elite_modifier.on_take_damage(amount, attacker)
+
+	current_health -= final_damage
 	health_changed.emit(current_health, max_health)
 
 	# Check for death first - don't apply hitstun to dead enemies
 	if current_health <= 0:
 		# Show health bar and damage number before death
 		show_health_bar()
-		_spawn_damage_number(amount)
+		_spawn_damage_number(final_damage)
 		die()
 		return
 
@@ -203,7 +208,7 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback
 	show_health_bar()
 
 	# Spawn damage number
-	_spawn_damage_number(amount)
+	_spawn_damage_number(final_damage)
 
 	# Apply knockback (only if alive)
 	if from_position != Vector2.ZERO:
@@ -299,3 +304,89 @@ func _add_screen_shake(trauma_amount: float):
 # ============================================
 func set_player_reference(player: Node2D):
 	player_reference = player
+
+# ============================================
+# ELITE SYSTEM
+# ============================================
+func make_elite(modifier_type: EliteModifier.ModifierType = EliteModifier.ModifierType.THORNS):
+	if is_elite:
+		return
+
+	is_elite = true
+
+	# Create and setup elite modifier
+	elite_modifier = EliteModifier.new()
+	add_child(elite_modifier)
+	elite_modifier.setup_elite(modifier_type)
+
+func make_random_elite():
+	make_elite(EliteModifier.get_random_modifier())
+
+# ============================================
+# STATUS EFFECTS
+# ============================================
+func apply_status_effect(effect_type: StatusEffects.EffectType, source: Node2D = null, stacks: int = 1):
+	if not status_effects:
+		status_effects = StatusEffects.new()
+		add_child(status_effects)
+
+	status_effects.apply_effect(effect_type, source, stacks)
+
+func has_status_effect(effect_type: StatusEffects.EffectType) -> bool:
+	if status_effects:
+		return status_effects.has_effect(effect_type)
+	return false
+
+# ============================================
+# HAZARD INTERACTION
+# ============================================
+func _apply_knockback(delta):
+	if knockback_velocity.length() > 0:
+		velocity = knockback_velocity
+
+		# Check for hazard collision during knockback
+		_check_hazard_collision()
+
+		knockback_velocity = knockback_velocity.lerp(Vector2.ZERO, KNOCKBACK_DECAY_RATE * delta)
+		if knockback_velocity.length() < KNOCKBACK_MIN_THRESHOLD:
+			knockback_velocity = Vector2.ZERO
+
+func _check_hazard_collision():
+	# Check if enemy is knocked into a hazard
+	var hazards = get_tree().get_nodes_in_group("hazards")
+	for hazard in hazards:
+		if not is_instance_valid(hazard):
+			continue
+
+		# Check distance to hazard center
+		var dist = global_position.distance_to(hazard.global_position)
+		var hazard_radius = 48.0  # Approximate hazard size
+
+		if dist < hazard_radius:
+			_on_knocked_into_hazard(hazard)
+			break
+
+func _on_knocked_into_hazard(hazard: Node2D):
+	# Bonus damage when knocked into hazards
+	var bonus_damage = 15.0
+
+	# Regular hazard - take bonus damage
+	if hazard.has_method("apply_damage"):
+		# Let hazard handle damage
+		pass
+	else:
+		# Manual bonus damage
+		take_damage(bonus_damage, hazard.global_position, 0.0, 0.2, null)
+		_create_hazard_hit_effect()
+
+func _create_hazard_hit_effect():
+	# Effect when knocked into damaging hazard
+	var flash = ColorRect.new()
+	flash.size = Vector2(40, 40)
+	flash.position = Vector2(-20, -20)
+	flash.color = Color(1, 0.5, 0.2, 0.6)
+	add_child(flash)
+
+	var tween = flash.create_tween()
+	tween.tween_property(flash, "modulate:a", 0.0, 0.2)
+	tween.tween_callback(flash.queue_free)

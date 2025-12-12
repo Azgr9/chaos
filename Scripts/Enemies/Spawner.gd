@@ -33,25 +33,9 @@ var minions: Array = []
 var is_spawning: bool = false
 
 func _setup_enemy():
-	# Bestiary info
-	enemy_type = "spawner"
-	enemy_display_name = "Spawner"
 
-	# Spawner stats - slow, medium HP, low damage (relies on minions)
-	max_health = 40.0
-	move_speed = 100.0
-	damage = 5.0
-	knockback_resistance = 0.6
+	# Stats loaded from scene file via 
 	current_health = max_health
-	health_bar_width = 90.0
-
-	# Drop settings - high value
-	experience_value = 25
-	crystal_drop_chance = 1.0
-	min_crystals = 3
-	max_crystals = 6
-	gold_drop_min = 8
-	gold_drop_max = 15
 
 	# Connect timer
 	spawn_timer.wait_time = spawn_interval

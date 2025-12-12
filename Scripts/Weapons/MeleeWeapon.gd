@@ -148,6 +148,11 @@ func _perform_skill() -> bool:
 	# Override for weapon-specific skill
 	return false
 
+func _on_combo_finisher_hit(_target: Node2D):
+	# Override in subclasses for weapon-specific combo finisher effects
+	# e.g., BasicSword creates shockwave, Katana resets dash
+	pass
+
 func _get_hit_color(combo_finisher: bool, dash_attack: bool, crit: bool) -> Color:
 	if crit:
 		return Color.RED
@@ -445,7 +450,7 @@ func _process_hit(target: Node2D):
 	var knockback_origin = player_reference.global_position if player_reference else global_position
 
 	# Apply damage
-	target.take_damage(final_damage, knockback_origin, knockback_power, knockback_stun)
+	target.take_damage(final_damage, knockback_origin, knockback_power, knockback_stun, player_reference)
 	dealt_damage.emit(target, final_damage)
 
 	# Visual feedback
@@ -456,6 +461,10 @@ func _process_hit(target: Node2D):
 	# Brief weapon shake for hitstop feel (no time_scale - it causes issues when player gets hit)
 	if is_finisher or is_crit:
 		_do_weapon_shake()
+
+	# Trigger combo finisher bonus effect
+	if is_finisher:
+		_on_combo_finisher_hit(target)
 
 var _was_last_hit_crit: bool = false
 

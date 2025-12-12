@@ -178,11 +178,14 @@ func _fire_projectiles(direction: Vector2):
 		var spread_angle = _calculate_spread_angle(i)
 		var final_direction = direction.rotated(spread_angle)
 
-		# Initialize projectile
+		# Initialize projectile (pass player for thorns reflection)
 		projectile.initialize(
 			projectile_spawn.global_position,
 			final_direction,
-			damage_multiplier
+			damage_multiplier,
+			400.0,  # knockback_power
+			0.1,    # hitstun_duration
+			player_reference  # attacker for thorns
 		)
 
 		projectile_fired.emit(projectile)
@@ -311,7 +314,7 @@ func _damage_enemies_in_beam(origin: Vector2, direction: Vector2, final_damage: 
 
 	for enemy in hit_enemies:
 		if enemy.has_method("take_damage"):
-			enemy.take_damage(final_damage)
+			enemy.take_damage(final_damage, origin, 200.0, 0.1, player_reference)
 			_create_beam_hit_effect(enemy.global_position)
 
 func _create_beam_hit_effect(pos: Vector2):

@@ -214,7 +214,7 @@ func apply_damage(body: Node2D) -> void:
 		if body.is_in_group("player"):
 			body.take_damage(final_damage, global_position)
 		else:
-			body.take_damage(final_damage, global_position, 0.0, 0.0)  # No knockback from hazards by default
+			body.take_damage(final_damage, global_position, 0.0, 0.0, null)  # Hazards dont trigger thorns
 
 		body_damaged.emit(body, final_damage)
 		_spawn_damage_number(body, final_damage)
@@ -283,7 +283,7 @@ func apply_instant_kill(body: Node2D) -> void:
 		if body.is_in_group("player"):
 			body.take_damage(9999.0, global_position)
 		else:
-			body.take_damage(9999.0, global_position, 0.0, 0.0)
+			body.take_damage(9999.0, global_position, 0.0, 0.0, null)
 
 func _rescue_from_pit(body: Node2D) -> void:
 	# Find a safe position away from the pit

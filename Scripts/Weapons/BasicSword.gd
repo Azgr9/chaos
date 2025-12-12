@@ -39,7 +39,7 @@ func _perform_skill() -> bool:
 	get_tree().current_scene.add_child(spin_slash)
 
 	var slash_damage = damage * 2.0 * damage_multiplier
-	spin_slash.initialize(player.global_position, slash_damage)
+	spin_slash.initialize(player.global_position, slash_damage, player)
 
 	if spin_slash.has_signal("dealt_damage"):
 		spin_slash.dealt_damage.connect(func(target, dmg):

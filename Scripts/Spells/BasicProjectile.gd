@@ -23,6 +23,7 @@ var direction: Vector2 = Vector2.ZERO
 var damage_multiplier: float = 1.0
 var hits_count: int = 0
 var hit_enemies: Array = []
+var shooter: Node2D = null  # Reference to who fired the projectile (for thorns)
 
 # Signals
 signal projectile_hit(target: Node2D, damage: float)
@@ -42,13 +43,14 @@ func _ready():
 	# Visual setup
 	_create_spawn_effect()
 
-func initialize(start_position: Vector2, dir: Vector2, magic_damage_multiplier: float = 1.0, kb_power: float = 400.0, stun_dur: float = 0.1):
+func initialize(start_position: Vector2, dir: Vector2, magic_damage_multiplier: float = 1.0, kb_power: float = 400.0, stun_dur: float = 0.1, attacker: Node2D = null):
 	global_position = start_position
 	direction = dir.normalized()
 	velocity = direction * speed
 	damage_multiplier = magic_damage_multiplier
 	knockback_power = kb_power
 	hitstun_duration = stun_dur
+	shooter = attacker
 
 	# Rotate projectile to face direction
 	rotation = direction.angle()
@@ -74,16 +76,14 @@ func _create_spawn_effect():
 
 func _on_area_entered(area: Area2D):
 	var parent = area.get_parent()
-	if not parent:
-		return
-
+	
 	# Check if it's an enemy hurtbox
-	if parent not in hit_enemies and parent.has_method("take_damage"):
+	if not parent in hit_enemies and parent.has_method("take_damage"):
 		hit_enemies.append(parent)
 
-		# Deal damage with knockback position
+		# Deal damage with knockback position (pass shooter for thorns reflection)
 		var final_damage = damage * damage_multiplier
-		parent.take_damage(final_damage, global_position, knockback_power, hitstun_duration)
+		parent.take_damage(final_damage, global_position, knockback_power, hitstun_duration, shooter)
 		projectile_hit.emit(parent, final_damage)
 
 		# Visual feedback

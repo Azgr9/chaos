@@ -1,0 +1,76 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Enemies/Boss.gd" id="1_boss"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_physics"]
+radius = 48.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hurtbox"]
+radius = 56.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_attackbox"]
+radius = 60.0
+
+[node name="Boss" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 9
+script = ExtResource("1_boss")
+enemy_type = "boss"
+enemy_display_name = "Chaos Champion"
+max_health = 500.0
+move_speed = 200.0
+damage = 25.0
+knockback_resistance = 0.9
+experience_value = 100
+crystal_drop_chance = 1.0
+min_crystals = 10
+max_crystals = 20
+gold_drop_min = 50
+gold_drop_max = 100
+health_bar_width = 120.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_physics")
+
+[node name="VisualsPivot" type="Node2D" parent="."]
+
+[node name="Sprite" type="ColorRect" parent="VisualsPivot"]
+offset_left = -40.0
+offset_top = -40.0
+offset_right = 40.0
+offset_bottom = 40.0
+pivot_offset = Vector2(40, 40)
+color = Color(0.6, 0.2, 0.3, 1)
+
+[node name="HurtBox" type="Area2D" parent="."]
+collision_layer = 16
+collision_mask = 96
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HurtBox"]
+shape = SubResource("CircleShape2D_hurtbox")
+
+[node name="AttackBox" type="Area2D" parent="."]
+collision_layer = 128
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackBox"]
+shape = SubResource("CircleShape2D_attackbox")
+
+[node name="HealthBar" type="Node2D" parent="."]
+visible = false
+
+[node name="Background" type="ColorRect" parent="HealthBar"]
+offset_left = -60.0
+offset_top = -100.0
+offset_right = 60.0
+offset_bottom = -88.0
+color = Color(0.2, 0, 0, 1)
+
+[node name="Fill" type="ColorRect" parent="HealthBar"]
+offset_left = -60.0
+offset_top = -100.0
+offset_right = 60.0
+offset_bottom = -88.0
+color = Color(1, 0, 0, 1)

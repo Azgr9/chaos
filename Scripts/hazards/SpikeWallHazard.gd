@@ -144,7 +144,7 @@ func apply_impact_damage(body: Node2D) -> void:
 				body.velocity = knockback_dir * knockback_away_power
 		else:
 			# Enemies get knockback through the damage function
-			body.take_damage(impact_damage, global_position, knockback_away_power, 0.15)
+			body.take_damage(impact_damage, global_position, knockback_away_power, 0.15, null)
 
 	# Emit signal
 	body_damaged.emit(body, impact_damage)

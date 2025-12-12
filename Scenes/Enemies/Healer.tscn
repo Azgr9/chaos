@@ -12,6 +12,16 @@ radius = 28.0
 collision_layer = 4
 collision_mask = 9
 script = ExtResource("1_healer")
+enemy_type = "healer"
+enemy_display_name = "Healer"
+max_health = 15.0
+move_speed = 220.0
+damage = 3.0
+experience_value = 15
+crystal_drop_chance = 0.8
+min_crystals = 2
+max_crystals = 4
+health_bar_width = 60.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_physics")

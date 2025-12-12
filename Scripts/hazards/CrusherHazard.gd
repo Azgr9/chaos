@@ -179,7 +179,7 @@ func _damage_bodies_in_zone() -> void:
 				if body.is_in_group("player"):
 					body.take_damage(crusher_damage, global_position)
 				else:
-					body.take_damage(crusher_damage, global_position, 200.0, 0.3)
+					body.take_damage(crusher_damage, global_position, 200.0, 0.3, null)
 
 				body_damaged.emit(body, crusher_damage)
 				print("[Crusher] Crushed %s for %d damage!" % [body.name, int(crusher_damage)])

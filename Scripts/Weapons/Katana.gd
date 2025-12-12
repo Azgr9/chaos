@@ -131,7 +131,7 @@ func _dash_damage_loop(player: Node2D, _direction: Vector2):
 				var final_damage = damage * damage_multiplier * DASH_DAMAGE_MULTIPLIER
 
 				if enemy.has_method("take_damage"):
-					enemy.take_damage(final_damage)
+					enemy.take_damage(final_damage, player.global_position, 300.0, 0.15, player_reference)
 					dealt_damage.emit(enemy, final_damage)
 					_create_slash_effect(enemy.global_position)
 

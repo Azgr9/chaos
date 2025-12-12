@@ -115,7 +115,7 @@ func _perform_chain_lightning():
 	for target in chain_targets:
 		if is_instance_valid(target) and target.has_method("take_damage"):
 			var final_damage = chain_damage * damage_multiplier
-			target.take_damage(final_damage)
+			target.take_damage(final_damage, player_reference.global_position if player_reference else Vector2.ZERO, 150.0, 0.1, player_reference)
 
 	# Draw lightning visual
 	_draw_lightning_chain(chain_targets)

@@ -36,22 +36,9 @@ var is_dashing: bool = false
 var dash_direction: Vector2 = Vector2.ZERO
 
 func _setup_enemy():
-	# Bestiary info
-	enemy_type = "imp"
-	enemy_display_name = "Imp"
 
-	# Imp stats - fast, weak, low health
-	max_health = 10.0
-	move_speed = 360.0
-	damage = 5.0
+	# Stats loaded from scene file via 
 	current_health = max_health
-	health_bar_width = 64.0
-
-	# Drop settings
-	experience_value = 3
-	crystal_drop_chance = 0.5
-	min_crystals = 1
-	max_crystals = 2
 
 	# Connect contact damage
 	hurt_box.monitoring = true

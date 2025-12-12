@@ -567,7 +567,7 @@ func _debug_kill_all_enemies():
 	var count = enemies.size()
 	for enemy in enemies:
 		if enemy.has_method("take_damage"):
-			enemy.take_damage(9999)
+			enemy.take_damage(9999, Vector2.ZERO, 0.0, 0.0, null)
 	print("Debug: Killed ", count, " enemies")
 
 # ============================================

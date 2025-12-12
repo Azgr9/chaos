@@ -14,14 +14,14 @@ const ENEMY_SCENES = {
 	"Imp": preload("res://Scenes/Enemies/Imp.tscn"),
 	"Goblin": preload("res://Scenes/Enemies/GoblinArcher.tscn"),
 	"Healer": preload("res://Scenes/Enemies/Healer.tscn"),
-	"Spawner": preload("res://Scenes/Enemies/Spawner.tscn")
+	"Spawner": preload("res://Scenes/Enemies/Spawner.tscn"),
+	"Boss": preload("res://Scenes/Enemies/Boss.tscn")
 }
 
 # ============================================
 # HAZARD SCENES FOR SPAWNING
 # ============================================
 const HAZARD_SCENES = {
-	"Pit": preload("res://Scenes/hazards/Pit.tscn"),
 	"FireGrate": preload("res://Scenes/hazards/FireGrate.tscn"),
 	"FloorSpikes": preload("res://Scenes/hazards/FloorSpikes.tscn"),
 	"SpikeWall": preload("res://Scenes/hazards/SpikeWall.tscn"),
@@ -281,7 +281,8 @@ func _build_debug_ui():
 		"Imp": Color(0.8, 0.2, 0.3),
 		"Goblin": Color(0.3, 0.5, 0.2),
 		"Healer": Color(0.2, 0.8, 0.4),
-		"Spawner": Color(0.6, 0.3, 0.8)
+		"Spawner": Color(0.6, 0.3, 0.8),
+		"Boss": Color(0.9, 0.1, 0.1)
 	}
 
 	for enemy_name in ENEMY_SCENES.keys():
@@ -313,7 +314,6 @@ func _build_debug_ui():
 	vbox.add_child(hazard_grid)
 
 	var hazard_colors = {
-		"Pit": Color(0.2, 0.2, 0.2),
 		"FireGrate": Color(1.0, 0.5, 0.1),
 		"FloorSpikes": Color(0.5, 0.5, 0.6),
 		"SpikeWall": Color(0.6, 0.6, 0.7),
@@ -508,7 +508,6 @@ func _on_hazard_button_pressed(hazard_name: String):
 
 	# Color based on hazard type
 	var preview_colors = {
-		"Pit": Color(0.1, 0.1, 0.1, 0.9),
 		"FireGrate": Color(1.0, 0.5, 0.1, 0.7),
 		"FloorSpikes": Color(0.5, 0.5, 0.6, 0.7),
 		"SpikeWall": Color(0.6, 0.6, 0.7, 0.7),
