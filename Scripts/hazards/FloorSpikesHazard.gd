@@ -141,7 +141,7 @@ func _play_trigger_warning() -> void:
 
 	tween.chain().tween_property(floor_tile, "position:x", 0.0, 0.05)
 
-func _update_trigger_warning(delta: float) -> void:
+func _update_trigger_warning(_delta: float) -> void:
 	# Pulse the warning indicator faster as time runs out
 	if trigger_indicator:
 		var progress = state_timer / trigger_delay

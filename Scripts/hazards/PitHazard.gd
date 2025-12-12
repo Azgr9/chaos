@@ -76,9 +76,6 @@ func play_fall_animation(body: Node2D) -> void:
 	if not visual_node:
 		visual_node = body
 
-	# Store original values
-	var original_z_index = body.z_index
-
 	# Move body behind other things (falling into pit)
 	body.z_index = -10
 

@@ -37,7 +37,7 @@ func _setup_hazard() -> void:
 # ============================================
 # PROCESS
 # ============================================
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	# Clean up old impact records
 	var current_time = Time.get_ticks_msec() / 1000.0
 	var to_remove: Array = []

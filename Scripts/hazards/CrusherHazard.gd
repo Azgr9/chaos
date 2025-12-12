@@ -128,7 +128,7 @@ func enter_warning_state() -> void:
 
 	print("[Crusher] WARNING - slam incoming!")
 
-func _update_warning_visuals(delta: float) -> void:
+func _update_warning_visuals(_delta: float) -> void:
 	if not shadow:
 		return
 

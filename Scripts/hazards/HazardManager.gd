@@ -203,7 +203,7 @@ func is_position_valid(pos: Vector2) -> bool:
 func _draw_debug() -> void:
 	# Draw arena bounds
 	if Engine.is_editor_hint():
-		var rect = arena_bounds
+		var _rect = arena_bounds
 		# Would need a CanvasItem to draw
 		pass
 
