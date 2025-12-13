@@ -229,21 +229,21 @@ func _on_boss_defeated():
 	pass
 
 func _show_boss_wave_notification():
-	var notification = Label.new()
-	notification.text = "FINAL WAVE\nBOSS INCOMING!"
-	notification.add_theme_font_size_override("font_size", 48)
-	notification.modulate = Color(1, 0.3, 0.3, 1)
-	notification.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var boss_notification = Label.new()
+	boss_notification.text = "FINAL WAVE\nBOSS INCOMING!"
+	boss_notification.add_theme_font_size_override("font_size", 48)
+	boss_notification.modulate = Color(1, 0.3, 0.3, 1)
+	boss_notification.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
-	get_parent().add_child(notification)
-	notification.global_position = Vector2(1280, 350) - notification.size / 2
+	get_parent().add_child(boss_notification)
+	boss_notification.global_position = Vector2(1280, 350) - boss_notification.size / 2
 
 	var tween = create_tween()
-	tween.tween_property(notification, "scale", Vector2(1.3, 1.3), 0.4)
-	tween.tween_property(notification, "scale", Vector2(1.0, 1.0), 0.3)
+	tween.tween_property(boss_notification, "scale", Vector2(1.3, 1.3), 0.4)
+	tween.tween_property(boss_notification, "scale", Vector2(1.0, 1.0), 0.3)
 	tween.tween_interval(1.5)
-	tween.tween_property(notification, "modulate:a", 0.0, 0.5)
-	tween.tween_callback(notification.queue_free)
+	tween.tween_property(boss_notification, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(boss_notification.queue_free)
 
 func _spawn_batch():
 	if points_remaining <= 0:

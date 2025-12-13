@@ -157,7 +157,7 @@ func _reflect_thorns_damage(attacker: Node2D, damage: float):
 	# Visual feedback
 	_create_thorns_effect(attacker.global_position)
 
-func on_deal_damage(amount: float, target: Node2D):
+func on_deal_damage(amount: float, _target: Node2D):
 	if not is_elite:
 		return
 

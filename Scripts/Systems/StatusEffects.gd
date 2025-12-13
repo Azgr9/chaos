@@ -326,7 +326,7 @@ func _unfreeze():
 # ============================================
 # SHOCK CHAIN
 # ============================================
-func _trigger_shock_chain(effect: StatusEffect):
+func _trigger_shock_chain(_effect: StatusEffect):
 	if not target or not is_instance_valid(target):
 		return
 
@@ -366,7 +366,6 @@ func _create_lightning_visual(from: Vector2, to: Vector2):
 	var points: PackedVector2Array = []
 	var segments = 6
 	var direction = (to - from).normalized()
-	var distance = from.distance_to(to)
 	var perpendicular = direction.rotated(PI/2)
 
 	points.append(from)

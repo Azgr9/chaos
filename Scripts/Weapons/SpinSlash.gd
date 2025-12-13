@@ -46,10 +46,10 @@ func _perform_spin():
 	# Cleanup
 	tween.tween_callback(queue_free)
 
-func initialize(player_position: Vector2, slash_damage: float, owner: Node2D = null):
+func initialize(player_position: Vector2, slash_damage: float, weapon_owner: Node2D = null):
 	global_position = player_position
 	damage = slash_damage
-	owner_ref = owner
+	owner_ref = weapon_owner
 
 func _on_hit_box_area_entered(area: Area2D):
 	var parent = area.get_parent()
