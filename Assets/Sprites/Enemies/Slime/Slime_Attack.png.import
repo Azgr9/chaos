@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://q12hr0otasn3"
-path="res://.godot/imported/Green_Slime_Attack.png-52be3622d551b98c1e9bf48f006cb3a1.ctex"
+uid="uid://cyy2rfnlcgb3t"
+path="res://.godot/imported/Slime_Attack.png-ac199a69c00312c26f55a4ddc913a3e4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Sprites/Enemies/Slime/Green_Slime_Attack.png"
-dest_files=["res://.godot/imported/Green_Slime_Attack.png-52be3622d551b98c1e9bf48f006cb3a1.ctex"]
+source_file="res://Assets/Sprites/Enemies/Slime/Slime_Attack.png"
+dest_files=["res://.godot/imported/Slime_Attack.png-ac199a69c00312c26f55a4ddc913a3e4.ctex"]
 
 [params]
 

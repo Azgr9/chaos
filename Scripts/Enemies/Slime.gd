@@ -22,7 +22,7 @@ const HOP_SQUASH: float = 0.7
 # NODES
 # ============================================
 @onready var visuals_pivot: Node2D = $VisualsPivot
-@onready var sprite: ColorRect = $VisualsPivot/Sprite
+@onready var animated_sprite: AnimatedSprite2D = $VisualsPivot/AnimatedSprite2D
 @onready var attack_box: Area2D = $AttackBox
 
 # ============================================
@@ -32,19 +32,25 @@ var is_hopping: bool = false
 var hop_cooldown: float = 0.0
 var base_scale: Vector2 = Vector2.ONE
 var time_alive: float = 0.0
+var current_direction: String = "down"  # down, up, left, right
 
 func _setup_enemy():
-
-	# Stats loaded from scene file via 
+	# Stats loaded from scene file
 	current_health = max_health
 
 	# Connect attack box
 	attack_box.area_entered.connect(_on_attack_box_area_entered)
 
+	# Connect animation finished signal for attack animation
+	animated_sprite.animation_finished.connect(_on_animation_finished)
+
 	# Random scale variation
 	var scale_variation = randf_range(0.9, 1.1)
 	base_scale = Vector2(scale_variation, scale_variation)
 	visuals_pivot.scale = base_scale
+
+	# Start with idle animation
+	_play_directional_animation("idle")
 
 func _physics_process(delta):
 	if is_dead:
@@ -53,7 +59,7 @@ func _physics_process(delta):
 	time_alive += delta
 	hop_cooldown -= delta
 
-	# Idle bounce animation
+	# Idle bounce animation (scale effect on top of sprite animation)
 	if not is_hopping:
 		var idle_bounce = abs(sin(time_alive * BOUNCE_SPEED)) * BOUNCE_RANGE + 0.9
 		visuals_pivot.scale.y = base_scale.y * idle_bounce
@@ -70,6 +76,9 @@ func _update_movement(_delta):
 
 	var direction_to_player = (player_reference.global_position - global_position).normalized()
 
+	# Update facing direction based on movement
+	_update_direction(direction_to_player)
+
 	# Hop toward player
 	if hop_cooldown <= 0:
 		_perform_hop_visual()
@@ -81,11 +90,45 @@ func _update_movement(_delta):
 	else:
 		velocity = Vector2.ZERO
 
+func _update_direction(direction: Vector2):
+	# Determine primary direction (4-way)
+	var new_direction: String
+
+	if abs(direction.x) > abs(direction.y):
+		# Horizontal movement is dominant
+		if direction.x > 0:
+			new_direction = "right"
+		else:
+			new_direction = "left"
+	else:
+		# Vertical movement is dominant
+		if direction.y > 0:
+			new_direction = "down"
+		else:
+			new_direction = "up"
+
+	# Only update if direction changed
+	if new_direction != current_direction:
+		current_direction = new_direction
+		# Update animation to match new direction
+		if is_hopping:
+			_play_directional_animation("move")
+		else:
+			_play_directional_animation("idle")
+
+func _play_directional_animation(anim_type: String):
+	var anim_name = anim_type + "_" + current_direction
+	if animated_sprite.sprite_frames.has_animation(anim_name):
+		animated_sprite.play(anim_name)
+
 func _perform_hop_visual():
 	if is_hopping:
 		return
 
 	is_hopping = true
+
+	# Play move animation during hop
+	_play_directional_animation("move")
 
 	var tween = create_tween()
 
@@ -102,13 +145,24 @@ func _perform_hop_visual():
 	tween.tween_property(visuals_pivot, "scale", base_scale, 0.2)\
 		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
-	tween.tween_callback(func(): is_hopping = false)
+	tween.tween_callback(_on_hop_finished)
+
+func _on_hop_finished():
+	is_hopping = false
+	# Return to idle animation
+	_play_directional_animation("idle")
+
+func _on_animation_finished():
+	# When attack animation finishes, return to idle
+	if animated_sprite.animation.begins_with("attack_"):
+		_play_directional_animation("idle")
 
 func _on_damage_taken():
-	# Flash white
-	sprite.color = Color.WHITE
+	# Flash white using modulate
+	animated_sprite.modulate = Color.WHITE
 	var tween = create_tween()
-	tween.tween_property(sprite, "color", Color("#00ff00"), 0.2)
+	tween.tween_property(animated_sprite, "modulate", Color.WHITE, 0.1)
+	tween.tween_property(animated_sprite, "modulate", Color(1, 1, 1, 1), 0.1)
 
 	# Squash effect
 	visuals_pivot.scale = base_scale * 1.3
@@ -122,7 +176,7 @@ func _on_death():
 	# Expand and fade
 	var tween = create_tween()
 	tween.tween_property(visuals_pivot, "scale", base_scale * 2.0, 0.3)
-	tween.parallel().tween_property(sprite, "modulate:a", 0.0, 0.3)
+	tween.parallel().tween_property(animated_sprite, "modulate:a", 0.0, 0.3)
 
 	tween.tween_callback(queue_free)
 
@@ -135,10 +189,13 @@ func _on_attack_box_area_entered(area: Area2D):
 
 	var parent = area.get_parent()
 	if parent and parent.has_method("take_damage"):
+		# Play attack animation in current direction
+		_play_directional_animation("attack")
+
 		parent.take_damage(damage, global_position)
 		damage_dealt.emit(damage)
 
-		# Yellow flash when hitting
-		sprite.color = Color("#ffff00")
+		# Flash effect when hitting
+		animated_sprite.modulate = Color(1.5, 1.5, 0.5)  # Yellow tint
 		var tween = create_tween()
-		tween.tween_property(sprite, "color", Color("#00ff00"), 0.1)
+		tween.tween_property(animated_sprite, "modulate", Color(1, 1, 1, 1), 0.1)
