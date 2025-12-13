@@ -59,8 +59,14 @@ func _physics_process(delta):
 	time_alive += delta
 	hop_cooldown -= delta
 
+	# Handle animation pause during hitstun
+	if is_stunned:
+		animated_sprite.pause()
+	elif not animated_sprite.is_playing():
+		animated_sprite.play()
+
 	# Idle bounce animation (scale effect on top of sprite animation)
-	if not is_hopping:
+	if not is_hopping and not is_stunned:
 		var idle_bounce = abs(sin(time_alive * BOUNCE_SPEED)) * BOUNCE_RANGE + 0.9
 		visuals_pivot.scale.y = base_scale.y * idle_bounce
 		visuals_pivot.scale.x = base_scale.x * (2.0 - idle_bounce)
@@ -158,11 +164,10 @@ func _on_animation_finished():
 		_play_directional_animation("idle")
 
 func _on_damage_taken():
-	# Flash white using modulate
-	animated_sprite.modulate = Color.WHITE
+	# Flash white then back to normal (consistent with other enemies)
+	animated_sprite.modulate = Color(3.0, 3.0, 3.0)  # Bright white flash
 	var tween = create_tween()
-	tween.tween_property(animated_sprite, "modulate", Color.WHITE, 0.1)
-	tween.tween_property(animated_sprite, "modulate", Color(1, 1, 1, 1), 0.1)
+	tween.tween_property(animated_sprite, "modulate", Color(1, 1, 1, 1), 0.15)
 
 	# Squash effect
 	visuals_pivot.scale = base_scale * 1.3
