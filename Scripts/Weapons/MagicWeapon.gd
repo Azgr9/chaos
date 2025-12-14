@@ -227,10 +227,7 @@ func _fire_beam(origin: Vector2, direction: Vector2, magic_multiplier: float):
 	_damage_enemies_in_beam(origin, direction, final_damage)
 
 	# Screen shake
-	if player_reference and player_reference.has_node("Camera2D"):
-		var cam = player_reference.get_node("Camera2D")
-		if cam.has_method("add_trauma"):
-			cam.add_trauma(0.4)
+	DamageNumberManager.shake(0.4)
 
 	await _animate_beam(beam_visual)
 

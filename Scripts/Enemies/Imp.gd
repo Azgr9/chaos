@@ -109,20 +109,15 @@ func _perform_dash(direction: Vector2):
 	is_dashing = false
 
 func _on_damage_taken():
-	# Flash white
-	sprite.color = Color.WHITE
-	eye1.color = Color.WHITE
-	eye2.color = Color.WHITE
+	# Call base class flash (handles the bright white modulate flash)
+	super._on_damage_taken()
 
-	var tween = create_tween()
-	tween.tween_property(sprite, "color", Color(0.6, 0.1, 0.2), 0.15)
-	tween.parallel().tween_property(eye1, "color", Color(1, 0.8, 0), 0.15)
-	tween.parallel().tween_property(eye2, "color", Color(1, 0.8, 0), 0.15)
-
-	# Knockback squash
-	visuals_pivot.scale = Vector2(1.3, 0.7) * Vector2(visuals_pivot.scale.x, 1)
+func _play_hit_squash():
+	# Squash effect preserving facing direction
+	var facing = sign(visuals_pivot.scale.x) if visuals_pivot.scale.x != 0 else 1.0
+	visuals_pivot.scale = Vector2(HIT_SQUASH_SCALE.x * facing, HIT_SQUASH_SCALE.y)
 	var scale_tween = create_tween()
-	scale_tween.tween_property(visuals_pivot, "scale", Vector2.ONE * Vector2(visuals_pivot.scale.x, 1), 0.2)\
+	scale_tween.tween_property(visuals_pivot, "scale", Vector2(facing, 1.0), HIT_SQUASH_DURATION)\
 		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 func _on_death():
@@ -150,4 +145,6 @@ func _on_hurt_box_area_entered(area: Area2D):
 	var parent = area.get_parent()
 	if parent and is_instance_valid(parent) and parent.is_in_group("player"):
 		if parent.has_method("take_damage"):
-			parent.take_damage(damage, global_position)
+			var damage_applied = parent.take_damage(damage, global_position)
+			if damage_applied:
+				damage_dealt.emit(damage)

@@ -126,8 +126,6 @@ func trigger_spikes(body: Node2D) -> void:
 	# Play warning animation - rumble effect
 	_play_trigger_warning()
 
-	print("[FloorSpikes] Triggered by %s" % body.name)
-
 func _play_trigger_warning() -> void:
 	if not floor_tile:
 		return
@@ -176,8 +174,6 @@ func pop_spikes() -> void:
 		if is_instance_valid(body) and can_affect(body):
 			apply_damage(body)
 
-	print("[FloorSpikes] Spikes popped!")
-
 func retract_spikes() -> void:
 	current_state = SpikeState.RETRACTING
 	state_timer = 0.0
@@ -204,8 +200,6 @@ func reset_to_hidden() -> void:
 
 	if trigger_indicator:
 		trigger_indicator.visible = false
-
-	print("[FloorSpikes] Reset to hidden state")
 
 # ============================================
 # UTILITY

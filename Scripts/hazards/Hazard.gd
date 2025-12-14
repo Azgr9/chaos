@@ -27,7 +27,7 @@ enum ActivationType {
 # ============================================
 # PRELOADED SCENES
 # ============================================
-const DamageNumber = preload("res://Scenes/Ui/DamageNumber.tscn")
+# DamageNumberManager handles damage number spawning
 
 # ============================================
 # EXPORTED PROPERTIES
@@ -93,7 +93,6 @@ func _ready() -> void:
 	else:
 		activate()
 
-	print("[Hazard] Spawned %s at %s (type=%d, damage=%d, instant_kill=%s)" % [name, global_position, hazard_type, int(damage), is_instant_kill])
 
 func _setup_collision() -> void:
 	# Set collision layer to hazards (layer 11)
@@ -112,8 +111,6 @@ func _setup_hazard() -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if not can_affect(body):
 		return
-
-	print("[Hazard] %s entered %s (is_active=%s, is_warning=%s)" % [body.name, name, is_active, is_warning])
 
 	if body not in bodies_in_hazard:
 		bodies_in_hazard.append(body)
@@ -199,25 +196,28 @@ func apply_damage(body: Node2D) -> void:
 	# Calculate final damage after resistances
 	var final_damage = _calculate_damage_after_resistance(body, damage)
 
-	# Debug print
-	var type_name = _get_hazard_type_name()
-	print("[Hazard] %s dealing %.1f damage to %s (base: %.1f, after resistance: %.1f)" % [type_name, final_damage, body.name, damage, final_damage])
-
 	# If fully resisted, skip
 	if final_damage <= 0:
-		print("[Hazard] Damage fully resisted!")
 		return
 
 	if body.has_method("take_damage"):
-		# Player has signature: take_damage(amount, from_position)
-		# Enemy has signature: take_damage(amount, from_position, knockback_power, stun_duration)
+		# Player has signature: take_damage(amount, from_position) -> bool
+		# Enemy has signature: take_damage(amount, from_position, knockback_power, stun_duration, attacker, damage_type)
+		var damage_applied = false
+		var dmg_type = _get_damage_type()
 		if body.is_in_group("player"):
-			body.take_damage(final_damage, global_position)
+			damage_applied = body.take_damage(final_damage, global_position)
+			# Spawn damage number for player (player doesn't spawn its own)
+			if damage_applied:
+				_spawn_damage_number(body, final_damage)
 		else:
-			body.take_damage(final_damage, global_position, 0.0, 0.0, null)  # Hazards dont trigger thorns
+			# Pass damage type to enemy so it spawns correctly colored damage number
+			body.take_damage(final_damage, global_position, 0.0, 0.0, null, dmg_type)  # Hazards dont trigger thorns
+			damage_applied = true
 
-		body_damaged.emit(body, final_damage)
-		_spawn_damage_number(body, final_damage)
+		# Emit signal if damage was applied
+		if damage_applied:
+			body_damaged.emit(body, final_damage)
 
 func _get_hazard_type_name() -> String:
 	match hazard_type:
@@ -261,9 +261,6 @@ func apply_instant_kill(body: Node2D) -> void:
 	if not is_instance_valid(body):
 		return
 
-	var type_name = _get_hazard_type_name()
-	print("[Hazard] %s INSTANT KILL on %s at position %s!" % [type_name, body.name, global_position])
-
 	# Check for pit immunity (player only)
 	if body.is_in_group("player") and hazard_type == HazardType.DEATH_ZONE:
 		if "stats" in body and body.stats != null:
@@ -275,11 +272,9 @@ func apply_instant_kill(body: Node2D) -> void:
 	body_killed.emit(body)
 
 	if body.has_method("die"):
-		print("[Hazard] Calling die() on %s" % body.name)
 		body.die()
 	elif body.has_method("take_damage"):
 		# Deal massive damage as fallback
-		print("[Hazard] Calling take_damage(9999) on %s" % body.name)
 		if body.is_in_group("player"):
 			body.take_damage(9999.0, global_position)
 		else:
@@ -311,21 +306,24 @@ func _rescue_from_pit(body: Node2D) -> void:
 	# Small screen shake for feedback
 	add_screen_shake(0.2)
 
-	print("[Hazard] Player rescued from pit by Feather Fall!")
-
 func _spawn_damage_number(body: Node2D, damage_amount: float) -> void:
-	var damage_number = DamageNumber.instantiate()
-	damage_number.global_position = body.global_position + Vector2(0, -20)
-	get_tree().current_scene.add_child(damage_number)
-	damage_number.setup(damage_amount)
+	DamageNumberManager.spawn(body.global_position, damage_amount, _get_damage_type())
+
+func _get_damage_type() -> DamageTypes.Type:
+	# Map hazard type to damage type for colored damage numbers
+	match hazard_type:
+		HazardType.ZONE:  # Fire grates
+			return DamageTypes.Type.FIRE
+		HazardType.HIDDEN, HazardType.IMPACT, HazardType.TIMED:  # Spikes, crushers
+			return DamageTypes.Type.SPIKE
+		_:
+			return DamageTypes.Type.PHYSICAL
 
 # ============================================
 # UTILITY
 # ============================================
 func add_screen_shake(trauma_amount: float) -> void:
-	var camera = get_viewport().get_camera_2d()
-	if camera and camera.has_method("add_trauma"):
-		camera.add_trauma(trauma_amount)
+	DamageNumberManager.shake(trauma_amount)
 
 func get_hazard_center() -> Vector2:
 	return global_position

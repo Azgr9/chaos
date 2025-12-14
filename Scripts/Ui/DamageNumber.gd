@@ -23,17 +23,29 @@ func _ready():
 	# Start the float and fade animation
 	_animate()
 
-func setup(damage_amount: float):
+func setup(damage_amount: float, damage_type: DamageTypes.Type = DamageTypes.Type.PHYSICAL):
 	# Set the damage text
 	label.text = str(int(damage_amount))
 
-	# Color based on damage amount (optional)
-	if damage_amount >= 50:
-		label.add_theme_color_override("font_color", Color.ORANGE_RED)
-	elif damage_amount >= 25:
-		label.add_theme_color_override("font_color", Color.ORANGE)
-	else:
-		label.add_theme_color_override("font_color", Color.WHITE)
+	# Get base color from damage type
+	var base_color = DamageTypes.COLORS.get(damage_type, Color.WHITE)
+
+	# For physical damage, also consider damage amount for intensity
+	if damage_type == DamageTypes.Type.PHYSICAL:
+		if damage_amount >= 50:
+			base_color = Color.ORANGE_RED
+		elif damage_amount >= 25:
+			base_color = Color.ORANGE
+
+	# For crits, make them bigger
+	if damage_type == DamageTypes.Type.CRIT:
+		label.scale = Vector2(1.3, 1.3)
+
+	# For heals, show + prefix
+	if damage_type == DamageTypes.Type.HEAL:
+		label.text = "+" + str(int(damage_amount))
+
+	label.add_theme_color_override("font_color", base_color)
 
 func _animate():
 	var tween = create_tween()

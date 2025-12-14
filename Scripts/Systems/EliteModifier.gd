@@ -149,13 +149,16 @@ func _reflect_thorns_damage(attacker: Node2D, damage: float):
 	if not is_instance_valid(attacker):
 		return
 
+	var damage_applied = false
 	if attacker.is_in_group("player"):
-		attacker.take_damage(damage, enemy.global_position if enemy else Vector2.ZERO)
+		damage_applied = attacker.take_damage(damage, enemy.global_position if enemy else Vector2.ZERO)
 	else:
 		attacker.take_damage(damage, enemy.global_position if enemy else Vector2.ZERO, 0.0, 0.0, null)
+		damage_applied = true
 
-	# Visual feedback
-	_create_thorns_effect(attacker.global_position)
+	# Only show visual feedback if damage was actually applied
+	if damage_applied:
+		_create_thorns_effect(attacker.global_position)
 
 func on_deal_damage(amount: float, _target: Node2D):
 	if not is_elite:
@@ -317,9 +320,7 @@ func _create_shield_break_effect():
 		tween.tween_callback(shard.queue_free)
 
 	# Screen shake
-	var camera = get_viewport().get_camera_2d()
-	if camera and camera.has_method("add_trauma"):
-		camera.add_trauma(0.3)
+	DamageNumberManager.shake(0.3)
 
 # ============================================
 # UTILITY

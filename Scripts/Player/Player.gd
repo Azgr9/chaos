@@ -110,10 +110,6 @@ func _physics_process(delta):
 	update_animation()
 
 func handle_input():
-	if Input.is_action_just_pressed("melee_attack"):
-		print("MELEE ATTACK pressed")
-	if Input.is_action_just_pressed("magic_attack"):
-		print("MAGIC ATTACK pressed")
 	# Movement input
 	input_vector = Vector2.ZERO
 	
@@ -330,21 +326,17 @@ func switch_weapon():
 	current_weapon_index = (current_weapon_index + 1) % weapon_inventory.size()
 
 func _on_weapon_broke():
-	print("Weapon broke!")
 	weapon_inventory.erase(current_weapon)
 	current_weapon = null
-	
+
 	if weapon_inventory.size() > 0:
 		current_weapon = weapon_inventory[0]
 		current_weapon_index = 0
-	else:
-		print("No weapons left!")
 
-func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO):
-	# Ignore damage if invulnerable
+func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO) -> bool:
+	# Ignore damage if invulnerable - return false to indicate no damage applied
 	if is_invulnerable:
-		print("Debug: Damage blocked - player is invulnerable")
-		return
+		return false
 
 	# Apply damage reduction from relics
 	var reduced_amount = amount * (1.0 - stats.damage_reduction)
@@ -373,10 +365,12 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO):
 	if is_dead:
 		# Check for Phoenix Feather revive
 		if _try_phoenix_revive():
-			return
+			return true
 
 		player_died.emit()
 		queue_free()
+
+	return true
 
 func _try_phoenix_revive() -> bool:
 	# Check if we already used a revive this run
@@ -396,7 +390,6 @@ func _try_phoenix_revive() -> bool:
 		_phoenix_revive_effect()
 
 		player_revived.emit()
-		print("[Player] Phoenix Feather activated! Revived with %d HP" % int(revive_health))
 		return true
 
 	return false
@@ -512,8 +505,6 @@ func perform_dash():
 	is_invulnerable = true
 	dash_cooldown_timer = dash_cooldown
 
-	print("DEBUG: Started dash! is_dashing=", is_dashing, " is_invulnerable=", is_invulnerable)
-
 	# Visual feedback
 	sprite.modulate = Color(1, 1, 1, 0.5)
 
@@ -555,7 +546,6 @@ func _handle_dash(_delta):
 
 func set_invulnerable(invulnerable: bool):
 	is_invulnerable = invulnerable
-	print("Debug: Player invulnerability set to: ", invulnerable)
 	# Visual feedback - slight transparency when invulnerable
 	if invulnerable:
 		sprite.modulate = Color(1, 1, 1, 0.5)
@@ -564,11 +554,9 @@ func set_invulnerable(invulnerable: bool):
 
 func _debug_kill_all_enemies():
 	var enemies = get_tree().get_nodes_in_group("enemies")
-	var count = enemies.size()
 	for enemy in enemies:
 		if enemy.has_method("take_damage"):
 			enemy.take_damage(9999, Vector2.ZERO, 0.0, 0.0, null)
-	print("Debug: Killed ", count, " enemies")
 
 # ============================================
 # RELIC STATS APPLICATION
@@ -604,15 +592,6 @@ func apply_relic_stats():
 
 	# Apply damage reduction
 	stats.damage_reduction = calculated.damage_reduction
-
-	print("[Player] Applied relic stats: HP=%d, DMG=%.2f, SPD=%.2f, CRIT=%.2f, LS=%.2f, DR=%.2f" % [
-		int(stats.max_health),
-		stats.melee_damage_multiplier,
-		stats.move_speed,
-		stats.crit_chance,
-		stats.lifesteal_amount,
-		stats.damage_reduction
-	])
 
 func _on_relic_stats_changed():
 	var old_max_health = stats.max_health

@@ -442,7 +442,6 @@ func _try_make_elite(enemy: Node2D):
 
 	if randf() < elite_chance:
 		enemy.make_random_elite()
-		print("[WaveManager] Spawned ELITE enemy!")
 
 func _get_spawn_position() -> Vector2:
 	# SAFEGUARD 3: Spatial distribution - get well-distributed angle

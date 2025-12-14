@@ -336,8 +336,6 @@ func _swap_weapon_to_staff():
 	player_reference.current_staff = new_staff
 	player_reference.staff_inventory.append(new_staff)
 
-	print("Lightning Staff equipped! Use right-click to attack, E key for chain lightning ability.")
-
 	# Final reset
 	player_reference.is_attacking = false
 	player_reference.is_magic_attacking = false

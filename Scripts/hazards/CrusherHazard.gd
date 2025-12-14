@@ -126,8 +126,6 @@ func enter_warning_state() -> void:
 		var tween = create_tween()
 		tween.tween_property(shadow, "modulate:a", 0.6, 0.2)
 
-	print("[Crusher] WARNING - slam incoming!")
-
 func _update_warning_visuals(_delta: float) -> void:
 	if not shadow:
 		return
@@ -179,10 +177,10 @@ func _damage_bodies_in_zone() -> void:
 				if body.is_in_group("player"):
 					body.take_damage(crusher_damage, global_position)
 				else:
-					body.take_damage(crusher_damage, global_position, 200.0, 0.3, null)
+					# Pass SPIKE damage type for gray damage numbers
+					body.take_damage(crusher_damage, global_position, 200.0, 0.3, null, DamageTypes.Type.SPIKE)
 
 				body_damaged.emit(body, crusher_damage)
-				print("[Crusher] Crushed %s for %d damage!" % [body.name, int(crusher_damage)])
 
 func enter_down_state() -> void:
 	current_state = CrusherState.DOWN
@@ -210,8 +208,6 @@ func enter_raised_state() -> void:
 	if shadow:
 		shadow.visible = false
 		shadow.scale = Vector2.ONE
-
-	print("[Crusher] Raised and reset")
 
 # ============================================
 # DANGER ZONE DETECTION

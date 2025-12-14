@@ -8,7 +8,6 @@ extends CharacterBody2D
 # ============================================
 # PRELOADED SCENES
 # ============================================
-const DamageNumber = preload("res://Scenes/Ui/DamageNumber.tscn")
 const ChaosCrystal = preload("res://Scenes/Items/ChaosCrystal.tscn")
 
 # ============================================
@@ -19,6 +18,12 @@ const OVERLAP_PUSH_STRENGTH: float = 400.0
 const DEFAULT_KNOCKBACK_POWER: float = 600.0
 const KNOCKBACK_DECAY_RATE: float = 10.0
 const KNOCKBACK_MIN_THRESHOLD: float = 5.0
+
+# Hit flash settings (consistent across all enemies)
+const HIT_FLASH_COLOR: Color = Color(10.0, 10.0, 10.0, 1.0)  # Very bright white
+const HIT_FLASH_DURATION: float = 0.12  # How long the flash lasts
+const HIT_SQUASH_SCALE: Vector2 = Vector2(1.3, 0.7)  # Squash on hit
+const HIT_SQUASH_DURATION: float = 0.25  # Squash recovery time
 
 # ============================================
 # EXPORTED STATS
@@ -64,6 +69,9 @@ var is_elite: bool = false
 
 # Status effects
 var status_effects: StatusEffects = null
+
+# Hit flash state
+var _flash_tween: Tween = null
 
 # ============================================
 # SIGNALS
@@ -118,8 +126,31 @@ func _update_movement(_delta):
 	pass
 
 func _on_damage_taken():
-	# Override for specific damage effects (flash, squash, etc.)
+	# Base hit flash effect - called automatically, subclasses can override for additional effects
+	_play_hit_flash()
+
+func _play_hit_flash():
+	# Kill any existing flash tween to prevent overlap
+	if _flash_tween and _flash_tween.is_valid():
+		_flash_tween.kill()
+
+	# Instant bright white flash
+	modulate = HIT_FLASH_COLOR
+
+	# Always restore to white - prevents color corruption from rapid damage
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(self, "modulate", Color.WHITE, HIT_FLASH_DURATION)
+
+	# Squash effect on visuals pivot if it exists
+	_play_hit_squash()
+
+func _play_hit_squash():
+	# Override in subclasses that have visuals_pivot
 	pass
+
+func _get_visuals_pivot() -> Node2D:
+	# Override in subclasses to return their visuals pivot node
+	return null
 
 func _on_death():
 	# Override for specific death effects
@@ -184,7 +215,7 @@ func _avoid_player_overlap():
 		if knockback_velocity.length() == 0:
 			velocity += push_direction * push_strength * OVERLAP_PUSH_STRENGTH
 
-func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback_power: float = DEFAULT_KNOCKBACK_POWER, stun_duration: float = 0.0, attacker: Node2D = null):
+func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback_power: float = DEFAULT_KNOCKBACK_POWER, stun_duration: float = 0.0, attacker: Node2D = null, damage_type: DamageTypes.Type = DamageTypes.Type.PHYSICAL):
 	if is_dead:
 		return
 
@@ -200,7 +231,7 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback
 	if current_health <= 0:
 		# Show health bar and damage number before death
 		show_health_bar()
-		_spawn_damage_number(final_damage)
+		_spawn_damage_number(final_damage, damage_type)
 		die()
 		return
 
@@ -208,7 +239,7 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback
 	show_health_bar()
 
 	# Spawn damage number
-	_spawn_damage_number(final_damage)
+	_spawn_damage_number(final_damage, damage_type)
 
 	# Apply knockback (only if alive)
 	if from_position != Vector2.ZERO:
@@ -222,11 +253,8 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback
 	# Visual feedback (subclass override)
 	_on_damage_taken()
 
-func _spawn_damage_number(damage_amount: float):
-	var damage_number = DamageNumber.instantiate()
-	damage_number.global_position = global_position
-	get_tree().current_scene.add_child(damage_number)
-	damage_number.setup(damage_amount)
+func _spawn_damage_number(damage_amount: float, damage_type: DamageTypes.Type = DamageTypes.Type.PHYSICAL):
+	DamageNumberManager.spawn(global_position, damage_amount, damage_type)
 
 # ============================================
 # DEATH SYSTEM (Consolidated)
@@ -295,9 +323,7 @@ func _spawn_crystals():
 		get_tree().current_scene.call_deferred("add_child", crystal)
 
 func _add_screen_shake(trauma_amount: float):
-	var camera = get_viewport().get_camera_2d()
-	if camera and camera.has_method("add_trauma"):
-		camera.add_trauma(trauma_amount)
+	DamageNumberManager.shake(trauma_amount)
 
 # ============================================
 # UTILITY

@@ -164,15 +164,14 @@ func _on_animation_finished():
 		_play_directional_animation("idle")
 
 func _on_damage_taken():
-	# Flash white then back to normal (consistent with other enemies)
-	animated_sprite.modulate = Color(3.0, 3.0, 3.0)  # Bright white flash
-	var tween = create_tween()
-	tween.tween_property(animated_sprite, "modulate", Color(1, 1, 1, 1), 0.15)
+	# Call base class flash (handles the bright white modulate flash)
+	super._on_damage_taken()
 
-	# Squash effect
-	visuals_pivot.scale = base_scale * 1.3
+func _play_hit_squash():
+	# Squash effect using base_scale
+	visuals_pivot.scale = base_scale * HIT_SQUASH_SCALE.x
 	var scale_tween = create_tween()
-	scale_tween.tween_property(visuals_pivot, "scale", base_scale, 0.3)\
+	scale_tween.tween_property(visuals_pivot, "scale", base_scale, HIT_SQUASH_DURATION)\
 		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 func _on_death():
@@ -197,10 +196,10 @@ func _on_attack_box_area_entered(area: Area2D):
 		# Play attack animation in current direction
 		_play_directional_animation("attack")
 
-		parent.take_damage(damage, global_position)
-		damage_dealt.emit(damage)
-
-		# Flash effect when hitting
-		animated_sprite.modulate = Color(1.5, 1.5, 0.5)  # Yellow tint
-		var tween = create_tween()
-		tween.tween_property(animated_sprite, "modulate", Color(1, 1, 1, 1), 0.1)
+		var damage_applied = parent.take_damage(damage, global_position)
+		if damage_applied:
+			damage_dealt.emit(damage)
+			# Flash effect when hitting
+			animated_sprite.modulate = Color(1.5, 1.5, 0.5)  # Yellow tint
+			var tween = create_tween()
+			tween.tween_property(animated_sprite, "modulate", Color(1, 1, 1, 1), 0.1)

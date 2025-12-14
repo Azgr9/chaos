@@ -152,6 +152,9 @@ func _show_boss_title():
 # PHASE MANAGEMENT
 # ============================================
 func _on_damage_taken():
+	# Call base class flash (handles the bright white modulate flash)
+	super._on_damage_taken()
+
 	# Check phase transitions
 	var health_percent = current_health / max_health
 
@@ -160,8 +163,13 @@ func _on_damage_taken():
 	elif current_phase == Phase.PHASE_2 and health_percent <= PHASE_3_THRESHOLD:
 		_enter_phase_3()
 
-	# Visual feedback
-	_flash_damage()
+func _play_hit_squash():
+	# Boss squash effect
+	if visuals_pivot:
+		visuals_pivot.scale = HIT_SQUASH_SCALE
+		var scale_tween = create_tween()
+		scale_tween.tween_property(visuals_pivot, "scale", Vector2.ONE, HIT_SQUASH_DURATION)\
+			.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 func _enter_phase_2():
 	current_phase = Phase.PHASE_2
@@ -309,7 +317,9 @@ func _deal_slam_damage():
 
 	var dist = global_position.distance_to(player_reference.global_position)
 	if dist < SLAM_RADIUS:
-		player_reference.take_damage(SLAM_DAMAGE, global_position)
+		var damage_applied = player_reference.take_damage(SLAM_DAMAGE, global_position)
+		if damage_applied:
+			_add_screen_shake(0.3)  # Extra feedback when slam connects
 
 func _create_slam_effect():
 	for i in range(16):
@@ -379,8 +389,9 @@ func _charge_hit_check(duration: float):
 			return
 
 		if player_reference and global_position.distance_to(player_reference.global_position) < 60:
-			player_reference.take_damage(CHARGE_DAMAGE, global_position)
-			_add_screen_shake(0.4)
+			var damage_applied = player_reference.take_damage(CHARGE_DAMAGE, global_position)
+			if damage_applied:
+				_add_screen_shake(0.4)
 			break
 
 func _perform_projectile_attack():
@@ -430,9 +441,11 @@ func _fire_projectile(index: int, total: int):
 
 		# Check player hit
 		if player_reference and projectile.global_position.distance_to(player_reference.global_position) < 30:
-			player_reference.take_damage(PROJECTILE_DAMAGE, projectile.global_position)
-			projectile.queue_free()
-			break
+			var damage_applied = player_reference.take_damage(PROJECTILE_DAMAGE, projectile.global_position)
+			if damage_applied:
+				# Only destroy projectile if damage went through
+				projectile.queue_free()
+				break
 
 	if is_instance_valid(projectile):
 		projectile.queue_free()
@@ -515,12 +528,6 @@ func _create_boss_visuals():
 	# Rotate aura
 	var tween = aura_container.create_tween().set_loops()
 	tween.tween_property(aura_container, "rotation", TAU, 3.0)
-
-func _flash_damage():
-	if body_sprite:
-		body_sprite.color = Color.WHITE
-		var tween = body_sprite.create_tween()
-		tween.tween_property(body_sprite, "color", _get_phase_color(), 0.1)
 
 func _get_phase_color() -> Color:
 	match current_phase:

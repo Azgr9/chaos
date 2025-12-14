@@ -127,17 +127,15 @@ func _on_shoot_timer_timeout():
 	can_shoot = true
 
 func _on_damage_taken():
-	# Flash white
-	sprite.color = Color.WHITE
-	bow.color = Color.WHITE
-	var tween = create_tween()
-	tween.tween_property(sprite, "color", Color("#2d5016"), 0.2)
-	tween.parallel().tween_property(bow, "color", Color("#8B4513"), 0.2)
+	# Call base class flash (handles the bright white modulate flash)
+	super._on_damage_taken()
 
-	# Knockback animation
-	visuals_pivot.scale = Vector2(1.2, 0.8)
+func _play_hit_squash():
+	# Squash effect preserving facing direction
+	var facing = sign(visuals_pivot.scale.x) if visuals_pivot.scale.x != 0 else 1.0
+	visuals_pivot.scale = Vector2(HIT_SQUASH_SCALE.x * facing, HIT_SQUASH_SCALE.y)
 	var scale_tween = create_tween()
-	scale_tween.tween_property(visuals_pivot, "scale", Vector2.ONE, 0.3)\
+	scale_tween.tween_property(visuals_pivot, "scale", Vector2(facing, 1.0), HIT_SQUASH_DURATION)\
 		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 func _on_death():

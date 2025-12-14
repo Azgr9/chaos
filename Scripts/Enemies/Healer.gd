@@ -204,15 +204,15 @@ func _create_heal_effect(target_pos: Vector2):
 	plus_tween.tween_callback(plus.queue_free)
 
 func _on_damage_taken():
-	# Flash white
-	sprite.color = Color.WHITE
-	var tween = create_tween()
-	tween.tween_property(sprite, "color", HEALER_COLOR, 0.15)
+	# Call base class flash (handles the bright white modulate flash)
+	super._on_damage_taken()
 
-	# Squash
-	visuals_pivot.scale = Vector2(1.3, 0.7)
+func _play_hit_squash():
+	# Squash effect preserving facing direction
+	var facing = sign(visuals_pivot.scale.x) if visuals_pivot.scale.x != 0 else 1.0
+	visuals_pivot.scale = Vector2(HIT_SQUASH_SCALE.x * facing, HIT_SQUASH_SCALE.y)
 	var scale_tween = create_tween()
-	scale_tween.tween_property(visuals_pivot, "scale", Vector2.ONE, 0.2)\
+	scale_tween.tween_property(visuals_pivot, "scale", Vector2(facing, 1.0), HIT_SQUASH_DURATION)\
 		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 func _on_death():

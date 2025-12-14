@@ -136,15 +136,22 @@ func apply_impact_damage(body: Node2D) -> void:
 	var knockback_dir = _get_wall_normal()
 
 	# Apply damage with knockback
+	var damage_applied = false
 	if body.has_method("take_damage"):
 		if body.is_in_group("player"):
-			body.take_damage(impact_damage, global_position)
-			# Apply additional knockback for player
-			if body is CharacterBody2D:
+			damage_applied = body.take_damage(impact_damage, global_position)
+			# Apply additional knockback for player only if damage went through
+			if damage_applied and body is CharacterBody2D:
 				body.velocity = knockback_dir * knockback_away_power
 		else:
 			# Enemies get knockback through the damage function
-			body.take_damage(impact_damage, global_position, knockback_away_power, 0.15, null)
+			# Pass SPIKE damage type for gray damage numbers
+			body.take_damage(impact_damage, global_position, knockback_away_power, 0.15, null, DamageTypes.Type.SPIKE)
+			damage_applied = true
+
+	# Only do effects if damage was actually applied
+	if not damage_applied:
+		return
 
 	# Emit signal
 	body_damaged.emit(body, impact_damage)
@@ -154,8 +161,6 @@ func apply_impact_damage(body: Node2D) -> void:
 
 	# Screen shake
 	add_screen_shake(0.3)
-
-	print("[SpikeWall] Impact! Dealt %d damage to %s" % [int(impact_damage), body.name])
 
 func _play_impact_effect(body: Node2D) -> void:
 	# Flash the spikes red

@@ -96,8 +96,6 @@ func spawn_hazards_for_wave(wave_number: int) -> void:
 	if wave_number > 5:
 		hazard_count = min(6 + (wave_number - 5), 10)  # Cap at 10 hazards
 
-	print("[HazardManager] Spawning %d hazards for wave %d" % [hazard_count, wave_number])
-
 	# Spawn hazards
 	for i in range(hazard_count):
 		var hazard_type = get_random_hazard_type(available_types)
@@ -105,8 +103,6 @@ func spawn_hazards_for_wave(wave_number: int) -> void:
 
 		if spawn_pos != Vector2.INF:
 			_spawn_hazard(hazard_type, spawn_pos)
-		else:
-			print("[HazardManager] Warning: Could not find valid position for hazard %d" % i)
 
 	hazards_spawned.emit(active_hazards.size())
 
@@ -117,7 +113,6 @@ func clear_all_hazards() -> void:
 
 	active_hazards.clear()
 	hazards_cleared.emit()
-	print("[HazardManager] Cleared all hazards")
 
 func set_player_reference(player: Node2D) -> void:
 	player_reference = player
@@ -127,12 +122,12 @@ func set_player_reference(player: Node2D) -> void:
 # ============================================
 func _spawn_hazard(hazard_type: String, position: Vector2) -> Hazard:
 	if not hazard_scenes.has(hazard_type):
-		print("[HazardManager] Error: Unknown hazard type '%s'" % hazard_type)
+		push_warning("[HazardManager] Unknown hazard type '%s'" % hazard_type)
 		return null
 
 	var hazard_scene = hazard_scenes[hazard_type]
 	if hazard_scene == null:
-		print("[HazardManager] Warning: Scene not loaded for '%s'" % hazard_type)
+		push_warning("[HazardManager] Scene not loaded for '%s'" % hazard_type)
 		return null
 
 	var hazard = hazard_scene.instantiate() as Hazard
@@ -146,7 +141,6 @@ func _spawn_hazard(hazard_type: String, position: Vector2) -> Hazard:
 		if hazard.hazard_type == Hazard.HazardType.DEATH_ZONE:
 			hazard.add_to_group("death_zone_hazards")
 
-		print("[HazardManager] Spawned %s at %s" % [hazard_type, position])
 		return hazard
 
 	return null

@@ -125,18 +125,21 @@ func apply_tick_damage(body: Node2D) -> void:
 	if final_damage <= 0:
 		return
 
+	var damage_applied = false
 	if body.has_method("take_damage"):
 		if body.is_in_group("player"):
-			body.take_damage(final_damage, global_position)
+			damage_applied = body.take_damage(final_damage, global_position)
+			# Spawn fire damage number for player (player doesn't spawn its own)
+			if damage_applied and randf() < 0.5:
+				_spawn_fire_damage_number(body, final_damage)
 		else:
-			body.take_damage(final_damage, Vector2.ZERO, 0.0, 0.0, null)
+			# Pass FIRE damage type to enemy so it spawns orange damage number
+			body.take_damage(final_damage, Vector2.ZERO, 0.0, 0.0, null, DamageTypes.Type.FIRE)
+			damage_applied = true
 
+	# Only show effects if damage was actually applied
+	if damage_applied:
 		body_damaged.emit(body, final_damage)
-
-		# Show damage number (less frequently to avoid spam)
-		if randf() < 0.5:
-			_spawn_fire_damage_number(body, final_damage)
-
 		_play_sizzle_effect(body)
 
 func _calculate_fire_damage(body: Node2D, base_damage: float) -> float:
@@ -160,32 +163,12 @@ func _calculate_fire_damage(body: Node2D, base_damage: float) -> float:
 	return final_damage
 
 func _spawn_fire_damage_number(body: Node2D, damage_amount: float) -> void:
-	var damage_number = DamageNumber.instantiate()
-	damage_number.global_position = body.global_position + Vector2(randf_range(-10, 10), -20)
-	get_tree().current_scene.add_child(damage_number)
-	damage_number.setup(damage_amount)
+	DamageNumberManager.spawn(body.global_position, damage_amount, DamageTypes.Type.FIRE)
 
-	# Tint the damage number orange for fire damage
-	damage_number.modulate = Color(1, 0.6, 0.2, 1)
-
-func _play_sizzle_effect(body: Node2D) -> void:
-	# Brief orange flash on the body
-	var visual_node = _get_visual_node(body)
-	if visual_node and is_instance_valid(visual_node):
-		# Only flash if not already being modified
-		var original_modulate = visual_node.modulate
-		visual_node.modulate = Color(1, 0.7, 0.4, original_modulate.a)
-
-		# Quick return to normal
-		var tween = create_tween()
-		tween.tween_property(visual_node, "modulate", original_modulate, 0.15)
-
-func _get_visual_node(body: Node2D) -> Node2D:
-	if body.has_node("VisualsPivot"):
-		return body.get_node("VisualsPivot")
-	if body.has_node("Sprite2D"):
-		return body.get_node("Sprite2D")
-	return body
+func _play_sizzle_effect(_body: Node2D) -> void:
+	# Disabled - was causing permanent color changes due to overlapping tweens
+	# The orange damage numbers provide enough visual feedback
+	pass
 
 # ============================================
 # UTILITY

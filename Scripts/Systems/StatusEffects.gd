@@ -130,14 +130,14 @@ func _trigger_effect_tick(effect: StatusEffect):
 	match effect.type:
 		EffectType.BURN:
 			var burn_damage = BURN_DAMAGE_PER_STACK * effect.stacks
-			_deal_effect_damage(burn_damage, Color(1, 0.4, 0.1))
+			_deal_effect_damage(burn_damage, EffectType.BURN)
 			effect_triggered.emit(EffectType.BURN, burn_damage)
 
 		EffectType.BLEED:
 			var bleed_damage = BLEED_BASE_DAMAGE * effect.stacks
 			bleed_damage += distance_moved * BLEED_MOVEMENT_MULTIPLIER * effect.stacks
 			distance_moved = 0.0  # Reset distance
-			_deal_effect_damage(bleed_damage, Color(0.8, 0.1, 0.1))
+			_deal_effect_damage(bleed_damage, EffectType.BLEED)
 			effect_triggered.emit(EffectType.BLEED, bleed_damage)
 
 		EffectType.SHOCK:
@@ -235,27 +235,40 @@ func _get_duration(effect_type: EffectType) -> float:
 		EffectType.BLEED: return BLEED_DURATION
 	return 2.0
 
-func _deal_effect_damage(amount: float, color: Color):
+func _deal_effect_damage(amount: float, effect_type: EffectType):
 	if not target or not is_instance_valid(target):
 		return
+
+	# Map status effect type to damage type
+	var damage_type = _get_damage_type_for_effect(effect_type)
 
 	if target.has_method("take_damage"):
 		if target.is_in_group("player"):
 			target.take_damage(amount, Vector2.ZERO)
+			# Spawn colored damage number for player (player doesn't spawn its own)
+			_spawn_effect_damage_number(amount, effect_type)
 		else:
-			# Pass null as attacker - status effects don't trigger thorns
-			target.take_damage(amount, Vector2.ZERO, 0.0, 0.0, null)
+			# Pass damage type to enemy so it spawns correctly colored damage number
+			target.take_damage(amount, Vector2.ZERO, 0.0, 0.0, null, damage_type)
 
-	# Spawn colored damage number
-	_spawn_effect_damage_number(amount, color)
+func _get_damage_type_for_effect(effect_type: EffectType) -> DamageTypes.Type:
+	match effect_type:
+		EffectType.BURN:
+			return DamageTypes.Type.FIRE
+		EffectType.SHOCK:
+			return DamageTypes.Type.ELECTRIC
+		EffectType.BLEED:
+			return DamageTypes.Type.BLEED
+		EffectType.CHILL:
+			return DamageTypes.Type.ELECTRIC
+	return DamageTypes.Type.PHYSICAL
 
-func _spawn_effect_damage_number(amount: float, color: Color):
-	var DamageNumber = preload("res://Scenes/Ui/DamageNumber.tscn")
-	var damage_number = DamageNumber.instantiate()
-	damage_number.global_position = target.global_position + Vector2(randf_range(-15, 15), -30)
-	get_tree().current_scene.add_child(damage_number)
-	damage_number.setup(amount)
-	damage_number.modulate = color
+func _spawn_effect_damage_number(amount: float, effect_type: EffectType):
+	if not target or not is_instance_valid(target):
+		return
+
+	var damage_type = _get_damage_type_for_effect(effect_type)
+	DamageNumberManager.spawn(target.global_position, amount, damage_type)
 
 # ============================================
 # CHILL / FREEZE
@@ -351,7 +364,8 @@ func _trigger_shock_chain(_effect: StatusEffect):
 			if closest.is_in_group("player"):
 				closest.take_damage(SHOCK_CHAIN_DAMAGE, target.global_position)
 			else:
-				closest.take_damage(SHOCK_CHAIN_DAMAGE, target.global_position, 100.0, 0.1, null)
+				# Pass ELECTRIC damage type for cyan damage numbers
+				closest.take_damage(SHOCK_CHAIN_DAMAGE, target.global_position, 100.0, 0.1, null, DamageTypes.Type.ELECTRIC)
 
 		# Visual lightning
 		_create_lightning_visual(target.global_position, closest.global_position)
