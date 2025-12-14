@@ -187,34 +187,46 @@ func update_facing_direction():
 	# During attack, face mouse direction
 	if is_attacking:
 		facing_direction = to_mouse
-		# Only rotate the weapon being used - limit rotation to 45 degrees
-		if is_melee_attacking:
-			var target_angle = facing_direction.angle()
-			weapon_pivot.rotation = clamp(target_angle, -PI/4, PI/4)
-		elif is_magic_attacking:
+		# Only rotate staff pivot during magic attacks - melee weapon handles its own animation
+		if is_magic_attacking:
 			var target_angle = facing_direction.angle()
 			staff_pivot.rotation = clamp(target_angle, -PI/4, PI/4)
+		# Don't touch weapon_pivot during melee attack - animation handles direction
 	# While moving, face movement direction
 	elif is_moving:
 		facing_direction = last_direction
 	# When idle, keep last facing direction
 
-	# Update visual facing (flip sprite AND weapon pivots)
+	# Update visual facing (flip sprite)
 	if facing_direction.x < 0:
 		visuals_pivot.scale.x = -1
-		# Mirror weapon pivots so they switch sides
-		# Sword goes to LEFT (facing direction), Staff goes to RIGHT (back)
-		weapon_pivot.scale.x = -1
-		staff_pivot.scale.x = -1
 	else:
 		visuals_pivot.scale.x = 1
-		# Normal - Sword on RIGHT (facing direction), Staff on LEFT (back)
-		weapon_pivot.scale.x = 1
+
+	# Weapon pivot flipping - only when NOT melee attacking
+	# During melee attack, the animation handles all directions via current_attack_direction
+	if is_melee_attacking:
+		weapon_pivot.scale.x = 1  # Keep normal scale during attack
+		weapon_pivot.rotation = 0  # Animation controls pivot rotation
+		# Position weapon slightly away from player center in attack direction
+		# This makes the sword swing farther from the player body
+		weapon_holder.position = facing_direction * 55
+	else:
+		# Normal idle/movement - weapon follows player facing
+		if facing_direction.x < 0:
+			weapon_pivot.scale.x = -1
+		else:
+			weapon_pivot.scale.x = 1
+		weapon_pivot.rotation = 0
+		# Return weapon to side position when not attacking
+		weapon_holder.position = Vector2(40, 24)
+
+	# Staff pivot always follows facing direction
+	if facing_direction.x < 0:
+		staff_pivot.scale.x = -1
+	else:
 		staff_pivot.scale.x = 1
 
-	# Keep weapons horizontal when not attacking
-	if not is_melee_attacking:
-		weapon_pivot.rotation = 0
 	if not is_magic_attacking:
 		staff_pivot.rotation = 0
 
@@ -255,7 +267,9 @@ func perform_melee_attack():
 
 		# Face the attack direction immediately
 		facing_direction = attack_direction
-		weapon_pivot.rotation = attack_direction.angle()
+		# Don't rotate weapon_pivot - let the weapon animation handle its own rotation
+		# The weapon uses current_attack_direction internally for direction-aware animations
+		weapon_pivot.rotation = 0
 
 		# Perform the SWORD attack
 		current_weapon.attack(attack_direction, stats.melee_damage_multiplier)

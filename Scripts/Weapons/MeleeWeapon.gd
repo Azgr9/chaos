@@ -65,6 +65,7 @@ var damage_multiplier: float = 1.0
 var hits_this_swing: Array = []
 var active_attack_tween: Tween = null
 var player_reference: Node2D = null
+var current_attack_direction: Vector2 = Vector2.RIGHT  # Track attack direction for animations
 
 # Combo state
 var combo_count: int = 0
@@ -137,11 +138,11 @@ func _setup_idle_state():
 
 func _get_attack_pattern(attack_index: int) -> String:
 	# Override to define combo attack sequence
-	# Return: "horizontal", "horizontal_reverse", "overhead", "stab"
+	# Simple 3-hit combo: left-right, right-left, left-right
 	match attack_index:
-		1: return "horizontal"
-		2: return "horizontal_reverse"
-		3: return "overhead"
+		1: return "horizontal"           # Left to right
+		2: return "horizontal_reverse"   # Right to left
+		3: return "horizontal"           # Left to right (finisher)
 		_: return "horizontal"
 
 func _perform_skill() -> bool:
@@ -209,13 +210,16 @@ func get_skill_cooldown_percent() -> float:
 # ============================================
 # ATTACK SYSTEM
 # ============================================
-func attack(_direction: Vector2, player_damage_multiplier: float = 1.0) -> bool:
+func attack(direction: Vector2, player_damage_multiplier: float = 1.0) -> bool:
 	if not can_attack or is_attacking:
 		return false
 
 	# Set flags immediately to prevent race conditions
 	can_attack = false
 	is_attacking = true
+
+	# Store attack direction for animations
+	current_attack_direction = direction.normalized() if direction.length() > 0 else Vector2.RIGHT
 
 	damage_multiplier = player_damage_multiplier
 	hits_this_swing.clear()
@@ -270,52 +274,46 @@ func _perform_attack_animation(pattern: String, duration: float, is_dash_attack:
 
 func _animate_horizontal_swing(duration: float, is_dash_attack: bool, reverse: bool):
 	active_attack_tween = create_tween()
-	active_attack_tween.set_parallel(true)
 
-	# Scale up
-	active_attack_tween.tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)
+	# Get the base angle from attack direction
+	# The sword sprite points UP (negative Y), so we need to add 90 degrees
+	# to make it point in the attack direction
+	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
 
-	# Calculate angles
+	# Simple arc swing: 150 degree total arc centered on attack direction
+	var half_arc = 75.0
+
 	var start_angle: float
 	var end_angle: float
-	var start_pos: Vector2
-	var end_pos: Vector2
 
 	if reverse:
-		start_angle = 90
-		end_angle = -90
-		start_pos = Vector2(32, 0)
-		end_pos = Vector2(-32, 0)
+		# Right to left
+		start_angle = base_angle + half_arc
+		end_angle = base_angle - half_arc
 	else:
-		start_angle = -90
-		end_angle = 90
-		start_pos = Vector2(-32, 0)
-		end_pos = Vector2(32, 0)
+		# Left to right
+		start_angle = base_angle - half_arc
+		end_angle = base_angle + half_arc
 
+	# Set starting state
 	pivot.rotation = deg_to_rad(start_angle)
-	pivot.position = start_pos
+	pivot.position = Vector2.ZERO
+	sprite.scale = Vector2.ONE
 
-	active_attack_tween.set_parallel(false)
-
-	# Anticipation
-	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(start_angle + (-10 if not reverse else 10)), duration * 0.2)
+	# Anticipation - small wind up
+	var windup_angle = start_angle + (-10 if not reverse else 10)
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(windup_angle), duration * 0.15)
 
 	# Enable hitbox
 	active_attack_tween.tween_callback(_enable_hitbox.bind(is_combo_finisher(), is_dash_attack))
 
-	# Main swing
-	var stretch = 0.6 if is_combo_finisher() else 0.7
-	sprite.scale.y = stretch
+	# Main swing - fast arc
 	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(end_angle), duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	active_attack_tween.parallel().tween_property(pivot, "position", end_pos, duration * 0.5)
-
-	# Reset scale
-	active_attack_tween.parallel().tween_property(sprite, "scale:y", 1.0, duration * 0.3)\
-		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 	# Follow through
-	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(end_angle + (10 if not reverse else -10)), duration * 0.3)
+	var followthrough_angle = end_angle + (10 if not reverse else -10)
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(followthrough_angle), duration * 0.2)
 
 	# Disable hitbox and return to idle
 	active_attack_tween.tween_callback(_disable_hitbox)
@@ -323,73 +321,65 @@ func _animate_horizontal_swing(duration: float, is_dash_attack: bool, reverse: b
 
 func _animate_overhead_swing(duration: float, is_dash_attack: bool):
 	active_attack_tween = create_tween()
-	active_attack_tween.set_parallel(true)
 
-	active_attack_tween.tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)
+	# Get the base angle from attack direction (add 90 for sprite orientation)
+	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
 
-	pivot.rotation = deg_to_rad(-120)
-	pivot.position = Vector2(-20, -40)
+	# Third hit: same arc pattern, slightly wider for finisher feel
+	var half_arc = 85.0
 
-	active_attack_tween.set_parallel(false)
+	# Left to right (same as first hit)
+	var start_angle = base_angle - half_arc
+	var end_angle = base_angle + half_arc
 
-	# Anticipation
-	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(-130), duration * 0.2)
-	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(-32, -48), duration * 0.2)
+	pivot.rotation = deg_to_rad(start_angle)
+	pivot.position = Vector2.ZERO
+	sprite.scale = Vector2.ONE
+
+	# Anticipation - wind up
+	var windup_angle = start_angle - 15
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(windup_angle), duration * 0.15)
 
 	# Enable hitbox
 	active_attack_tween.tween_callback(_enable_hitbox.bind(is_combo_finisher(), is_dash_attack))
 
-	# Main swing
-	var stretch = 1.7 if is_combo_finisher() else 1.5
-	sprite.scale = Vector2(stretch, 0.6)
-	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(70), duration * 0.5)\
-		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	active_attack_tween.parallel().tween_property(pivot, "position", Vector2(20, 20), duration * 0.5)\
+	# Main swing - powerful arc
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(end_angle), duration * 0.5)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-	# Reset scale
-	active_attack_tween.parallel().tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)\
-		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-
-	# Follow through
-	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(90), duration * 0.3)\
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	# Follow through - extra for finisher
+	var followthrough_angle = end_angle + 20
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(followthrough_angle), duration * 0.2)
 
 	active_attack_tween.tween_callback(_disable_hitbox)
 	_tween_to_idle(active_attack_tween)
 
 func _animate_stab(duration: float, _is_dash_attack: bool):
 	active_attack_tween = create_tween()
-	active_attack_tween.set_parallel(true)
 
-	active_attack_tween.tween_property(sprite, "scale", Vector2.ONE, duration * 0.3)
+	# Get the base angle (add 90 for sprite orientation)
+	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
 
-	pivot.rotation = 0
-	pivot.position = Vector2(-60, 0)
+	# Stab: point at target and thrust forward
+	pivot.rotation = deg_to_rad(base_angle)
+	pivot.position = Vector2.ZERO
+	sprite.scale = Vector2.ONE
 
-	active_attack_tween.set_parallel(false)
-
-	# Pull back
-	active_attack_tween.tween_property(pivot, "position", Vector2(-80, 0), duration * 0.2)
+	# Pull back slightly
+	var pullback_pos = current_attack_direction * -30
+	active_attack_tween.tween_property(pivot, "position", pullback_pos, duration * 0.15)
 
 	# Enable hitbox
 	active_attack_tween.tween_callback(_enable_hitbox.bind(is_combo_finisher(), false))
 
-	# Thrust
-	var thrust_distance = 140.0 if is_combo_finisher() else 112.0
-	active_attack_tween.tween_property(pivot, "position", Vector2(thrust_distance, 0), duration * 0.35)\
+	# Thrust forward
+	var thrust_distance = 80.0 if is_combo_finisher() else 60.0
+	var thrust_pos = current_attack_direction * thrust_distance
+	active_attack_tween.tween_property(pivot, "position", thrust_pos, duration * 0.4)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-	var stretch = 2.2 if is_combo_finisher() else 1.8
-	active_attack_tween.parallel().tween_property(sprite, "scale:x", stretch, duration * 0.15)
-
-	# Hold
-	active_attack_tween.tween_interval(duration * 0.15)
-
-	# Snap back
-	active_attack_tween.tween_property(sprite, "scale:x", 1.0, duration * 0.15)\
-		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	active_attack_tween.tween_property(pivot, "position", Vector2.ZERO, duration * 0.2)
+	# Return
+	active_attack_tween.tween_property(pivot, "position", Vector2.ZERO, duration * 0.3)
 
 	active_attack_tween.tween_callback(_disable_hitbox)
 	_tween_to_idle(active_attack_tween)
