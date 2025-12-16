@@ -19,20 +19,21 @@ var all_relics: Array = []
 # Dynamic UI containers
 var content_container: VBoxContainer = null
 var tab_button_container: HBoxContainer = null
+var gold_display_label: Label = null
+var stats_preview_label: Label = null
 
-# Training stat info
+# Training stat info (matches SaveManager.TRAINING_BONUSES)
 const TRAINING_INFO = {
-	"vitality": {"display_name": "Vitality", "color": Color(0.8, 0.3, 0.3), "bonus": "+20 HP"},
-	"strength": {"display_name": "Strength", "color": Color(0.9, 0.5, 0.2), "bonus": "+5% Dmg"},
-	"agility": {"display_name": "Agility", "color": Color(0.3, 0.8, 0.4), "bonus": "+4% Spd"},
-	"reflexes": {"display_name": "Reflexes", "color": Color(0.3, 0.6, 0.9), "bonus": "-5% CD"},
-	"fortune": {"display_name": "Fortune", "color": Color(0.9, 0.8, 0.2), "bonus": "+20 Gold"}
+	"vitality": {"display_name": "Vitality", "color": Color(0.8, 0.3, 0.3), "bonus": "+15 HP"},
+	"strength": {"display_name": "Strength", "color": Color(0.9, 0.5, 0.2), "bonus": "+6% Dmg"},
+	"agility": {"display_name": "Agility", "color": Color(0.3, 0.8, 0.4), "bonus": "+5% Spd"},
+	"reflexes": {"display_name": "Reflexes", "color": Color(0.3, 0.6, 0.9), "bonus": "-4% CD"},
+	"fortune": {"display_name": "Fortune", "color": Color(0.9, 0.8, 0.2), "bonus": "+10 Gold"}
 }
 
 # Enemy info for bestiary
 const ENEMY_INFO = {
 	"slime": {"emoji": "🟢", "color": Color(0.0, 1.0, 0.0), "name": "Slime"},
-	"imp": {"emoji": "👿", "color": Color(0.6, 0.1, 0.2), "name": "Imp"},
 	"goblin_archer": {"emoji": "🏹", "color": Color(0.18, 0.31, 0.09), "name": "Goblin Archer"},
 	"healer": {"emoji": "✚", "color": Color(0.2, 0.8, 0.4), "name": "Healer"},
 	"spawner": {"emoji": "👁️", "color": Color(0.5, 0.2, 0.6), "name": "Spawner"},
@@ -123,12 +124,12 @@ func _create_header() -> HBoxContainer:
 	header.add_child(title)
 
 	# Gold display
-	var gold = Label.new()
-	gold.name = "GoldDisplay"
-	gold.text = "💰 %d" % SaveManager.get_gold()
-	gold.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
-	gold.add_theme_font_size_override("font_size", 24)
-	header.add_child(gold)
+	gold_display_label = Label.new()
+	gold_display_label.name = "GoldDisplay"
+	gold_display_label.text = "💰 %d" % SaveManager.get_gold()
+	gold_display_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
+	gold_display_label.add_theme_font_size_override("font_size", 24)
+	header.add_child(gold_display_label)
 
 	return header
 
@@ -184,9 +185,16 @@ func _switch_tab(tab_id: String):
 		else:
 			btn.modulate = Color(0.6, 0.6, 0.6)
 
+	# Clear old references before freeing nodes
+	training_rows.clear()
+	stats_preview_label = null
+
 	# Clear content
 	for child in content_container.get_children():
 		child.queue_free()
+
+	# Wait for nodes to be freed before building new content
+	await get_tree().process_frame
 
 	# Build tab content
 	match tab_id:
@@ -298,12 +306,85 @@ func _build_training_tab():
 
 	vbox.add_child(HSeparator.new())
 
+	# Current stats preview panel
+	var stats_panel = PanelContainer.new()
+	var stats_style = StyleBoxFlat.new()
+	stats_style.bg_color = Color(0.12, 0.1, 0.15)
+	stats_style.border_color = Color(0.3, 0.25, 0.4)
+	stats_style.set_border_width_all(1)
+	stats_style.set_corner_radius_all(6)
+	stats_style.content_margin_left = 15
+	stats_style.content_margin_right = 15
+	stats_style.content_margin_top = 10
+	stats_style.content_margin_bottom = 10
+	stats_panel.add_theme_stylebox_override("panel", stats_style)
+	vbox.add_child(stats_panel)
+
+	var stats_vbox = VBoxContainer.new()
+	stats_vbox.add_theme_constant_override("separation", 5)
+	stats_panel.add_child(stats_vbox)
+
+	var stats_title = Label.new()
+	stats_title.text = "Your Starting Stats"
+	stats_title.add_theme_font_size_override("font_size", 16)
+	stats_title.add_theme_color_override("font_color", Color(0.8, 0.7, 0.5))
+	stats_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stats_vbox.add_child(stats_title)
+
+	stats_preview_label = Label.new()
+	stats_preview_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stats_preview_label.add_theme_font_size_override("font_size", 15)
+	stats_preview_label.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6))
+	stats_vbox.add_child(stats_preview_label)
+	_update_stats_preview()
+
+	vbox.add_child(HSeparator.new())
+
 	# Training rows
 	training_rows.clear()
 	for stat_name in ["vitality", "strength", "agility", "reflexes", "fortune"]:
 		var row = _create_training_row(stat_name)
 		vbox.add_child(row)
 		training_rows[stat_name] = row
+
+	vbox.add_child(HSeparator.new())
+
+	# Reset Training Button
+	var reset_container = HBoxContainer.new()
+	reset_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_child(reset_container)
+
+	var reset_btn = Button.new()
+	reset_btn.text = "Reset Training & Refund Gold"
+	reset_btn.custom_minimum_size = Vector2(250, 40)
+	reset_btn.pressed.connect(_on_reset_training_pressed)
+
+	# Style it red to indicate caution
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.4, 0.1, 0.1)
+	style.border_color = Color(0.8, 0.2, 0.2)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	reset_btn.add_theme_stylebox_override("normal", style)
+
+	var hover_style = style.duplicate()
+	hover_style.bg_color = Color(0.6, 0.15, 0.15)
+	reset_btn.add_theme_stylebox_override("hover", hover_style)
+
+	reset_container.add_child(reset_btn)
+
+func _update_stats_preview():
+	if not stats_preview_label or not is_instance_valid(stats_preview_label):
+		return
+	var base_health = 100 + SaveManager.get_training_bonus("vitality")
+	var damage_bonus = SaveManager.get_training_bonus("strength") * 100
+	var speed_bonus = SaveManager.get_training_bonus("agility") * 100
+	var cd_reduction = SaveManager.get_training_bonus("reflexes") * 100
+	var starting_gold = int(SaveManager.get_training_bonus("fortune"))
+
+	stats_preview_label.text = "❤️ %d HP  |  ⚔️ +%.0f%% Dmg  |  👟 +%.0f%% Spd  |  ⏱️ -%.0f%% CD  |  💰 %d Gold" % [
+		base_health, damage_bonus, speed_bonus, cd_reduction, starting_gold
+	]
 
 func _create_training_row(stat_name: String) -> HBoxContainer:
 	var info = TRAINING_INFO[stat_name]
@@ -354,7 +435,55 @@ func _create_training_row(stat_name: String) -> HBoxContainer:
 
 func _on_training_upgrade(stat_name: String):
 	if SaveManager.upgrade_training(stat_name):
-		_build_training_tab()  # Rebuild to update
+		_update_training_row(stat_name)
+		_update_stats_preview()
+
+func _on_reset_training_pressed():
+	var refund = SaveManager.reset_training_and_refund()
+	if refund > 0:
+		print("[Base] Reset training, refunded %d gold" % refund)
+	# Update all training rows
+	for stat in training_rows:
+		_update_training_row(stat)
+	_update_stats_preview()
+
+func _update_training_row(stat_name: String):
+	if not training_rows.has(stat_name):
+		return
+	var row = training_rows[stat_name]
+	if not is_instance_valid(row):
+		return
+
+	var level = SaveManager.get_training_level(stat_name)
+	var cost = SaveManager.get_training_cost(stat_name)
+
+	var level_label = row.get_node_or_null("Level")
+	if level_label and is_instance_valid(level_label):
+		level_label.text = "Lv. %d/5" % level
+
+	var btn = row.get_node_or_null("UpgradeBtn")
+	if btn and is_instance_valid(btn):
+		if cost < 0:
+			btn.text = "MAX"
+			btn.disabled = true
+		else:
+			btn.text = "%d 💰" % cost
+			btn.disabled = SaveManager.get_gold() < cost
+
+func _update_training_buttons():
+	# Only update button enabled states based on gold
+	# Check if we're on the training tab and nodes are valid
+	if current_tab != "training" or training_rows.is_empty():
+		return
+
+	for stat_name in training_rows:
+		var row = training_rows[stat_name]
+		if not is_instance_valid(row):
+			continue
+		var cost = SaveManager.get_training_cost(stat_name)
+		var btn = row.get_node_or_null("UpgradeBtn")
+		if btn and is_instance_valid(btn) and cost >= 0:
+			btn.disabled = SaveManager.get_gold() < cost
 
 # ============================================
 # RELICS TAB
@@ -450,7 +579,8 @@ func _create_relic_card(relic: Resource) -> PanelContainer:
 func _on_unlock_relic(relic: Resource):
 	if SaveManager.spend_gold(relic.unlock_cost):
 		SaveManager.unlock_relic(relic.id)
-		_build_relics_tab()  # Rebuild
+		# Rebuild the relics tab properly through switch_tab
+		_switch_tab("relics")
 
 # ============================================
 # BESTIARY TAB
@@ -625,12 +755,11 @@ func _build_stats_tab():
 
 func _on_gold_changed(new_amount: int):
 	# Update gold display in header
-	var gold_label = get_node_or_null("MarginContainer/HBoxContainer/GoldDisplay")
-	if gold_label:
-		gold_label.text = "💰 %d" % new_amount
+	if gold_display_label and is_instance_valid(gold_display_label):
+		gold_display_label.text = "💰 %d" % new_amount
 
-	# Rebuild current tab to update buttons
-	_switch_tab(current_tab)
+	# Update training button states without full rebuild
+	_update_training_buttons()
 
 func _on_enter_arena_pressed():
 	RunManager.start_new_run()

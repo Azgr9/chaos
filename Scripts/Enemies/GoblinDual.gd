@@ -16,8 +16,13 @@ const ATTACK_RANGE: float = 50.0
 # Attack cooldown
 const ATTACK_COOLDOWN: float = 0.8
 
-# Hit squash duration
-const HIT_SQUASH_DURATION: float = 0.15
+# Dash settings
+const DASH_COOLDOWN: float = 8.0
+const DASH_SPEED: float = 650.0
+const DASH_DURATION: float = 0.25
+const DASH_MIN_RANGE: float = 180.0  # Start dashing from further away
+const DASH_MAX_RANGE: float = 280.0  # Maximum distance to dash
+const DASH_STOP_DISTANCE: float = 100.0  # Stop dash far from player (gives player reaction time)
 
 # ============================================
 # NODES
@@ -35,6 +40,13 @@ var can_attack: bool = true
 var attack_timer: float = 0.0
 var player_in_attack_range: bool = false
 var direction_locked: bool = false  # Lock direction during/after attack to prevent jitter
+
+# Dash state
+var can_dash: bool = true
+var dash_timer: float = 0.0
+var is_dashing: bool = false
+var dash_direction: Vector2 = Vector2.ZERO
+var dash_time_remaining: float = 0.0
 
 func _setup_enemy():
 	# Stats loaded from scene file
@@ -63,6 +75,18 @@ func _physics_process(delta):
 			if player_in_attack_range:
 				_do_attack()
 
+	# Handle dash cooldown
+	if not can_dash:
+		dash_timer -= delta
+		if dash_timer <= 0:
+			can_dash = true
+
+	# Handle active dash
+	if is_dashing:
+		dash_time_remaining -= delta
+		if dash_time_remaining <= 0:
+			_end_dash()
+
 	# Handle animation pause during hitstun
 	if is_stunned:
 		animated_sprite.pause()
@@ -78,11 +102,26 @@ func _update_movement(_delta):
 	if knockback_velocity.length() > 0:
 		return
 
+	# If dashing, use dash velocity but stop before reaching player
+	if is_dashing:
+		var dist_to_player = global_position.distance_to(player_reference.global_position)
+		if dist_to_player <= DASH_STOP_DISTANCE:
+			# Close enough, end dash early
+			_end_dash()
+		else:
+			velocity = dash_direction * DASH_SPEED
+		return
+
 	var distance_to_player = global_position.distance_to(player_reference.global_position)
 	var direction_to_player = (player_reference.global_position - global_position).normalized()
 
 	# Update facing direction based on movement
 	_update_direction(direction_to_player)
+
+	# Try to dash if within sweet spot range and can dash
+	if can_dash and distance_to_player >= DASH_MIN_RANGE and distance_to_player <= DASH_MAX_RANGE and not is_attacking_anim:
+		_start_dash(direction_to_player)
+		return
 
 	# If close enough, stop and attack - otherwise move toward player
 	if distance_to_player <= ATTACK_RANGE:
@@ -157,6 +196,12 @@ func _play_hit_squash():
 func _on_death():
 	set_physics_process(false)
 
+	# End dash if active (stops trail creation)
+	is_dashing = false
+
+	# Reset modulate in case we died mid-dash (was green tinted)
+	animated_sprite.modulate = Color.WHITE
+
 	# Expand and fade (like Slime)
 	var tween = create_tween()
 	tween.tween_property(visuals_pivot, "scale", Vector2(2.0, 2.0), 0.3)
@@ -208,3 +253,48 @@ func _do_attack():
 				var tween = create_tween()
 				tween.tween_property(animated_sprite, "modulate", Color.WHITE, 0.1)
 			break
+
+func _start_dash(direction: Vector2):
+	is_dashing = true
+	can_dash = false
+	dash_direction = direction
+	dash_time_remaining = DASH_DURATION
+	dash_timer = DASH_COOLDOWN
+
+	# Visual feedback - green tint and stretch
+	animated_sprite.modulate = Color(0.8, 1.4, 0.8)
+	visuals_pivot.scale = Vector2(1.2, 0.8)
+
+	# Create dash trail effect
+	_create_dash_trail()
+
+func _end_dash():
+	is_dashing = false
+	dash_direction = Vector2.ZERO
+
+	# Reset visual
+	animated_sprite.modulate = Color.WHITE
+	var tween = create_tween()
+	tween.tween_property(visuals_pivot, "scale", Vector2(1.0, 1.0), 0.1)
+
+func _create_dash_trail():
+	# Create multiple ghost sprites for trail effect
+	for i in range(3):
+		await get_tree().create_timer(DASH_DURATION / 3.0).timeout
+
+		# Stop if goblin died or dash ended
+		if not is_instance_valid(self) or is_dead or not is_dashing:
+			break
+
+		# Get current frame texture from animated sprite
+		var ghost = Sprite2D.new()
+		ghost.texture = animated_sprite.sprite_frames.get_frame_texture(animated_sprite.animation, animated_sprite.frame)
+		ghost.global_position = global_position
+		ghost.scale = visuals_pivot.scale * animated_sprite.scale
+		ghost.modulate = Color(0.5, 1.0, 0.5, 0.4)  # Green tint for goblin
+		get_parent().add_child(ghost)
+
+		# Fade out ghost
+		var ghost_tween = ghost.create_tween()
+		ghost_tween.tween_property(ghost, "modulate:a", 0.0, 0.3)
+		ghost_tween.tween_callback(ghost.queue_free)
