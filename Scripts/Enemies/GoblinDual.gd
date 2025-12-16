@@ -30,6 +30,7 @@ var current_direction: String = "down"
 var is_attacking_anim: bool = false
 var can_attack: bool = true
 var attack_timer: float = 0.0
+var player_in_attack_range: bool = false
 
 func _setup_enemy():
 	# Stats loaded from scene file
@@ -37,6 +38,7 @@ func _setup_enemy():
 
 	# Connect attack box
 	attack_box.area_entered.connect(_on_attack_box_area_entered)
+	attack_box.area_exited.connect(_on_attack_box_area_exited)
 
 	# Connect animation finished signal
 	animated_sprite.animation_finished.connect(_on_animation_finished)
@@ -53,6 +55,9 @@ func _physics_process(delta):
 		attack_timer -= delta
 		if attack_timer <= 0:
 			can_attack = true
+			# If player still in range, attack again
+			if player_in_attack_range:
+				_do_attack()
 
 	# Handle animation pause during hitstun
 	if is_stunned:
@@ -140,11 +145,9 @@ func _play_hit_squash():
 func _on_death():
 	set_physics_process(false)
 
-	# Spin and shrink
+	# Expand and fade (like Slime)
 	var tween = create_tween()
-	tween.tween_property(visuals_pivot, "rotation", deg_to_rad(360), 0.3)
-	tween.parallel().tween_property(visuals_pivot, "scale", Vector2(1.5, 1.5), 0.15)
-	tween.tween_property(visuals_pivot, "scale", Vector2.ZERO, 0.15)
+	tween.tween_property(visuals_pivot, "scale", Vector2(2.0, 2.0), 0.3)
 	tween.parallel().tween_property(animated_sprite, "modulate:a", 0.0, 0.3)
 
 	tween.tween_callback(queue_free)
@@ -156,23 +159,39 @@ func _get_death_particle_count() -> int:
 	return 8
 
 func _on_attack_box_area_entered(area: Area2D):
-	if is_dead or not can_attack:
-		return
-
 	var parent = area.get_parent()
 	if parent and parent.has_method("take_damage"):
-		# Play attack animation
-		is_attacking_anim = true
-		_play_directional_animation("attack")
+		player_in_attack_range = true
+		if can_attack:
+			_do_attack()
 
-		# Start cooldown
-		can_attack = false
-		attack_timer = ATTACK_COOLDOWN
+func _on_attack_box_area_exited(area: Area2D):
+	var parent = area.get_parent()
+	if parent and parent.has_method("take_damage"):
+		player_in_attack_range = false
 
-		var damage_applied = parent.take_damage(damage, global_position)
-		if damage_applied:
-			damage_dealt.emit(damage)
-			# Flash effect when hitting
-			animated_sprite.modulate = Color(1.5, 1.5, 0.5)
-			var tween = create_tween()
-			tween.tween_property(animated_sprite, "modulate", Color.WHITE, 0.1)
+func _do_attack():
+	if is_dead or not can_attack or not player_in_attack_range:
+		return
+
+	# Play attack animation
+	is_attacking_anim = true
+	_play_directional_animation("attack")
+
+	# Start cooldown
+	can_attack = false
+	attack_timer = ATTACK_COOLDOWN
+
+	# Find player and deal damage
+	var areas = attack_box.get_overlapping_areas()
+	for area in areas:
+		var parent = area.get_parent()
+		if parent and parent.has_method("take_damage"):
+			var damage_applied = parent.take_damage(damage, global_position)
+			if damage_applied:
+				damage_dealt.emit(damage)
+				# Flash effect when hitting
+				animated_sprite.modulate = Color(1.5, 1.5, 0.5)
+				var tween = create_tween()
+				tween.tween_property(animated_sprite, "modulate", Color.WHITE, 0.1)
+			break
