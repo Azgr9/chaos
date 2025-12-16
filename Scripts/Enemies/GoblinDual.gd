@@ -16,6 +16,9 @@ const ATTACK_RANGE: float = 50.0
 # Attack cooldown
 const ATTACK_COOLDOWN: float = 0.8
 
+# Hit squash duration
+const HIT_SQUASH_DURATION: float = 0.15
+
 # ============================================
 # NODES
 # ============================================
