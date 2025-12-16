@@ -6,9 +6,14 @@ class_name WaveManager
 extends Node
 
 # Spawn configuration
-@export var spawn_radius: float = 1000.0
-@export var spawn_distance_from_player: float = 600.0
+@export var spawn_edge_padding: float = 80.0  # Spawn this far from wall
+@export var spawn_distance_from_player: float = 400.0
 @export var enemy_activation_time: float = 0.5
+
+# Arena reference (fetched from scene)
+var arena: Arena = null
+var arena_center: Vector2 = Vector2(1280, 720)  # Fallback
+var arena_radius: float = 900.0  # Fallback
 
 # Enemy definitions with unlock requirements and weights
 const ENEMY_TYPES = {
@@ -68,7 +73,6 @@ var enemies_alive: int = 0
 var enemies_alive_by_type: Dictionary = {}
 var wave_active: bool = false
 var player_reference: Node2D = null
-var arena_center: Vector2 = Vector2(1280, 720)
 
 # Spawn timing
 var spawn_timer: float = 0.0
@@ -92,6 +96,9 @@ func _ready():
 	# Add to group for easy lookup
 	add_to_group("wave_manager")
 
+	# Find arena reference and get bounds
+	_find_arena()
+
 	# Find player reference
 	var players = get_tree().get_nodes_in_group("player")
 	if players.size() > 0:
@@ -111,6 +118,31 @@ func _ready():
 	await get_tree().create_timer(1.0).timeout
 	start_next_wave()
 
+func _find_arena():
+	# Find arena in scene and get its bounds
+	# First try by group
+	var arenas = get_tree().get_nodes_in_group("arena")
+	if arenas.size() > 0:
+		arena = arenas[0] as Arena
+
+	# Fallback: find by class name in parent
+	if not arena:
+		for child in get_parent().get_children():
+			if child is Arena:
+				arena = child
+				break
+
+	# Fallback: find Arena node by name
+	if not arena:
+		arena = get_parent().get_node_or_null("Arena") as Arena
+
+	if arena:
+		arena_center = arena.get_arena_center()
+		arena_radius = arena.get_arena_radius()
+		print("[WaveManager] Found arena: center=%s, radius=%s" % [arena_center, arena_radius])
+	else:
+		push_warning("[WaveManager] Arena not found! Using fallback values.")
+
 func _setup_hazard_manager():
 	# Create and add HazardManager as child
 	hazard_manager = HazardManager.new()
@@ -121,9 +153,9 @@ func _setup_hazard_manager():
 	if player_reference:
 		hazard_manager.set_player_reference(player_reference)
 
-	# Configure arena bounds (playable area inside walls: 64-2496 x 64-1376)
-	# Add padding to keep hazards away from walls
-	hazard_manager.arena_bounds = Rect2(128, 128, 2304, 1184)
+	# Configure circular arena bounds for hazards
+	hazard_manager.arena_center = arena_center
+	hazard_manager.arena_radius = arena_radius - 50  # Keep hazards away from walls
 
 func _process(delta):
 	if not wave_active or points_remaining <= 0:
@@ -452,21 +484,34 @@ func _get_spawn_position() -> Vector2:
 	if recent_spawn_angles.size() > MAX_TRACKED_ANGLES:
 		recent_spawn_angles.pop_front()
 
-	# Calculate position from angle
-	var spawn_pos = arena_center + Vector2.from_angle(angle) * spawn_radius
+	# Calculate position INSIDE the arena (not at edge)
+	# Spawn at 60-85% of arena radius to keep enemies well inside
+	var min_spawn_dist = arena_radius * 0.5
+	var max_spawn_dist = arena_radius - spawn_edge_padding - 50  # Extra padding to ensure inside
+	var spawn_dist = randf_range(min_spawn_dist, max_spawn_dist)
+	var spawn_pos = arena_center + Vector2.from_angle(angle) * spawn_dist
 
 	# Make sure not too close to player
 	if player_reference:
 		var distance_to_player = spawn_pos.distance_to(player_reference.global_position)
 		if distance_to_player < spawn_distance_from_player:
+			# Find a position further from player but still in arena
 			var dir_from_player = (spawn_pos - player_reference.global_position).normalized()
 			spawn_pos = player_reference.global_position + dir_from_player * spawn_distance_from_player
-
-	# Clamp to arena bounds (with padding)
-	spawn_pos.x = clamp(spawn_pos.x, 128, 2432)
-	spawn_pos.y = clamp(spawn_pos.y, 128, 1312)
+			# Clamp to circular arena
+			spawn_pos = _clamp_to_arena(spawn_pos)
 
 	return spawn_pos
+
+func _clamp_to_arena(pos: Vector2) -> Vector2:
+	# Clamp position to stay well inside circular arena
+	var to_center = pos - arena_center
+	var distance = to_center.length()
+	var max_distance = arena_radius - spawn_edge_padding - 50  # Extra padding
+
+	if distance > max_distance and distance > 0:
+		return arena_center + to_center.normalized() * max_distance
+	return pos
 
 func _get_distributed_angle() -> float:
 	# Try up to 10 times to find a good angle
