@@ -12,8 +12,8 @@ extends Node
 
 # Enemy definitions with unlock requirements and weights
 const ENEMY_TYPES = {
-	"imp": {
-		"scene": preload("res://Scenes/Enemies/Imp.tscn"),
+	"goblin_dual": {
+		"scene": preload("res://Scenes/Enemies/GoblinDual.tscn"),
 		"cost": 1,
 		"unlocks_at_wave": 1,
 		"base_weight": 3.0,
@@ -26,7 +26,7 @@ const ENEMY_TYPES = {
 		"base_weight": 2.0,
 		"max_alive": 10
 	},
-	"goblin": {
+	"goblin_archer": {
 		"scene": preload("res://Scenes/Enemies/GoblinArcher.tscn"),
 		"cost": 3,
 		"unlocks_at_wave": 2,
@@ -351,7 +351,7 @@ func _pick_weighted_random(enemies: Array) -> String:
 		if roll <= cumulative:
 			return enemy_type
 
-	return enemies[-1] if enemies.size() > 0 else "imp"
+	return enemies[-1] if enemies.size() > 0 else "goblin_dual"
 
 func _get_scaled_weight(enemy_type: String) -> float:
 	var enemy_data = ENEMY_TYPES[enemy_type]
@@ -360,11 +360,11 @@ func _get_scaled_weight(enemy_type: String) -> float:
 
 	# Weight scaling by wave - cheap enemies become rarer, expensive become more common
 	match cost:
-		1:  # Very cheap (imp) - becomes rarer over time
+		1:  # Very cheap (goblin_dual) - becomes rarer over time
 			return max(0.5, base - (current_wave * 0.3))
 		2:  # Cheap (slime) - stays stable
 			return base
-		3:  # Medium (goblin) - becomes more common
+		3:  # Medium (goblin_archer) - becomes more common
 			return base + (current_wave * 0.3)
 		4:  # Medium-expensive (healer) - gradual increase
 			return base + (current_wave * 0.2)

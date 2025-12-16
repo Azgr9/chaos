@@ -279,7 +279,24 @@ func perform_melee_attack():
 			if not current_weapon.attack_finished.is_connected(_on_attack_finished):
 				current_weapon.attack_finished.connect(_on_attack_finished)
 
+		# Safety timeout - force reset attack state if signal doesn't fire
+		_start_attack_safety_timeout()
+
+var _attack_safety_timer: SceneTreeTimer = null
+
+func _start_attack_safety_timeout():
+	# Safety timeout to force reset if attack_finished signal never fires
+	_attack_safety_timer = get_tree().create_timer(1.5)
+	_attack_safety_timer.timeout.connect(_on_attack_safety_timeout)
+
+func _on_attack_safety_timeout():
+	# Only reset if still stuck in attack state
+	if is_attacking or is_melee_attacking:
+		print("WARNING: Attack state stuck, forcing reset")
+		_on_attack_finished()
+
 func _on_attack_finished():
+	_attack_safety_timer = null  # Clear safety timer
 	is_attacking = false
 	is_melee_attacking = false
 	visuals_pivot.scale.y = 1.0
