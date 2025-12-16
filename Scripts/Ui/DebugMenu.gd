@@ -11,7 +11,7 @@ extends CanvasLayer
 # ============================================
 const ENEMY_SCENES = {
 	"Slime": preload("res://Scenes/Enemies/Slime.tscn"),
-	"Imp": preload("res://Scenes/Enemies/Imp.tscn"),
+dw	"Imp": preload("res://Scenes/Enemies/Imp.tscn"),
 	"Goblin": preload("res://Scenes/Enemies/GoblinArcher.tscn"),
 	"Healer": preload("res://Scenes/Enemies/Healer.tscn"),
 	"Spawner": preload("res://Scenes/Enemies/Spawner.tscn"),
