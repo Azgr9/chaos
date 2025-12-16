@@ -34,6 +34,7 @@ var is_attacking_anim: bool = false
 var can_attack: bool = true
 var attack_timer: float = 0.0
 var player_in_attack_range: bool = false
+var direction_locked: bool = false  # Lock direction during/after attack to prevent jitter
 
 func _setup_enemy():
 	# Stats loaded from scene file
@@ -96,6 +97,10 @@ func _update_movement(_delta):
 			_play_directional_animation("move")
 
 func _update_direction(direction: Vector2):
+	# Don't change direction while attacking or direction is locked (prevents jitter)
+	if is_attacking_anim or direction_locked:
+		return
+
 	# Determine primary direction (4-way)
 	var new_direction: String
 
@@ -115,10 +120,8 @@ func _update_direction(direction: Vector2):
 	# Only update if direction changed
 	if new_direction != current_direction:
 		current_direction = new_direction
-		# Update animation to match new direction
-		if is_attacking_anim:
-			_play_directional_animation("attack")
-		elif velocity.length() > 0:
+		# Update animation to match new direction (only when not attacking)
+		if velocity.length() > 0:
 			_play_directional_animation("move")
 		else:
 			_play_directional_animation("idle")
@@ -126,13 +129,19 @@ func _update_direction(direction: Vector2):
 func _play_directional_animation(anim_type: String):
 	var anim_name = anim_type + "_" + current_direction
 	if animated_sprite.sprite_frames.has_animation(anim_name):
-		animated_sprite.play(anim_name)
+		# Only play if animation is actually changing (prevents jitter from redundant calls)
+		if animated_sprite.animation != anim_name:
+			animated_sprite.play(anim_name)
 
 func _on_animation_finished():
 	# When attack animation finishes, return to idle
 	if animated_sprite.animation.begins_with("attack_"):
 		is_attacking_anim = false
+		# Lock direction briefly after attack to prevent jitter from diagonal boundary flipping
+		direction_locked = true
 		_play_directional_animation("idle")
+		# Unlock direction after a short delay
+		get_tree().create_timer(0.1).timeout.connect(func(): direction_locked = false)
 
 func _on_damage_taken():
 	# Call base class flash
@@ -174,7 +183,8 @@ func _on_attack_box_area_exited(area: Area2D):
 		player_in_attack_range = false
 
 func _do_attack():
-	if is_dead or not can_attack or not player_in_attack_range:
+	# Block new attacks while already attacking (prevents animation restart jitter)
+	if is_dead or not can_attack or not player_in_attack_range or is_attacking_anim:
 		return
 
 	# Play attack animation
