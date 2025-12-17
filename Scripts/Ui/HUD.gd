@@ -47,6 +47,10 @@ var staff_fill_circle: Control = null
 var staff_icon_label: Label = null
 var staff_keybind_label: Label = null
 
+# Weapon name labels
+var sword_name_label: Label = null
+var staff_name_label: Label = null
+
 # Stats Panel
 @onready var move_speed_value: Label = $StatsPanel/MovementSpeed/Value
 @onready var attack_power_value: Label = $StatsPanel/AttackPower/Value
@@ -102,6 +106,10 @@ func _connect_signals():
 	# Player signals
 	if player:
 		player.health_changed.connect(_on_player_health_changed)
+		if player.has_signal("weapon_switched"):
+			player.weapon_switched.connect(_on_weapon_switched)
+		if player.has_signal("staff_switched"):
+			player.staff_switched.connect(_on_staff_switched)
 
 	# Wave manager signals
 	if wave_manager:
@@ -145,6 +153,9 @@ func _initialize_ui():
 
 	# Create skill fill rects for bottom-to-top cooldown display
 	_setup_skill_fills()
+
+	# Initialize weapon name displays
+	_update_weapon_name_displays()
 
 func _process(delta):
 	time_alive += delta
@@ -242,6 +253,16 @@ func _create_circular_skill(container: Control, is_sword: bool):
 	key_label.position = Vector2(SKILL_SIZE - 16, SKILL_SIZE - 20)
 	container.add_child(key_label)
 
+	# Weapon name label (above the skill button)
+	var name_label = Label.new()
+	name_label.text = "Weapon" if is_sword else "Staff"
+	name_label.add_theme_font_size_override("font_size", 12)
+	name_label.add_theme_color_override("font_color", skill_color)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.size = Vector2(120, 20)
+	name_label.position = Vector2((SKILL_SIZE - 120) / 2, -22)
+	container.add_child(name_label)
+
 	# Store references
 	if is_sword:
 		sword_outer_circle = outer
@@ -249,12 +270,14 @@ func _create_circular_skill(container: Control, is_sword: bool):
 		sword_inner_circle = inner
 		sword_icon_label = icon
 		sword_keybind_label = key_label
+		sword_name_label = name_label
 	else:
 		staff_outer_circle = outer
 		staff_fill_circle = fill
 		staff_inner_circle = inner
 		staff_icon_label = icon
 		staff_keybind_label = key_label
+		staff_name_label = name_label
 
 func _create_circle_control(diameter: float, color: Color) -> Control:
 	var control = Control.new()
@@ -541,3 +564,70 @@ func _on_relic_hover(relic_label: Label):
 func _on_relic_unhover():
 	if relic_tooltip:
 		relic_tooltip.visible = false
+
+# ============================================
+# WEAPON NAME DISPLAY
+# ============================================
+
+func _on_weapon_switched(weapon: Node):
+	_update_sword_name(weapon)
+
+func _on_staff_switched(staff: Node):
+	_update_staff_name(staff)
+
+func _update_weapon_name_displays():
+	# Update both weapon names on initialization
+	if player:
+		if player.current_weapon:
+			_update_sword_name(player.current_weapon)
+		if player.current_staff:
+			_update_staff_name(player.current_staff)
+
+func _update_sword_name(weapon: Node):
+	if not sword_name_label:
+		return
+
+	var display_name = _get_weapon_display_name(weapon)
+	sword_name_label.text = display_name
+
+	# Flash animation when weapon changes
+	_animate_name_change(sword_name_label, SWORD_SKILL_COLOR)
+
+func _update_staff_name(staff: Node):
+	if not staff_name_label:
+		return
+
+	var display_name = _get_weapon_display_name(staff)
+	staff_name_label.text = display_name
+
+	# Flash animation when staff changes
+	_animate_name_change(staff_name_label, STAFF_SKILL_COLOR)
+
+func _get_weapon_display_name(weapon: Node) -> String:
+	if not weapon:
+		return "None"
+
+	# Try to get a clean display name from the weapon
+	var raw_name = weapon.name
+
+	# Remove common suffixes like numbers or instance markers
+	raw_name = raw_name.trim_suffix("2").trim_suffix("3").trim_suffix("4")
+
+	# Convert CamelCase to readable format (e.g., "BasicSword" -> "Basic Sword")
+	var display_name = ""
+	for i in range(raw_name.length()):
+		var c = raw_name[i]
+		if c == c.to_upper() and i > 0 and raw_name[i-1] != " ":
+			display_name += " "
+		display_name += c
+
+	return display_name.strip_edges()
+
+func _animate_name_change(label: Label, color: Color):
+	label.modulate = Color.WHITE
+	label.scale = Vector2(1.2, 1.2)
+
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(label, "modulate", color, 0.3)

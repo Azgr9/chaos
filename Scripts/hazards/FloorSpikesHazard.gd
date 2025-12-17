@@ -182,7 +182,10 @@ func retract_spikes() -> void:
 	if spikes_sprite:
 		var tween = create_tween()
 		tween.tween_property(spikes_sprite, "position:y", 20.0, retract_duration)
-		tween.tween_callback(func(): spikes_sprite.visible = false)
+		tween.tween_callback(func():
+			if is_instance_valid(self) and spikes_sprite:
+				spikes_sprite.visible = false
+		)
 
 func enter_cooldown() -> void:
 	current_state = SpikeState.COOLDOWN

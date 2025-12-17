@@ -188,7 +188,16 @@ func _fire_projectiles(direction: Vector2):
 			player_reference  # attacker for thorns
 		)
 
+		# Apply custom projectile visuals
+		_customize_projectile(projectile)
+
 		projectile_fired.emit(projectile)
+
+func _customize_projectile(projectile: Node2D):
+	# Override in subclasses for unique projectile visuals
+	# Default: apply projectile color
+	if projectile.has_node("Sprite"):
+		projectile.get_node("Sprite").color = _get_projectile_color()
 
 func _calculate_spread_angle(projectile_index: int) -> float:
 	if multi_shot > 1:
@@ -309,9 +318,10 @@ func _damage_enemies_in_beam(origin: Vector2, direction: Vector2, final_damage: 
 		if perpendicular.length() <= beam_width * 0.5 + hitbox_tolerance:
 			hit_enemies.append(enemy)
 
+	var attacker = player_reference if is_instance_valid(player_reference) else null
 	for enemy in hit_enemies:
 		if enemy.has_method("take_damage"):
-			enemy.take_damage(final_damage, origin, 200.0, 0.1, player_reference)
+			enemy.take_damage(final_damage, origin, 200.0, 0.1, attacker)
 			_create_beam_hit_effect(enemy.global_position)
 
 func _create_beam_hit_effect(pos: Vector2):

@@ -54,6 +54,9 @@ var dash_cooldown_timer: float = 0.0
 # Invulnerability (for katana dash)
 var is_invulnerable: bool = false
 
+# Fire immunity (for Inferno Staff ability)
+var is_fire_immune: bool = false
+
 # Debug mode
 var debug_mode: bool = false
 
@@ -287,6 +290,10 @@ func perform_melee_attack():
 var _attack_safety_timer: SceneTreeTimer = null
 
 func _start_attack_safety_timeout():
+	# Disconnect previous timer if it exists to prevent memory leak
+	if _attack_safety_timer and _attack_safety_timer.timeout.is_connected(_on_attack_safety_timeout):
+		_attack_safety_timer.timeout.disconnect(_on_attack_safety_timeout)
+
 	# Safety timeout to force reset if attack_finished signal never fires
 	_attack_safety_timer = get_tree().create_timer(1.5)
 	_attack_safety_timer.timeout.connect(_on_attack_safety_timeout)
@@ -400,7 +407,10 @@ func switch_to_weapon(index: int):
 	_weapon_switch_effect()
 
 	weapon_switched.emit(current_weapon)
-	print("[Player] Switched to weapon: %s" % (current_weapon.name if current_weapon else "None"))
+	var weapon_name: String = "None"
+	if current_weapon:
+		weapon_name = current_weapon.name
+	print("[Player] Switched to weapon: %s" % weapon_name)
 
 func switch_to_staff(index: int):
 	if index < 0 or index >= staff_inventory.size():
@@ -421,7 +431,10 @@ func switch_to_staff(index: int):
 	_staff_switch_effect()
 
 	staff_switched.emit(current_staff)
-	print("[Player] Switched to staff: %s" % (current_staff.name if current_staff else "None"))
+	var staff_name: String = "None"
+	if current_staff:
+		staff_name = current_staff.name
+	print("[Player] Switched to staff: %s" % staff_name)
 
 func _weapon_switch_effect():
 	# Quick flash effect when switching weapons
@@ -483,10 +496,28 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO) -> bool:
 		if _try_phoenix_revive():
 			return true
 
+		# Reset state flags before death to prevent leaks
+		_reset_state_on_death()
+
 		player_died.emit()
 		queue_free()
 
 	return true
+
+func _reset_state_on_death():
+	# Reset all state flags to prevent leaks and stale references
+	is_fire_immune = false
+	is_invulnerable = false
+	is_dashing = false
+	is_attacking = false
+	is_melee_attacking = false
+	is_magic_attacking = false
+	modulate = Color.WHITE
+
+	# Clear attack safety timer
+	if _attack_safety_timer and _attack_safety_timer.timeout.is_connected(_on_attack_safety_timeout):
+		_attack_safety_timer.timeout.disconnect(_on_attack_safety_timeout)
+	_attack_safety_timer = null
 
 func _try_phoenix_revive() -> bool:
 	# Check if we already used a revive this run

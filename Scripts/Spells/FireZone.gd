@@ -75,17 +75,19 @@ func _deal_tick_damage():
 		if not is_instance_valid(entity):
 			continue
 
-		# Check if entity has take_damage method
-		if entity.has_method("take_damage"):
-			# For enemies
-			entity.take_damage(tick_damage, global_position, 0.0, 0.0, owner_ref)
-			dealt_damage.emit(entity, tick_damage)
-			_create_burn_effect(entity.global_position)
+		# Check if it's the player - Player.take_damage(amount, from_position) only takes 2 args
+		if entity.is_in_group("player") and entity.has_method("take_damage"):
+			# Check for fire immunity
+			if "is_fire_immune" in entity and entity.is_fire_immune:
+				continue  # Skip damage, player is immune
 
-		# Also check for player specifically (might be the owner)
-		elif entity.is_in_group("player") and entity.has_method("take_damage"):
 			# Player takes damage too! Risk/reward mechanic
 			entity.take_damage(tick_damage, global_position)
+			_create_burn_effect(entity.global_position)
+		# For enemies - Enemy.take_damage takes more args
+		elif entity.has_method("take_damage"):
+			entity.take_damage(tick_damage, global_position, 0.0, 0.0, owner_ref)
+			dealt_damage.emit(entity, tick_damage)
 			_create_burn_effect(entity.global_position)
 
 func _update_flames(_delta):

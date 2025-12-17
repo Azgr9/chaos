@@ -107,7 +107,10 @@ func _shoot_arrow():
 	tween.tween_property(visuals_pivot, "position:x", -8, 0.1)
 	tween.tween_property(visuals_pivot, "position:x", 0, 0.2)
 
-	tween.tween_callback(func(): is_shooting = false)
+	tween.tween_callback(func():
+		if is_instance_valid(self):
+			is_shooting = false
+	)
 
 func _spawn_arrow():
 	if is_dead or not arrow_scene or not player_reference:

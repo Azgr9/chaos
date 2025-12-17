@@ -7,6 +7,14 @@ class_name VoidStaff
 extends MagicWeapon
 
 # ============================================
+# PROJECTILE COLORS
+# ============================================
+const VOID_CORE: Color = Color(0.1, 0.0, 0.15)  # Almost black core
+const VOID_GLOW: Color = Color(0.5, 0.2, 0.7, 0.8)  # Purple glow
+const VOID_OUTER: Color = Color(0.3, 0.1, 0.4, 0.6)  # Dark purple outer
+const VOID_SPARK: Color = Color(0.7, 0.4, 1.0)  # Bright purple sparks
+
+# ============================================
 # VOID STAFF SPECIFIC
 # ============================================
 
@@ -18,27 +26,27 @@ var black_hole_tick_rate: float = 0.3
 var black_hole_pull_strength: float = 150.0
 
 func _weapon_ready():
-	# Void Staff settings - higher damage, slower fire rate
-	attack_cooldown = 0.5
-	projectile_spread = 0.0  # Precise dark bolts
+	# Void Staff - slowest but highest damage, precise shots
+	attack_cooldown = 0.48  # Slowest staff - heavy void blasts
+	projectile_spread = 0.0  # Precise dark bolts (no spread)
 	multi_shot = 1
-	damage = 18.0  # High damage per shot
+	damage = 18.0  # Highest damage per shot
 
 	staff_color = Color(0.3, 0.1, 0.4)  # Dark purple
 	muzzle_flash_color = Color(0.5, 0.2, 0.6)
 
-	# Skill settings - powerful but long cooldown
+	# Skill settings - Black Hole is very powerful
 	skill_cooldown = 14.0
 	beam_damage = 60.0
 
 func _get_projectile_color() -> Color:
-	return Color(0.4, 0.1, 0.5)  # Dark purple
+	return VOID_CORE
 
 func _get_beam_color() -> Color:
-	return Color(0.5, 0.2, 0.6, 1.0)
+	return VOID_GLOW
 
 func _get_beam_glow_color() -> Color:
-	return Color(0.3, 0.0, 0.4, 0.6)
+	return VOID_OUTER
 
 # ============================================
 # OVERRIDE PROJECTILE - Dark void bolts
@@ -63,9 +71,11 @@ func _fire_projectiles(direction: Vector2):
 			player_reference
 		)
 
-		# Override projectile color to dark purple
+		# Override projectile color and size - dark void orb
 		if projectile.has_node("Sprite"):
-			projectile.get_node("Sprite").color = _get_projectile_color()
+			var sprite_node = projectile.get_node("Sprite")
+			sprite_node.color = VOID_CORE
+			sprite_node.size = Vector2(16, 16)
 
 		# Add void trail effect
 		_add_void_trail(projectile)
@@ -73,31 +83,77 @@ func _fire_projectiles(direction: Vector2):
 		projectile_fired.emit(projectile)
 
 func _add_void_trail(projectile: Node2D):
-	# Create trailing void particles
+	# Create trailing void particles with distortion effect
 	var timer = Timer.new()
-	timer.wait_time = 0.05
+	timer.wait_time = 0.035
 	timer.one_shot = false
 	projectile.add_child(timer)
 
 	timer.timeout.connect(func():
 		if not is_instance_valid(projectile):
+			timer.stop()
 			timer.queue_free()
 			return
 
+		# Main void trail - dark core
 		var trail = ColorRect.new()
-		trail.size = Vector2(12, 12)
-		trail.color = Color(0.3, 0.1, 0.4, 0.6)
-		trail.pivot_offset = Vector2(6, 6)
+		trail.size = Vector2(14, 14)
+		trail.color = VOID_OUTER
+		trail.pivot_offset = Vector2(7, 7)
 		get_tree().current_scene.add_child(trail)
 		trail.global_position = projectile.global_position
 
-		var tween = projectile.create_tween()
+		var tween = create_tween()
 		tween.set_parallel(true)
-		tween.tween_property(trail, "scale", Vector2(0.3, 0.3), 0.2)
-		tween.tween_property(trail, "modulate:a", 0.0, 0.2)
+		tween.tween_property(trail, "scale", Vector2(0.2, 0.2), 0.25)
+		tween.tween_property(trail, "modulate:a", 0.0, 0.25)
 		tween.tween_callback(trail.queue_free)
+
+		# Swirling void particles being pulled in
+		if randf() > 0.6:
+			_spawn_void_swirl_particle(projectile.global_position)
+
+		# Occasional bright spark
+		if randf() > 0.85:
+			_spawn_void_spark(projectile.global_position)
 	)
 	timer.start()
+
+func _spawn_void_swirl_particle(center: Vector2):
+	var particle = ColorRect.new()
+	particle.size = Vector2(6, 6)
+	particle.color = VOID_GLOW
+	particle.pivot_offset = Vector2(3, 3)
+	get_tree().current_scene.add_child(particle)
+
+	# Start from offset position
+	var angle = randf() * TAU
+	var start_offset = Vector2.from_angle(angle) * randf_range(20, 35)
+	particle.global_position = center + start_offset
+
+	# Spiral into center
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(particle, "global_position", center, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(particle, "scale", Vector2(0.3, 0.3), 0.2)
+	tween.tween_property(particle, "rotation", angle + PI, 0.2)
+	tween.tween_property(particle, "modulate:a", 0.0, 0.2)
+	tween.tween_callback(particle.queue_free)
+
+func _spawn_void_spark(pos: Vector2):
+	var spark = ColorRect.new()
+	spark.size = Vector2(4, 8)
+	spark.color = VOID_SPARK
+	spark.pivot_offset = Vector2(2, 4)
+	get_tree().current_scene.add_child(spark)
+	spark.global_position = pos
+	spark.rotation = randf() * TAU
+
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(spark, "scale", Vector2(0.2, 0.2), 0.1)
+	tween.tween_property(spark, "modulate:a", 0.0, 0.1)
+	tween.tween_callback(spark.queue_free)
 
 # ============================================
 # BLACK HOLE SKILL - Pull enemies and deal damage
@@ -232,7 +288,8 @@ func _black_hole_damage_tick(center: Vector2):
 			var tick_damage = black_hole_damage_per_tick * damage_multiplier * damage_factor
 
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(tick_damage, center, 0.0, 0.1, player_reference)
+				var attacker = player_reference if is_instance_valid(player_reference) else null
+				enemy.take_damage(tick_damage, center, 0.0, 0.1, attacker)
 
 			# Void hit effect
 			_create_void_hit_effect(enemy.global_position)

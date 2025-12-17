@@ -109,7 +109,10 @@ func _spawn_minion():
 	tween.tween_property(portal, "scale", Vector2.ONE, 0.2)
 	tween.parallel().tween_property(portal, "modulate:a", 0.5, 0.3)
 	tween.parallel().tween_property(sprite, "color", SPAWNER_COLOR, 0.3)
-	tween.tween_callback(func(): is_spawning = false)
+	tween.tween_callback(func():
+		if is_instance_valid(self):
+			is_spawning = false
+	)
 
 func _create_minion():
 	var minion = minion_scene.instantiate()

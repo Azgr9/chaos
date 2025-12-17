@@ -173,6 +173,8 @@ func _update_combo_timer(delta):
 			combo_count = 0
 
 func get_attack_in_combo() -> int:
+	if combo_hits <= 0:
+		return 1
 	return ((combo_count - 1) % combo_hits) + 1
 
 func is_combo_finisher() -> bool:

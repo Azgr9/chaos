@@ -100,7 +100,10 @@ func _animate_hammer_overhead(duration: float, _is_dash_attack: bool):
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 
 	# Impact shake
-	active_attack_tween.tween_callback(func(): DamageNumberManager.shake(0.2))
+	active_attack_tween.tween_callback(func():
+		if DamageNumberManager:
+			DamageNumberManager.shake(0.2)
+	)
 
 	# Slow recovery
 	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(smash_angle + 5), duration * 0.25)
@@ -148,7 +151,8 @@ func _create_ground_crack():
 	var impact_pos = player_reference.global_position + current_attack_direction * 70
 
 	# Big screen shake
-	DamageNumberManager.shake(0.5)
+	if DamageNumberManager:
+		DamageNumberManager.shake(0.5)
 
 	# Shockwave ring
 	var ring = ColorRect.new()
@@ -195,6 +199,10 @@ func _perform_skill() -> bool:
 	return true
 
 func _execute_earthquake():
+	if not is_instance_valid(player_reference):
+		is_earthquaking = false
+		return
+
 	# Jump up animation
 	var original_pos = player_reference.global_position
 
@@ -213,12 +221,22 @@ func _execute_earthquake():
 
 	await leap_tween.finished
 
+	# Check validity after await
+	if not is_instance_valid(self) or not is_instance_valid(player_reference):
+		is_earthquaking = false
+		return
+
 	# Slam down
 	var slam_tween = create_tween()
 	slam_tween.tween_property(player_reference, "global_position:y", original_pos.y, 0.15)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 	await slam_tween.finished
+
+	# Check validity after await
+	if not is_instance_valid(self) or not is_instance_valid(player_reference):
+		is_earthquaking = false
+		return
 
 	# End invulnerability
 	if player_reference.has_method("set_invulnerable"):
@@ -239,7 +257,8 @@ func _earthquake_impact():
 	var impact_pos = player_reference.global_position
 
 	# Massive screen shake
-	DamageNumberManager.shake(0.8)
+	if DamageNumberManager:
+		DamageNumberManager.shake(0.8)
 
 	# Damage all enemies in radius
 	var enemies = get_tree().get_nodes_in_group("enemies")
@@ -255,7 +274,8 @@ func _earthquake_impact():
 			eq_damage *= falloff
 
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(eq_damage, impact_pos, 800.0, EARTHQUAKE_STUN, player_reference)
+				var attacker = player_reference if is_instance_valid(player_reference) else null
+				enemy.take_damage(eq_damage, impact_pos, 800.0, EARTHQUAKE_STUN, attacker)
 				dealt_damage.emit(enemy, eq_damage)
 
 	# Visual effects - multiple shockwave rings
@@ -267,6 +287,10 @@ func _earthquake_impact():
 
 func _create_shockwave_ring(pos: Vector2, delay: float):
 	await get_tree().create_timer(delay).timeout
+
+	# Check validity after await
+	if not is_instance_valid(self):
+		return
 
 	var ring = ColorRect.new()
 	ring.size = Vector2(50, 50)
@@ -302,7 +326,8 @@ func _create_earthquake_debris(pos: Vector2):
 
 func _on_combo_finisher_hit(_target: Node2D):
 	# Extra massive shake on finisher
-	DamageNumberManager.shake(0.6)
+	if DamageNumberManager:
+		DamageNumberManager.shake(0.6)
 
 # Block attacks during earthquake
 func attack(direction: Vector2, player_damage_multiplier: float = 1.0) -> bool:

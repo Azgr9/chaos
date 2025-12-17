@@ -1,10 +1,17 @@
 # SCRIPT: FrostStaff.gd
 # ATTACH TO: FrostStaff (Node2D) root node in FrostStaff.tscn
 # LOCATION: res://Scripts/Weapons/FrostStaff.gd
-# Ice staff with slowing effects and Blizzard skill
+# Ice staff with slowing ice shard projectiles and Blizzard skill
 
 class_name FrostStaff
 extends MagicWeapon
+
+# ============================================
+# PROJECTILE COLORS
+# ============================================
+const ICE_CORE: Color = Color(0.7, 0.9, 1.0)  # Light ice blue
+const ICE_GLOW: Color = Color(0.5, 0.8, 1.0, 0.6)  # Frosty blue
+const ICE_CRYSTAL: Color = Color(0.9, 0.95, 1.0)  # Near-white crystal
 
 # ============================================
 # FROST STAFF SPECIFIC
@@ -22,8 +29,8 @@ var blizzard_damage_per_tick: float = 5.0
 var blizzard_tick_rate: float = 0.5
 
 func _weapon_ready():
-	# Frost Staff settings
-	attack_cooldown = 0.35
+	# Frost Staff - moderate speed, slowing effect on hit
+	attack_cooldown = 0.32  # Moderate speed
 	projectile_spread = 3.0
 	multi_shot = 1
 	damage = 10.0
@@ -31,21 +38,21 @@ func _weapon_ready():
 	staff_color = Color(0.4, 0.7, 1.0)  # Ice blue
 	muzzle_flash_color = Color(0.6, 0.9, 1.0)
 
-	# Skill settings
+	# Skill settings - Blizzard
 	skill_cooldown = 10.0
 	beam_damage = 40.0
 
 func _get_projectile_color() -> Color:
-	return Color(0.5, 0.8, 1.0)  # Ice blue
+	return ICE_CORE
 
 func _get_beam_color() -> Color:
 	return Color(0.6, 0.9, 1.0, 1.0)
 
 func _get_beam_glow_color() -> Color:
-	return Color(0.4, 0.7, 1.0, 0.6)
+	return ICE_GLOW
 
 # ============================================
-# OVERRIDE PROJECTILE FIRING - Add slow effect
+# OVERRIDE PROJECTILE FIRING - Add slow effect + custom visual
 # ============================================
 func _fire_projectiles(direction: Vector2):
 	for i in range(multi_shot):
@@ -69,15 +76,80 @@ func _fire_projectiles(direction: Vector2):
 			player_reference
 		)
 
-		# Override projectile color to ice blue
-		if projectile.has_node("Sprite"):
-			projectile.get_node("Sprite").color = _get_projectile_color()
+		# Apply custom ice shard visuals
+		_customize_projectile(projectile)
 
 		# Connect to apply slow on hit
 		if projectile.has_signal("hit_enemy"):
 			projectile.hit_enemy.connect(_on_projectile_hit_enemy)
+		if projectile.has_signal("projectile_hit"):
+			projectile.projectile_hit.connect(func(target, _dmg):
+				if is_instance_valid(self):
+					_on_projectile_hit_enemy(target)
+			)
 
 		projectile_fired.emit(projectile)
+
+func _customize_projectile(projectile: Node2D):
+	# Sharp ice shard projectile
+	if projectile.has_node("Sprite"):
+		var sprite_node = projectile.get_node("Sprite")
+		sprite_node.color = ICE_CORE
+		sprite_node.size = Vector2(10, 20)  # Shard shape - longer than wide
+
+	# Add frost trail effect
+	_add_frost_trail(projectile)
+
+func _add_frost_trail(projectile: Node2D):
+	var timer = Timer.new()
+	timer.wait_time = 0.04
+	timer.one_shot = false
+	projectile.add_child(timer)
+
+	timer.timeout.connect(func():
+		if not is_instance_valid(projectile):
+			timer.stop()
+			timer.queue_free()
+			return
+
+		# Ice crystal particle
+		var crystal = ColorRect.new()
+		crystal.size = Vector2(6, 10)
+		crystal.color = ICE_CRYSTAL if randf() > 0.6 else ICE_GLOW
+		crystal.pivot_offset = Vector2(3, 5)
+		get_tree().current_scene.add_child(crystal)
+		crystal.global_position = projectile.global_position
+		crystal.rotation = randf_range(-PI/4, PI/4)
+
+		# Float and fade
+		var tween = create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(crystal, "global_position:y", crystal.global_position.y - 15, 0.3)
+		tween.tween_property(crystal, "global_position:x", crystal.global_position.x + randf_range(-10, 10), 0.3)
+		tween.tween_property(crystal, "modulate:a", 0.0, 0.3)
+		tween.tween_property(crystal, "scale", Vector2(0.3, 0.3), 0.3)
+		tween.tween_callback(crystal.queue_free)
+
+		# Occasional snowflake
+		if randf() > 0.7:
+			_spawn_trail_snowflake(projectile.global_position)
+	)
+	timer.start()
+
+func _spawn_trail_snowflake(pos: Vector2):
+	var snow = ColorRect.new()
+	snow.size = Vector2(4, 4)
+	snow.color = ICE_CRYSTAL
+	snow.pivot_offset = Vector2(2, 2)
+	get_tree().current_scene.add_child(snow)
+	snow.global_position = pos + Vector2(randf_range(-8, 8), randf_range(-8, 8))
+
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(snow, "global_position:y", snow.global_position.y + 20, 0.4)
+	tween.tween_property(snow, "rotation", randf() * TAU, 0.4)
+	tween.tween_property(snow, "modulate:a", 0.0, 0.4)
+	tween.tween_callback(snow.queue_free)
 
 func _on_projectile_hit_enemy(enemy: Node2D):
 	_apply_slow_effect(enemy)
@@ -201,12 +273,19 @@ func _run_blizzard(blizzard: Node2D, visual: ColorRect, center: Vector2):
 
 		await get_tree().process_frame
 
+		# Check validity after await
+		if not is_instance_valid(self):
+			if is_instance_valid(blizzard):
+				blizzard.queue_free()
+			return
+
 	# Cleanup
 	if is_instance_valid(blizzard):
 		blizzard.queue_free()
 
 func _blizzard_damage_tick(center: Vector2):
 	var enemies = _get_enemies()
+	var attacker = player_reference if is_instance_valid(player_reference) else null
 
 	for enemy in enemies:
 		if not is_instance_valid(enemy):
@@ -217,7 +296,7 @@ func _blizzard_damage_tick(center: Vector2):
 			# Deal damage
 			var tick_damage = blizzard_damage_per_tick * damage_multiplier
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(tick_damage, center, 50.0, 0.05, player_reference)
+				enemy.take_damage(tick_damage, center, 50.0, 0.05, attacker)
 
 			# Apply slow
 			_apply_slow_effect(enemy)
@@ -260,7 +339,8 @@ func _play_skill_animation():
 
 	# Return to normal color
 	await get_tree().create_timer(0.3).timeout
-	sprite.color = original_color
+	if is_instance_valid(self) and sprite:
+		sprite.color = original_color
 
 func _play_attack_animation():
 	# Ice blue muzzle flash
@@ -277,4 +357,5 @@ func _play_attack_animation():
 	# Brief ice glow
 	sprite.color = Color(0.6, 0.9, 1.0)
 	await get_tree().create_timer(0.1).timeout
-	sprite.color = staff_color
+	if is_instance_valid(self) and sprite:
+		sprite.color = staff_color

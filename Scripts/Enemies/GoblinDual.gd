@@ -180,7 +180,10 @@ func _on_animation_finished():
 		direction_locked = true
 		_play_directional_animation("idle")
 		# Unlock direction after a short delay
-		get_tree().create_timer(0.1).timeout.connect(func(): direction_locked = false)
+		get_tree().create_timer(0.1).timeout.connect(func():
+			if is_instance_valid(self):
+				direction_locked = false
+		)
 
 func _on_damage_taken():
 	# Call base class flash

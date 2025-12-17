@@ -16,19 +16,29 @@ const DASH_TIME: float = 0.15
 const DASH_HIT_RADIUS: float = 120.0
 const DASH_DAMAGE_MULTIPLIER: float = 1.5
 
+# Visual colors - Red themed katana
+const KATANA_BLADE_COLOR: Color = Color(0.85, 0.15, 0.15)  # Deep red blade
+const KATANA_ACCENT_COLOR: Color = Color(1.0, 0.3, 0.3)  # Bright red accent
+const KATANA_TRAIL_COLOR: Color = Color(1.0, 0.2, 0.2, 0.8)  # Red trail
+const KATANA_SLASH_COLOR: Color = Color(1.0, 0.4, 0.4, 0.9)  # Light red slash
+
 func _weapon_ready():
-	# Katana-specific configuration
+	# Katana - fast, precise, combo-focused
 	damage = 12.0
-	attack_duration = 0.2
-	attack_cooldown = 0.3
-	weapon_color = Color(0.9, 0.2, 0.2)  # Red katana
+	attack_duration = 0.16  # Very fast swings
+	attack_cooldown = 0.24  # Quick recovery for combos
+	weapon_color = KATANA_BLADE_COLOR
 	idle_rotation = 45.0
 	idle_scale = Vector2(0.6, 0.6)
 
-	# Combo settings
+	# Combo settings - optimized for rapid combos
 	combo_window = 2.0
-	combo_finisher_multiplier = 1.5
+	combo_finisher_multiplier = 1.6
 	combo_hits = 3
+
+	# Moderate knockback (precision over power)
+	base_knockback = 280.0
+	finisher_knockback = 500.0
 
 	# Skill settings
 	skill_cooldown = 6.0
@@ -47,8 +57,41 @@ func _get_hit_color(combo_finisher: bool, dash_attack: bool, crit: bool) -> Colo
 	elif combo_finisher:
 		return Color.GOLD
 	elif dash_attack or is_dash_slashing:
-		return Color(1.0, 0.3, 0.3)  # Red-ish for katana dash
-	return weapon_color
+		return KATANA_ACCENT_COLOR
+	return KATANA_BLADE_COLOR
+
+# Visual swing trail for Katana - sharp, fast streaks
+func _perform_attack_animation(pattern: String, duration: float, is_dash_attack: bool):
+	# Call parent animation
+	super._perform_attack_animation(pattern, duration, is_dash_attack)
+
+	# Add katana slash trail - multiple sharp lines
+	_create_katana_slash_trail()
+
+func _create_katana_slash_trail():
+	if not player_reference:
+		return
+
+	# Sharp slash line
+	for i in range(3):
+		var slash = ColorRect.new()
+		slash.size = Vector2(4, weapon_length * 0.9)
+		slash.color = KATANA_TRAIL_COLOR
+		slash.pivot_offset = Vector2(2, weapon_length * 0.45)
+		get_tree().current_scene.add_child(slash)
+		slash.global_position = global_position
+		slash.rotation = pivot.rotation + (i - 1) * 0.1
+
+		var tween = create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(slash, "modulate:a", 0.0, 0.1)
+		tween.tween_property(slash, "scale:x", 0.1, 0.1)
+		tween.tween_callback(slash.queue_free)
+
+func _on_combo_finisher_hit(_target: Node2D):
+	# Red cross slash effect
+	DamageNumberManager.shake(0.25)
+	_create_cross_slash_effect()
 
 # ============================================
 # KATANA DASH SLASH SKILL
@@ -63,6 +106,12 @@ func _perform_skill() -> bool:
 
 func _execute_dash_slash():
 	var player = player_reference
+	if not is_instance_valid(player):
+		is_dash_slashing = false
+		return
+
+	# IMMEDIATELY make player invulnerable - before anything else
+	player.is_invulnerable = true
 
 	# Calculate dash direction toward mouse
 	var direction = (player.get_global_mouse_position() - player.global_position).normalized()
@@ -74,9 +123,8 @@ func _execute_dash_slash():
 	# Wall-safe raycast
 	var target_position = _calculate_safe_dash_position(player, desired_position, direction)
 
-	# Make player invulnerable during dash
-	if player.has_method("set_invulnerable"):
-		player.set_invulnerable(true)
+	# Visual feedback - slight transparency during dash
+	player.modulate = Color(1, 1, 1, 0.5)
 
 	# Perform dash movement
 	var tween = create_tween()
@@ -84,8 +132,9 @@ func _execute_dash_slash():
 		.set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_OUT)
 
 	tween.finished.connect(func():
-		if player.has_method("set_invulnerable"):
-			player.set_invulnerable(false)
+		if is_instance_valid(player):
+			player.is_invulnerable = false
+			player.modulate = Color.WHITE
 		is_dash_slashing = false
 	)
 
@@ -120,6 +169,10 @@ func _dash_damage_loop(player: Node2D, _direction: Vector2):
 	for i in range(checks):
 		await get_tree().create_timer(DASH_TIME / checks).timeout
 
+		# Check validity after await
+		if not is_instance_valid(self) or not is_instance_valid(player):
+			return
+
 		var enemies = get_tree().get_nodes_in_group("enemies")
 		for enemy in enemies:
 			if not is_instance_valid(enemy):
@@ -131,7 +184,7 @@ func _dash_damage_loop(player: Node2D, _direction: Vector2):
 				var final_damage = damage * damage_multiplier * DASH_DAMAGE_MULTIPLIER
 
 				if enemy.has_method("take_damage"):
-					enemy.take_damage(final_damage, player.global_position, 300.0, 0.15, player_reference)
+					enemy.take_damage(final_damage, player.global_position, 300.0, 0.15, player)
 					dealt_damage.emit(enemy, final_damage)
 					_create_slash_effect(enemy.global_position)
 
@@ -141,6 +194,10 @@ func _create_dash_trail():
 
 	for i in range(5):
 		await get_tree().create_timer(0.03).timeout
+
+		# Check validity after await
+		if not is_instance_valid(self) or not is_instance_valid(player_reference):
+			return
 
 		var ghost = ColorRect.new()
 		ghost.size = Vector2(40, 40)
@@ -178,3 +235,26 @@ func attack(direction: Vector2, player_damage_multiplier: float = 1.0) -> bool:
 	if is_dash_slashing:
 		return false
 	return super.attack(direction, player_damage_multiplier)
+
+func _create_cross_slash_effect():
+	if not player_reference:
+		return
+
+	var hit_pos = player_reference.global_position + current_attack_direction * 60
+
+	# Create X slash mark
+	for i in range(2):
+		var slash = ColorRect.new()
+		slash.size = Vector2(6, 80)
+		slash.color = KATANA_ACCENT_COLOR
+		slash.pivot_offset = Vector2(3, 40)
+		get_tree().current_scene.add_child(slash)
+		slash.global_position = hit_pos
+		slash.rotation = (PI / 4) if i == 0 else (-PI / 4)
+		slash.scale = Vector2(0.5, 0.5)
+
+		var tween = create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(slash, "scale", Vector2(1.5, 1.5), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_property(slash, "modulate:a", 0.0, 0.2)
+		tween.tween_callback(slash.queue_free)

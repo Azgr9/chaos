@@ -1,9 +1,17 @@
 # SCRIPT: LightningStaff.gd
 # ATTACH TO: LightningStaff (Node2D) root node in LightningStaff.tscn
 # LOCATION: res://Scripts/Weapons/LightningStaff.gd
+# Electric staff with crackling lightning bolt projectiles
 
 class_name LightningStaff
 extends MagicWeapon
+
+# ============================================
+# PROJECTILE COLORS
+# ============================================
+const ELECTRIC_CORE: Color = Color(0.4, 0.9, 1.0)  # Bright electric blue
+const ELECTRIC_GLOW: Color = Color(0.0, 1.0, 1.0, 0.8)  # Cyan
+const ELECTRIC_SPARK: Color = Color(1.0, 1.0, 0.6)  # Yellow-white sparks
 
 # ============================================
 # CHAIN LIGHTNING SETTINGS
@@ -25,12 +33,12 @@ var ability_duration_timer: Timer
 var zap_timer: Timer
 
 func _weapon_ready():
-	# LightningStaff configuration
-	attack_cooldown = 0.3
+	# LightningStaff - fast, electric damage
+	attack_cooldown = 0.22  # Fast attack speed - lightning is quick
 	projectile_spread = 5.0
 	multi_shot = 1
-	damage = 12.0
-	staff_color = Color("#4488ff")  # Blue
+	damage = 11.0  # Slightly lower damage for faster speed
+	staff_color = Color("#4488ff")  # Electric blue
 
 	# Override skill cooldown
 	skill_cooldown = 8.0
@@ -58,7 +66,69 @@ func _get_beam_glow_color() -> Color:
 	return Color("#66ccff", 0.6)  # Light blue
 
 func _get_projectile_color() -> Color:
-	return Color("#66ccff")  # Electric blue
+	return ELECTRIC_CORE
+
+func _customize_projectile(projectile: Node2D):
+	# Crackling electric bolt
+	if projectile.has_node("Sprite"):
+		var sprite_node = projectile.get_node("Sprite")
+		sprite_node.color = ELECTRIC_CORE
+		sprite_node.size = Vector2(12, 18)  # Elongated bolt shape
+
+	# Add electric crackling effect
+	_add_electric_trail(projectile)
+
+func _add_electric_trail(projectile: Node2D):
+	var timer = Timer.new()
+	timer.wait_time = 0.03
+	timer.one_shot = false
+	projectile.add_child(timer)
+
+	timer.timeout.connect(func():
+		if not is_instance_valid(projectile):
+			timer.stop()
+			timer.queue_free()
+			return
+
+		# Electric spark particle
+		var spark = ColorRect.new()
+		spark.size = Vector2(4, 8)
+		spark.color = ELECTRIC_SPARK if randf() > 0.5 else ELECTRIC_GLOW
+		spark.pivot_offset = Vector2(2, 4)
+		get_tree().current_scene.add_child(spark)
+		spark.global_position = projectile.global_position
+		spark.rotation = randf() * TAU
+
+		# Small arc/zap away from projectile
+		var offset = Vector2(randf_range(-15, 15), randf_range(-15, 15))
+
+		var tween = create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(spark, "global_position", projectile.global_position + offset, 0.1)
+		tween.tween_property(spark, "modulate:a", 0.0, 0.1)
+		tween.tween_property(spark, "scale", Vector2(0.3, 0.3), 0.1)
+		tween.tween_callback(spark.queue_free)
+
+		# Occasional mini-bolt branching off
+		if randf() > 0.7:
+			_create_mini_bolt(projectile.global_position)
+	)
+	timer.start()
+
+func _create_mini_bolt(pos: Vector2):
+	var bolt = Line2D.new()
+	get_tree().current_scene.add_child(bolt)
+	bolt.default_color = ELECTRIC_GLOW
+	bolt.width = 2.0
+
+	var end_pos = pos + Vector2(randf_range(-20, 20), randf_range(-20, 20))
+	var mid_pos = pos.lerp(end_pos, 0.5) + Vector2(randf_range(-8, 8), randf_range(-8, 8))
+
+	bolt.points = PackedVector2Array([pos, mid_pos, end_pos])
+
+	var tween = create_tween()
+	tween.tween_property(bolt, "modulate:a", 0.0, 0.08)
+	tween.tween_callback(bolt.queue_free)
 
 # ============================================
 # CHAIN LIGHTNING SKILL (Timer-based)
@@ -112,10 +182,12 @@ func _perform_chain_lightning():
 			break
 
 	# Damage all targets
+	var attacker = player_reference if is_instance_valid(player_reference) else null
+	var origin = player_reference.global_position if attacker else Vector2.ZERO
 	for target in chain_targets:
 		if is_instance_valid(target) and target.has_method("take_damage"):
 			var final_damage = chain_damage * damage_multiplier
-			target.take_damage(final_damage, player_reference.global_position if player_reference else Vector2.ZERO, 150.0, 0.1, player_reference)
+			target.take_damage(final_damage, origin, 150.0, 0.1, attacker)
 
 	# Draw lightning visual
 	_draw_lightning_chain(chain_targets)
