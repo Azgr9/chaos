@@ -400,7 +400,7 @@ func switch_to_weapon(index: int):
 	_weapon_switch_effect()
 
 	weapon_switched.emit(current_weapon)
-	print("[Player] Switched to weapon: ", current_weapon.name if current_weapon else "None")
+	print("[Player] Switched to weapon: %s" % (current_weapon.name if current_weapon else "None"))
 
 func switch_to_staff(index: int):
 	if index < 0 or index >= staff_inventory.size():
@@ -421,7 +421,7 @@ func switch_to_staff(index: int):
 	_staff_switch_effect()
 
 	staff_switched.emit(current_staff)
-	print("[Player] Switched to staff: ", current_staff.name if current_staff else "None")
+	print("[Player] Switched to staff: %s" % (current_staff.name if current_staff else "None"))
 
 func _weapon_switch_effect():
 	# Quick flash effect when switching weapons

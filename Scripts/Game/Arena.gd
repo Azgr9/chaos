@@ -34,7 +34,7 @@ func clamp_to_arena(pos: Vector2, padding: float = 0.0) -> Vector2:
 	clamped.y = clamp(pos.y, arena_center.y - arena_half_height + padding, arena_center.y + arena_half_height - padding)
 	return clamped
 
-func get_random_position_in_arena(min_from_center: float = 0.0, padding_from_edge: float = 50.0) -> Vector2:
+func get_random_position_in_arena(_min_from_center: float = 0.0, padding_from_edge: float = 50.0) -> Vector2:
 	var x = randf_range(arena_center.x - arena_half_width + padding_from_edge, arena_center.x + arena_half_width - padding_from_edge)
 	var y = randf_range(arena_center.y - arena_half_height + padding_from_edge, arena_center.y + arena_half_height - padding_from_edge)
 	return Vector2(x, y)

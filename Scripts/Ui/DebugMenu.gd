@@ -11,8 +11,8 @@ extends CanvasLayer
 # ============================================
 const ENEMY_SCENES = {
 	"Slime": preload("res://Scenes/Enemies/Slime.tscn"),
-	"Imp": preload("res://Scenes/Enemies/Imp.tscn"),
-	"Goblin": preload("res://Scenes/Enemies/GoblinArcher.tscn"),
+	"GoblinArcher": preload("res://Scenes/Enemies/GoblinArcher.tscn"),
+	"GoblinDual": preload("res://Scenes/Enemies/GoblinDual.tscn"),
 	"Healer": preload("res://Scenes/Enemies/Healer.tscn"),
 	"Spawner": preload("res://Scenes/Enemies/Spawner.tscn"),
 	"Boss": preload("res://Scenes/Enemies/Boss.tscn")
@@ -334,8 +334,8 @@ func _build_debug_ui():
 
 	var enemy_colors = {
 		"Slime": Color(0.0, 0.8, 0.0),
-		"Imp": Color(0.8, 0.2, 0.3),
-		"Goblin": Color(0.3, 0.5, 0.2),
+		"GoblinArcher": Color(0.3, 0.5, 0.2),
+		"GoblinDual": Color(0.5, 0.4, 0.2),
 		"Healer": Color(0.2, 0.8, 0.4),
 		"Spawner": Color(0.6, 0.3, 0.8),
 		"Boss": Color(0.9, 0.1, 0.1)
@@ -516,7 +516,6 @@ func _on_open_shop_pressed():
 		upgrade_menu = get_node_or_null("/root/Game/UI/UpgradeMenu")
 	if not upgrade_menu:
 		# Try to find it anywhere in the scene
-		var nodes = get_tree().get_nodes_in_group("")
 		for node in get_tree().current_scene.get_children():
 			if node.name == "UpgradeMenu" or node is CanvasLayer and node.has_method("show_upgrades"):
 				upgrade_menu = node

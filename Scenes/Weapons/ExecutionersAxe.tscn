@@ -1,0 +1,46 @@
+[gd_scene load_steps=3 format=3 uid="uid://executioners_axe"]
+
+[ext_resource type="Script" path="res://Scripts/Weapons/ExecutionersAxe.gd" id="1_axe"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_axe"]
+size = Vector2(64, 130)
+
+[node name="ExecutionersAxe" type="Node2D"]
+script = ExtResource("1_axe")
+
+[node name="Pivot" type="Node2D" parent="."]
+
+[node name="Sprite" type="ColorRect" parent="Pivot"]
+offset_left = -16.0
+offset_top = -110.0
+offset_right = 16.0
+offset_bottom = -10.0
+pivot_offset = Vector2(16, 100)
+color = Color(0.29, 0.29, 0.29, 1)
+
+[node name="AxeHead" type="ColorRect" parent="Pivot"]
+offset_left = -24.0
+offset_top = -110.0
+offset_right = 24.0
+offset_bottom = -60.0
+color = Color(0.4, 0.4, 0.45, 1)
+
+[node name="AxeBlade" type="ColorRect" parent="Pivot"]
+offset_left = -32.0
+offset_top = -100.0
+offset_right = -20.0
+offset_bottom = -65.0
+color = Color(0.7, 0.7, 0.75, 1)
+
+[node name="HitBox" type="Area2D" parent="Pivot"]
+collision_layer = 32
+collision_mask = 16
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Pivot/HitBox"]
+position = Vector2(0, -55)
+shape = SubResource("RectangleShape2D_axe")
+disabled = true
+
+[node name="AttackTimer" type="Timer" parent="."]
+wait_time = 0.6
+one_shot = true

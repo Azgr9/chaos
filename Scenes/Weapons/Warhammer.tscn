@@ -1,0 +1,29 @@
+[gd_scene load_steps=3 format=3 uid="uid://c7q3et5t6libw"]
+
+[ext_resource type="Script" path="res://Scripts/Weapons/Warhammer.gd" id="1_warhammer"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_warhammer"]
+size = Vector2(70, 36)
+
+[node name="Warhammer" type="Node2D"]
+script = ExtResource("1_warhammer")
+
+[node name="Pivot" type="Node2D" parent="."]
+
+[node name="Sprite" type="ColorRect" parent="Pivot"]
+offset_left = 8.0
+offset_top = -12.0
+offset_right = 70.0
+offset_bottom = 12.0
+color = Color(0.4, 0.35, 0.3, 1)
+
+[node name="HitBox" type="Area2D" parent="Pivot"]
+collision_layer = 64
+collision_mask = 20
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Pivot/HitBox"]
+position = Vector2(39, 0)
+shape = SubResource("RectangleShape2D_warhammer")
+
+[node name="AttackTimer" type="Timer" parent="."]
+one_shot = true

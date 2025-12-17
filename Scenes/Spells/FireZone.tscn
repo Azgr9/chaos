@@ -1,0 +1,93 @@
+[gd_scene load_steps=3 format=3 uid="uid://fire_zone"]
+
+[ext_resource type="Script" path="res://Scripts/Spells/FireZone.gd" id="1_fire"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_fire"]
+radius = 64.0
+
+[node name="FireZone" type="Node2D"]
+script = ExtResource("1_fire")
+
+[node name="DamageArea" type="Area2D" parent="."]
+collision_layer = 64
+collision_mask = 22
+monitoring = true
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DamageArea"]
+shape = SubResource("CircleShape2D_fire")
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="BaseGlow" type="ColorRect" parent="Visual"]
+z_index = -1
+offset_left = -64.0
+offset_top = -64.0
+offset_right = 64.0
+offset_bottom = 64.0
+pivot_offset = Vector2(64, 64)
+color = Color(1, 0.2, 0, 0.3)
+
+[node name="FlameRing" type="ColorRect" parent="Visual"]
+offset_left = -56.0
+offset_top = -56.0
+offset_right = 56.0
+offset_bottom = 56.0
+pivot_offset = Vector2(56, 56)
+color = Color(1, 0.4, 0.1, 0.5)
+
+[node name="InnerFire" type="ColorRect" parent="Visual"]
+offset_left = -40.0
+offset_top = -40.0
+offset_right = 40.0
+offset_bottom = 40.0
+pivot_offset = Vector2(40, 40)
+color = Color(1, 0.6, 0.2, 0.6)
+
+[node name="CoreFlame" type="ColorRect" parent="Visual"]
+offset_left = -24.0
+offset_top = -24.0
+offset_right = 24.0
+offset_bottom = 24.0
+pivot_offset = Vector2(24, 24)
+color = Color(1, 0.8, 0.3, 0.8)
+
+[node name="Flame1" type="ColorRect" parent="Visual"]
+offset_left = -8.0
+offset_top = -48.0
+offset_right = 8.0
+offset_bottom = -16.0
+pivot_offset = Vector2(8, 32)
+color = Color(1, 0.5, 0.1, 0.9)
+
+[node name="Flame2" type="ColorRect" parent="Visual"]
+offset_left = 20.0
+offset_top = -40.0
+offset_right = 36.0
+offset_bottom = -8.0
+pivot_offset = Vector2(8, 32)
+color = Color(1, 0.6, 0.2, 0.85)
+
+[node name="Flame3" type="ColorRect" parent="Visual"]
+offset_left = -36.0
+offset_top = -36.0
+offset_right = -20.0
+offset_bottom = -4.0
+pivot_offset = Vector2(8, 32)
+color = Color(1, 0.4, 0.1, 0.9)
+
+[node name="Flame4" type="ColorRect" parent="Visual"]
+offset_left = -16.0
+offset_top = 8.0
+offset_right = 0.0
+offset_bottom = 40.0
+pivot_offset = Vector2(8, 32)
+color = Color(1, 0.5, 0.15, 0.8)
+
+[node name="Flame5" type="ColorRect" parent="Visual"]
+offset_left = 8.0
+offset_top = 16.0
+offset_right = 24.0
+offset_bottom = 48.0
+pivot_offset = Vector2(8, 32)
+color = Color(1, 0.55, 0.1, 0.85)
