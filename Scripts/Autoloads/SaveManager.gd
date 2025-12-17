@@ -36,7 +36,6 @@ var save_data: Dictionary = {
 # Enemy display names for bestiary UI
 const ENEMY_DISPLAY_NAMES = {
 	"slime": "Slime",
-	"imp": "Imp",
 	"goblin_archer": "Goblin Archer",
 	"healer": "Healer",
 	"spawner": "Spawner",
@@ -44,16 +43,19 @@ const ENEMY_DISPLAY_NAMES = {
 }
 
 # Training cost per level (index = level, value = cost)
-const TRAINING_COSTS = [20, 50, 100, 200, 400]
+# Balanced for ~210-250 gold per full 5-wave run:
+# Level 1: ~half of early wave earnings (accessible after 1 run)
+# Level 5: requires saving from multiple runs
+const TRAINING_COSTS = [15, 35, 75, 150, 300]
 const MAX_TRAINING_LEVEL = 5
 
 # Training bonuses per level
 const TRAINING_BONUSES = {
-	"vitality": 20.0,    # +20 max health per level
-	"strength": 0.05,    # +5% damage per level
-	"agility": 0.04,     # +4% speed per level
-	"reflexes": 0.05,    # -5% cooldown per level
-	"fortune": 20        # +20 starting gold per level
+	"vitality": 15.0,    # +15 max health per level (75 at max)
+	"strength": 0.06,    # +6% damage per level (30% at max)
+	"agility": 0.05,     # +5% speed per level (25% at max)
+	"reflexes": 0.04,    # -4% cooldown per level (20% at max)
+	"fortune": 10        # +10 starting gold per level (50 at max, ~20% head start)
 }
 
 func _ready():
@@ -254,6 +256,23 @@ func get_total_bestiary_kills() -> int:
 # ============================================
 # RESET (for testing)
 # ============================================
+
+func reset_training_and_refund() -> int:
+	# Calculate total gold spent on training
+	var refund_amount = 0
+	for stat_name in save_data.training_levels:
+		var level = save_data.training_levels[stat_name]
+		for i in range(level):
+			refund_amount += TRAINING_COSTS[i]
+		# Reset the level
+		save_data.training_levels[stat_name] = 0
+
+	# Add refund to gold
+	save_data.gold += refund_amount
+	gold_changed.emit(save_data.gold)
+	save_game()
+
+	return refund_amount
 
 func reset_save():
 	save_data = {

@@ -11,13 +11,14 @@ extends Node
 var hazard_scenes: Dictionary = {}
 
 # ============================================
-# SPAWN CONFIGURATION
+# SPAWN CONFIGURATION (Rectangle Arena)
 # ============================================
 @export_group("Spawn Settings")
-@export var arena_bounds: Rect2 = Rect2(64, 64, 512, 296)
+@export var arena_center: Vector2 = Vector2(1280, 720)
+@export var arena_half_width: float = 1150.0  # Playable half-width (slightly inside wall)
+@export var arena_half_height: float = 630.0  # Playable half-height
 @export var min_distance_from_player: float = 100.0
 @export var min_distance_between_hazards: float = 80.0
-@export var edge_padding: float = 32.0
 @export var warning_duration: float = 1.5
 
 # ============================================
@@ -157,15 +158,9 @@ func get_valid_spawn_position() -> Vector2:
 	while attempts < max_attempts:
 		attempts += 1
 
-		# Generate random position within arena bounds (with padding)
-		var x = randf_range(
-			arena_bounds.position.x + edge_padding,
-			arena_bounds.position.x + arena_bounds.size.x - edge_padding
-		)
-		var y = randf_range(
-			arena_bounds.position.y + edge_padding,
-			arena_bounds.position.y + arena_bounds.size.y - edge_padding
-		)
+		# Generate random position within rectangle arena
+		var x = randf_range(arena_center.x - arena_half_width, arena_center.x + arena_half_width)
+		var y = randf_range(arena_center.y - arena_half_height, arena_center.y + arena_half_height)
 		var candidate_pos = Vector2(x, y)
 
 		if is_position_valid(candidate_pos):
@@ -175,6 +170,10 @@ func get_valid_spawn_position() -> Vector2:
 	return Vector2.INF
 
 func is_position_valid(pos: Vector2) -> bool:
+	# Check if inside rectangle arena
+	if abs(pos.x - arena_center.x) > arena_half_width or abs(pos.y - arena_center.y) > arena_half_height:
+		return false
+
 	# Check distance from player
 	if player_reference and is_instance_valid(player_reference):
 		var distance_to_player = pos.distance_to(player_reference.global_position)
@@ -194,10 +193,8 @@ func is_position_valid(pos: Vector2) -> bool:
 # DEBUG
 # ============================================
 func _draw_debug() -> void:
-	# Draw arena bounds
+	# Draw arena bounds (rectangle)
 	if Engine.is_editor_hint():
-		var _rect = arena_bounds
-		# Would need a CanvasItem to draw
 		pass
 
 func get_hazard_count() -> int:
