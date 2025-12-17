@@ -11,7 +11,7 @@ extends CanvasLayer
 # ============================================
 const ENEMY_SCENES = {
 	"Slime": preload("res://Scenes/Enemies/Slime.tscn"),
-dw	"Imp": preload("res://Scenes/Enemies/Imp.tscn"),
+	"Imp": preload("res://Scenes/Enemies/Imp.tscn"),
 	"Goblin": preload("res://Scenes/Enemies/GoblinArcher.tscn"),
 	"Healer": preload("res://Scenes/Enemies/Healer.tscn"),
 	"Spawner": preload("res://Scenes/Enemies/Spawner.tscn"),
@@ -47,6 +47,7 @@ var panel: PanelContainer = null
 var enemy_buttons: Dictionary = {}
 var hazard_buttons: Dictionary = {}
 var freeze_button: Button = null
+var gold_label: Label = null
 
 # ============================================
 # SIGNALS
@@ -124,6 +125,9 @@ func open_debug_menu():
 	# Update button text
 	_update_freeze_button()
 
+	# Update gold display
+	_update_gold_display()
+
 	debug_mode_changed.emit(true)
 	print("[DEBUG] Debug menu opened - waves paused, enemies frozen")
 
@@ -171,10 +175,13 @@ func _update_freeze_button():
 # BUILD UI
 # ============================================
 func _build_debug_ui():
-	# Main panel on right side
+	# Main panel on right side - use most of screen height
+	var viewport_size = get_viewport().get_visible_rect().size
+	var panel_height = viewport_size.y - 40  # 20px margin top and bottom
+
 	panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(250, 500)
-	panel.position = Vector2(get_viewport().get_visible_rect().size.x - 270, 20)
+	panel.custom_minimum_size = Vector2(260, panel_height)
+	panel.position = Vector2(viewport_size.x - 280, 20)
 	add_child(panel)
 
 	# Style the panel
@@ -185,15 +192,25 @@ func _build_debug_ui():
 	style.set_corner_radius_all(8)
 	panel.add_theme_stylebox_override("panel", style)
 
+	# Add ScrollContainer for scrollable content
+	var scroll = ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.add_child(scroll)
+
 	var margin = MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 10)
 	margin.add_theme_constant_override("margin_right", 10)
 	margin.add_theme_constant_override("margin_top", 10)
 	margin.add_theme_constant_override("margin_bottom", 10)
-	panel.add_child(margin)
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(margin)
 
 	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
+	vbox.add_theme_constant_override("separation", 6)
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.add_child(vbox)
 
 	# Title
@@ -210,6 +227,45 @@ func _build_debug_ui():
 	subtitle.add_theme_font_size_override("font_size", 12)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(subtitle)
+
+	vbox.add_child(HSeparator.new())
+
+	# === GOLD CONTROLS ===
+	var gold_section_label = Label.new()
+	gold_section_label.text = "GOLD"
+	gold_section_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.0))
+	gold_section_label.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(gold_section_label)
+
+	# Gold display
+	gold_label = Label.new()
+	gold_label.text = "Gold: 0"
+	gold_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
+	gold_label.add_theme_font_size_override("font_size", 16)
+	gold_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(gold_label)
+
+	# Gold buttons row
+	var gold_hbox = HBoxContainer.new()
+	gold_hbox.add_theme_constant_override("separation", 5)
+	vbox.add_child(gold_hbox)
+
+	var add_10_btn = _create_small_button("+10", Color(0.2, 0.8, 0.2))
+	add_10_btn.pressed.connect(_on_add_gold.bind(10))
+	gold_hbox.add_child(add_10_btn)
+
+	var add_50_btn = _create_small_button("+50", Color(0.3, 0.9, 0.3))
+	add_50_btn.pressed.connect(_on_add_gold.bind(50))
+	gold_hbox.add_child(add_50_btn)
+
+	var add_100_btn = _create_small_button("+100", Color(0.4, 1.0, 0.4))
+	add_100_btn.pressed.connect(_on_add_gold.bind(100))
+	gold_hbox.add_child(add_100_btn)
+
+	# Open Shop button
+	var shop_btn = _create_button("Open Shop", Color(1.0, 0.85, 0.0))
+	shop_btn.pressed.connect(_on_open_shop_pressed)
+	vbox.add_child(shop_btn)
 
 	vbox.add_child(HSeparator.new())
 
@@ -364,6 +420,25 @@ func _create_button(text: String, color: Color) -> Button:
 
 	return btn
 
+func _create_small_button(text: String, color: Color) -> Button:
+	var btn = Button.new()
+	btn.text = text
+	btn.custom_minimum_size = Vector2(65, 30)
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var style = StyleBoxFlat.new()
+	style.bg_color = color * 0.3
+	style.border_color = color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	btn.add_theme_stylebox_override("normal", style)
+
+	var hover_style = style.duplicate()
+	hover_style.bg_color = color * 0.5
+	btn.add_theme_stylebox_override("hover", hover_style)
+
+	return btn
+
 func _create_spawn_button(enemy_name: String, color: Color) -> Button:
 	var btn = Button.new()
 	btn.text = enemy_name
@@ -423,6 +498,45 @@ func _on_freeze_toggle_pressed():
 		print("[DEBUG] Enemies frozen")
 	else:
 		print("[DEBUG] Enemies unfrozen - they can move now")
+
+func _on_add_gold(amount: int):
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if game_manager and game_manager.has_method("add_gold"):
+		game_manager.add_gold(amount)
+		_update_gold_display()
+		print("[DEBUG] Added %d gold" % amount)
+
+func _on_open_shop_pressed():
+	# Close debug menu first
+	close_debug_menu()
+
+	# Find and open upgrade menu
+	var upgrade_menu = get_tree().get_first_node_in_group("upgrade_menu")
+	if not upgrade_menu:
+		upgrade_menu = get_node_or_null("/root/Game/UI/UpgradeMenu")
+	if not upgrade_menu:
+		# Try to find it anywhere in the scene
+		var nodes = get_tree().get_nodes_in_group("")
+		for node in get_tree().current_scene.get_children():
+			if node.name == "UpgradeMenu" or node is CanvasLayer and node.has_method("show_upgrades"):
+				upgrade_menu = node
+				break
+
+	if upgrade_menu and upgrade_menu.has_method("show_upgrades"):
+		if player_reference:
+			upgrade_menu.show_upgrades(player_reference)
+			print("[DEBUG] Opened shop")
+	else:
+		print("[DEBUG] Could not find UpgradeMenu")
+
+func _update_gold_display():
+	if not gold_label:
+		return
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if game_manager and game_manager.has_method("get_gold"):
+		gold_label.text = "Gold: %d" % game_manager.get_gold()
+	else:
+		gold_label.text = "Gold: N/A"
 
 # ============================================
 # DRAG AND DROP SPAWNING

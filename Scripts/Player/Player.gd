@@ -38,6 +38,7 @@ var staff_inventory: Array = []
 var current_weapon: Node2D = null
 var weapon_inventory: Array = []
 var current_weapon_index: int = 0
+var current_staff_index: int = 0
 
 # Pixel-perfect movement
 var accumulated_movement: Vector2 = Vector2.ZERO
@@ -64,6 +65,7 @@ signal health_changed(current_health: float, max_health: float)
 signal player_died
 signal player_revived
 signal weapon_switched(weapon: Node2D)
+signal staff_switched(staff: Node2D)
 
 func _ready():
 	# Add to player group so enemies can find us
@@ -350,11 +352,94 @@ func _spawn_and_equip_weapon(weapon_scene: PackedScene):
 	
 	weapon_switched.emit(weapon_instance)
 
-func switch_weapon():
+func _input(event):
+	# Mouse wheel weapon/staff switching (only when not attacking)
+	if event is InputEventMouseButton and not is_attacking:
+		if event.pressed:
+			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+				# Scroll up = cycle weapons
+				_cycle_weapon(1)
+			elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+				# Scroll down = cycle staffs
+				_cycle_staff(1)
+
+func _cycle_weapon(direction: int):
 	if weapon_inventory.size() <= 1:
 		return
-	
-	current_weapon_index = (current_weapon_index + 1) % weapon_inventory.size()
+
+	var new_index = (current_weapon_index + direction) % weapon_inventory.size()
+	if new_index < 0:
+		new_index = weapon_inventory.size() - 1
+	switch_to_weapon(new_index)
+
+func _cycle_staff(direction: int):
+	if staff_inventory.size() <= 1:
+		return
+
+	var new_index = (current_staff_index + direction) % staff_inventory.size()
+	if new_index < 0:
+		new_index = staff_inventory.size() - 1
+	switch_to_staff(new_index)
+
+func switch_to_weapon(index: int):
+	if index < 0 or index >= weapon_inventory.size():
+		return
+	if index == current_weapon_index and current_weapon:
+		return  # Already using this weapon
+
+	# Hide old weapon
+	if current_weapon:
+		current_weapon.visible = false
+
+	# Show and set new weapon
+	current_weapon_index = index
+	current_weapon = weapon_inventory[index]
+	current_weapon.visible = true
+
+	# Visual feedback
+	_weapon_switch_effect()
+
+	weapon_switched.emit(current_weapon)
+	print("[Player] Switched to weapon: ", current_weapon.name if current_weapon else "None")
+
+func switch_to_staff(index: int):
+	if index < 0 or index >= staff_inventory.size():
+		return
+	if index == current_staff_index and current_staff:
+		return  # Already using this staff
+
+	# Hide old staff
+	if current_staff:
+		current_staff.visible = false
+
+	# Show and set new staff
+	current_staff_index = index
+	current_staff = staff_inventory[index]
+	current_staff.visible = true
+
+	# Visual feedback
+	_staff_switch_effect()
+
+	staff_switched.emit(current_staff)
+	print("[Player] Switched to staff: ", current_staff.name if current_staff else "None")
+
+func _weapon_switch_effect():
+	# Quick flash effect when switching weapons
+	if current_weapon:
+		var tween = create_tween()
+		tween.tween_property(current_weapon, "modulate", Color(1.5, 1.5, 1.5), 0.1)
+		tween.tween_property(current_weapon, "modulate", Color.WHITE, 0.1)
+
+func _staff_switch_effect():
+	# Quick flash effect when switching staffs
+	if current_staff:
+		var tween = create_tween()
+		tween.tween_property(current_staff, "modulate", Color(1.2, 1.2, 1.5), 0.1)
+		tween.tween_property(current_staff, "modulate", Color.WHITE, 0.1)
+
+func switch_weapon():
+	# Legacy function - cycle to next weapon
+	_cycle_weapon(1)
 
 func _on_weapon_broke():
 	weapon_inventory.erase(current_weapon)
@@ -516,13 +601,20 @@ func on_enemy_killed():
 		flash_tween.tween_property(sprite, "modulate", Color.WHITE, 0.3)
 
 func _spawn_and_equip_staff(staff_scene: PackedScene):
-	if current_staff:
-		current_staff.queue_free()
 	var staff_instance = staff_scene.instantiate()
 	var staff_holder = $StaffPivot/StaffHolder
 	staff_holder.add_child(staff_instance)
 	staff_instance.position = Vector2.ZERO
+
+	# Add to inventory
+	if not staff_instance in staff_inventory:
+		staff_inventory.append(staff_instance)
+
+	# Set as current staff
 	current_staff = staff_instance
+	current_staff_index = staff_inventory.size() - 1
+
+	staff_switched.emit(staff_instance)
 
 func perform_dash():
 	# Set dash direction based on input or last direction
