@@ -11,14 +11,14 @@ extends Node
 var hazard_scenes: Dictionary = {}
 
 # ============================================
-# SPAWN CONFIGURATION (Circular Arena)
+# SPAWN CONFIGURATION (Rectangle Arena)
 # ============================================
 @export_group("Spawn Settings")
 @export var arena_center: Vector2 = Vector2(1280, 720)
-@export var arena_radius: float = 850.0  # Playable radius (slightly inside wall)
+@export var arena_half_width: float = 1150.0  # Playable half-width (slightly inside wall)
+@export var arena_half_height: float = 630.0  # Playable half-height
 @export var min_distance_from_player: float = 100.0
 @export var min_distance_between_hazards: float = 80.0
-@export var min_distance_from_center: float = 100.0  # Keep center somewhat clear
 @export var warning_duration: float = 1.5
 
 # ============================================
@@ -158,10 +158,10 @@ func get_valid_spawn_position() -> Vector2:
 	while attempts < max_attempts:
 		attempts += 1
 
-		# Generate random position within circular arena
-		var angle = randf() * TAU
-		var distance = randf_range(min_distance_from_center, arena_radius)
-		var candidate_pos = arena_center + Vector2.from_angle(angle) * distance
+		# Generate random position within rectangle arena
+		var x = randf_range(arena_center.x - arena_half_width, arena_center.x + arena_half_width)
+		var y = randf_range(arena_center.y - arena_half_height, arena_center.y + arena_half_height)
+		var candidate_pos = Vector2(x, y)
 
 		if is_position_valid(candidate_pos):
 			return candidate_pos
@@ -170,9 +170,8 @@ func get_valid_spawn_position() -> Vector2:
 	return Vector2.INF
 
 func is_position_valid(pos: Vector2) -> bool:
-	# Check if inside circular arena
-	var distance_from_center = pos.distance_to(arena_center)
-	if distance_from_center > arena_radius:
+	# Check if inside rectangle arena
+	if abs(pos.x - arena_center.x) > arena_half_width or abs(pos.y - arena_center.y) > arena_half_height:
 		return false
 
 	# Check distance from player
@@ -194,9 +193,8 @@ func is_position_valid(pos: Vector2) -> bool:
 # DEBUG
 # ============================================
 func _draw_debug() -> void:
-	# Draw arena bounds (circular)
+	# Draw arena bounds (rectangle)
 	if Engine.is_editor_hint():
-		# Would need a CanvasItem to draw circle
 		pass
 
 func get_hazard_count() -> int:

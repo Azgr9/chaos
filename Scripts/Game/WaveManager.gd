@@ -13,7 +13,8 @@ extends Node
 # Arena reference (fetched from scene)
 var arena: Arena = null
 var arena_center: Vector2 = Vector2(1280, 720)  # Fallback
-var arena_radius: float = 900.0  # Fallback
+var arena_half_width: float = 1200.0  # Fallback
+var arena_half_height: float = 680.0  # Fallback
 
 # Enemy definitions with unlock requirements and weights
 const ENEMY_TYPES = {
@@ -78,9 +79,6 @@ var player_reference: Node2D = null
 var spawn_timer: float = 0.0
 
 # Safeguards
-var recent_spawn_angles: Array[float] = []
-const MAX_TRACKED_ANGLES = 5
-const MIN_ANGLE_DIFFERENCE = deg_to_rad(45)  # 45 degrees apart minimum
 var breather_checkpoints = [0.4, 0.75]
 var checkpoints_triggered: Dictionary = {}
 
@@ -138,8 +136,9 @@ func _find_arena():
 
 	if arena:
 		arena_center = arena.get_arena_center()
-		arena_radius = arena.get_arena_radius()
-		print("[WaveManager] Found arena: center=%s, radius=%s" % [arena_center, arena_radius])
+		arena_half_width = arena.arena_half_width
+		arena_half_height = arena.arena_half_height
+		print("[WaveManager] Found arena: center=%s, size=%sx%s" % [arena_center, arena_half_width * 2, arena_half_height * 2])
 	else:
 		push_warning("[WaveManager] Arena not found! Using fallback values.")
 
@@ -153,9 +152,10 @@ func _setup_hazard_manager():
 	if player_reference:
 		hazard_manager.set_player_reference(player_reference)
 
-	# Configure circular arena bounds for hazards
+	# Configure rectangle arena bounds for hazards
 	hazard_manager.arena_center = arena_center
-	hazard_manager.arena_radius = arena_radius - 50  # Keep hazards away from walls
+	hazard_manager.arena_half_width = arena_half_width - 50  # Keep hazards away from walls
+	hazard_manager.arena_half_height = arena_half_height - 50
 
 func _process(delta):
 	if not wave_active or points_remaining <= 0:
@@ -193,7 +193,6 @@ func start_next_wave():
 
 	# Reset safeguards
 	_reset_checkpoints()
-	recent_spawn_angles.clear()
 
 	# Spawn hazards for this wave
 	if hazard_manager:
@@ -476,20 +475,11 @@ func _try_make_elite(enemy: Node2D):
 		enemy.make_random_elite()
 
 func _get_spawn_position() -> Vector2:
-	# SAFEGUARD 3: Spatial distribution - get well-distributed angle
-	var angle = _get_distributed_angle()
-
-	# Track this angle
-	recent_spawn_angles.append(angle)
-	if recent_spawn_angles.size() > MAX_TRACKED_ANGLES:
-		recent_spawn_angles.pop_front()
-
-	# Calculate position INSIDE the arena (not at edge)
-	# Spawn at 60-85% of arena radius to keep enemies well inside
-	var min_spawn_dist = arena_radius * 0.5
-	var max_spawn_dist = arena_radius - spawn_edge_padding - 50  # Extra padding to ensure inside
-	var spawn_dist = randf_range(min_spawn_dist, max_spawn_dist)
-	var spawn_pos = arena_center + Vector2.from_angle(angle) * spawn_dist
+	# Generate random position inside rectangle arena
+	var padding = spawn_edge_padding + 50
+	var x = randf_range(arena_center.x - arena_half_width + padding, arena_center.x + arena_half_width - padding)
+	var y = randf_range(arena_center.y - arena_half_height + padding, arena_center.y + arena_half_height - padding)
+	var spawn_pos = Vector2(x, y)
 
 	# Make sure not too close to player
 	if player_reference:
@@ -498,65 +488,18 @@ func _get_spawn_position() -> Vector2:
 			# Find a position further from player but still in arena
 			var dir_from_player = (spawn_pos - player_reference.global_position).normalized()
 			spawn_pos = player_reference.global_position + dir_from_player * spawn_distance_from_player
-			# Clamp to circular arena
+			# Clamp to rectangle arena
 			spawn_pos = _clamp_to_arena(spawn_pos)
 
 	return spawn_pos
 
 func _clamp_to_arena(pos: Vector2) -> Vector2:
-	# Clamp position to stay well inside circular arena
-	var to_center = pos - arena_center
-	var distance = to_center.length()
-	var max_distance = arena_radius - spawn_edge_padding - 50  # Extra padding
-
-	if distance > max_distance and distance > 0:
-		return arena_center + to_center.normalized() * max_distance
-	return pos
-
-func _get_distributed_angle() -> float:
-	# Try up to 10 times to find a good angle
-	for attempt in range(10):
-		var test_angle = randf() * TAU
-
-		if _is_angle_valid(test_angle):
-			return test_angle
-
-	# Fallback: return angle furthest from recent spawns
-	return _get_furthest_angle()
-
-func _is_angle_valid(test_angle: float) -> bool:
-	for recent_angle in recent_spawn_angles:
-		var diff = abs(_angle_difference(test_angle, recent_angle))
-		if diff < MIN_ANGLE_DIFFERENCE:
-			return false
-	return true
-
-func _angle_difference(a: float, b: float) -> float:
-	var diff = fmod(b - a + PI, TAU) - PI
-	return diff
-
-func _get_furthest_angle() -> float:
-	if recent_spawn_angles.is_empty():
-		return randf() * TAU
-
-	# Find angle with maximum distance from all recent angles
-	var best_angle = 0.0
-	var best_min_distance = 0.0
-
-	# Test 8 angles around the circle
-	for i in range(8):
-		var test_angle = (float(i) / 8.0) * TAU
-		var min_distance = TAU
-
-		for recent in recent_spawn_angles:
-			var dist = abs(_angle_difference(test_angle, recent))
-			min_distance = min(min_distance, dist)
-
-		if min_distance > best_min_distance:
-			best_min_distance = min_distance
-			best_angle = test_angle
-
-	return best_angle
+	# Clamp position to stay inside rectangle arena
+	var padding = spawn_edge_padding + 50
+	var clamped = pos
+	clamped.x = clamp(pos.x, arena_center.x - arena_half_width + padding, arena_center.x + arena_half_width - padding)
+	clamped.y = clamp(pos.y, arena_center.y - arena_half_height + padding, arena_center.y + arena_half_height - padding)
+	return clamped
 
 func _reset_checkpoints():
 	checkpoints_triggered = {0.4: false, 0.75: false}
@@ -654,7 +597,6 @@ func reset_waves():
 
 	# Reset safeguards
 	_reset_checkpoints()
-	recent_spawn_angles.clear()
 
 	# Clean up any remaining enemies
 	get_tree().call_group("enemies", "queue_free")
