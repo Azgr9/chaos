@@ -48,6 +48,11 @@ var enemy_buttons: Dictionary = {}
 var hazard_buttons: Dictionary = {}
 var freeze_button: Button = null
 var gold_label: Label = null
+var hitbox_toggle_button: Button = null
+
+# Hitbox visualization
+var show_hitboxes: bool = false
+var hitbox_visualizers: Array = []
 
 # ============================================
 # SIGNALS
@@ -137,6 +142,11 @@ func close_debug_menu():
 
 	# Cancel any drag
 	_end_drag()
+
+	# Clear hitbox visualizers when closing
+	show_hitboxes = false
+	_clear_hitbox_visualizers()
+	_update_hitbox_button()
 
 	# Resume wave manager
 	if wave_manager:
@@ -309,6 +319,20 @@ func _build_debug_ui():
 	freeze_button = _create_button("Unfreeze Enemies", Color(0.4, 0.7, 0.9))
 	freeze_button.pressed.connect(_on_freeze_toggle_pressed)
 	vbox.add_child(freeze_button)
+
+	vbox.add_child(HSeparator.new())
+
+	# === VISUALIZATION ===
+	var vis_label = Label.new()
+	vis_label.text = "VISUALIZATION"
+	vis_label.add_theme_color_override("font_color", Color(0.4, 0.9, 0.9))
+	vis_label.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(vis_label)
+
+	# Show Hitboxes toggle button
+	hitbox_toggle_button = _create_button("Show Weapon Hitboxes", Color(0.9, 0.4, 0.9))
+	hitbox_toggle_button.pressed.connect(_on_hitbox_toggle_pressed)
+	vbox.add_child(hitbox_toggle_button)
 
 	vbox.add_child(HSeparator.new())
 
@@ -674,3 +698,158 @@ func _on_clear_hazards_pressed():
 			hazard.queue_free()
 			count += 1
 	print("[DEBUG] Cleared %d hazards" % count)
+
+# ============================================
+# HITBOX VISUALIZATION
+# ============================================
+func _on_hitbox_toggle_pressed():
+	show_hitboxes = not show_hitboxes
+	_update_hitbox_button()
+
+	if show_hitboxes:
+		print("[DEBUG] Showing weapon hitboxes")
+	else:
+		_clear_hitbox_visualizers()
+		print("[DEBUG] Hiding weapon hitboxes")
+
+func _update_hitbox_button():
+	if hitbox_toggle_button:
+		if show_hitboxes:
+			hitbox_toggle_button.text = "Hide Weapon Hitboxes"
+		else:
+			hitbox_toggle_button.text = "Show Weapon Hitboxes"
+
+func _clear_hitbox_visualizers():
+	for viz in hitbox_visualizers:
+		if is_instance_valid(viz):
+			viz.queue_free()
+	hitbox_visualizers.clear()
+
+func _update_hitbox_visualizers():
+	# Clear old visualizers
+	_clear_hitbox_visualizers()
+
+	if not player_reference:
+		_find_references()
+		if not player_reference:
+			return
+
+	# Find all weapons the player has
+	var weapons = []
+
+	# Check current weapon
+	if player_reference.has_method("get") and player_reference.get("current_weapon"):
+		var current = player_reference.current_weapon
+		if is_instance_valid(current):
+			weapons.append(current)
+
+	# Check weapon inventory
+	if player_reference.has_method("get") and player_reference.get("weapon_inventory"):
+		for weapon in player_reference.weapon_inventory:
+			if is_instance_valid(weapon) and weapon not in weapons:
+				weapons.append(weapon)
+
+	# Also check for staff
+	if player_reference.has_method("get") and player_reference.get("current_staff"):
+		var staff = player_reference.current_staff
+		if is_instance_valid(staff):
+			weapons.append(staff)
+
+	# Create visualizers for each weapon's hitbox
+	for weapon in weapons:
+		_create_hitbox_visualizer(weapon)
+
+func _create_hitbox_visualizer(weapon: Node2D):
+	if not is_instance_valid(weapon):
+		return
+
+	# Find HitBox Area2D in the weapon
+	var hitbox = weapon.get_node_or_null("Pivot/HitBox")
+	if not hitbox:
+		hitbox = weapon.get_node_or_null("HitBox")
+	if not hitbox:
+		# Try to find any Area2D
+		for child in weapon.get_children():
+			if child is Node2D:
+				for subchild in child.get_children():
+					if subchild is Area2D:
+						hitbox = subchild
+						break
+
+	if not hitbox:
+		return
+
+	# Find CollisionShape2D
+	var collision_shape: CollisionShape2D = null
+	for child in hitbox.get_children():
+		if child is CollisionShape2D:
+			collision_shape = child
+			break
+
+	if not collision_shape or not collision_shape.shape:
+		return
+
+	# Create visual representation
+	var viz = ColorRect.new()
+
+	# Determine size based on shape type
+	var shape = collision_shape.shape
+	if shape is RectangleShape2D:
+		viz.size = shape.size
+		viz.pivot_offset = shape.size / 2
+	elif shape is CircleShape2D:
+		var diameter = shape.radius * 2
+		viz.size = Vector2(diameter, diameter)
+		viz.pivot_offset = Vector2(diameter / 2, diameter / 2)
+	elif shape is CapsuleShape2D:
+		viz.size = Vector2(shape.radius * 2, shape.height)
+		viz.pivot_offset = viz.size / 2
+	else:
+		# Default
+		viz.size = Vector2(50, 50)
+		viz.pivot_offset = Vector2(25, 25)
+
+	# Color based on whether hitbox is active
+	if collision_shape.disabled:
+		viz.color = Color(0.5, 0.5, 1.0, 0.3)  # Blue = inactive
+	else:
+		viz.color = Color(1.0, 0.2, 0.2, 0.5)  # Red = active
+
+	# Add to scene
+	get_tree().current_scene.add_child(viz)
+	hitbox_visualizers.append(viz)
+
+	# Position at collision shape's global position
+	viz.global_position = collision_shape.global_position - viz.pivot_offset
+	viz.rotation = hitbox.global_rotation
+
+	# Store reference to update position
+	viz.set_meta("collision_shape", collision_shape)
+	viz.set_meta("hitbox", hitbox)
+
+func _physics_process(_delta):
+	# Update visualizer positions to follow weapons
+	if show_hitboxes:
+		# Recreate visualizers if empty (weapon changed, etc)
+		if hitbox_visualizers.is_empty():
+			_update_hitbox_visualizers()
+
+		for viz in hitbox_visualizers:
+			if not is_instance_valid(viz):
+				continue
+
+			var collision_shape = viz.get_meta("collision_shape", null)
+			var hitbox = viz.get_meta("hitbox", null)
+
+			if not is_instance_valid(collision_shape) or not is_instance_valid(hitbox):
+				continue
+
+			# Update position and rotation
+			viz.global_position = collision_shape.global_position - viz.pivot_offset
+			viz.rotation = hitbox.global_rotation
+
+			# Update color based on active state
+			if collision_shape.disabled:
+				viz.color = Color(0.5, 0.5, 1.0, 0.3)  # Blue = inactive
+			else:
+				viz.color = Color(1.0, 0.2, 0.2, 0.5)  # Red = active

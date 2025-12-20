@@ -190,11 +190,11 @@ func _on_damage_taken():
 	super._on_damage_taken()
 
 func _play_hit_squash():
-	# Squash effect
-	visuals_pivot.scale = Vector2(1.3, 0.7)
+	# Quick squash effect - SNAPPY timing
+	visuals_pivot.scale = Vector2(HIT_SQUASH_SCALE.x, HIT_SQUASH_SCALE.y)
 	var scale_tween = create_tween()
 	scale_tween.tween_property(visuals_pivot, "scale", Vector2(1.0, 1.0), HIT_SQUASH_DURATION)\
-		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _on_death():
 	set_physics_process(false)
@@ -205,10 +205,11 @@ func _on_death():
 	# Reset modulate in case we died mid-dash (was green tinted)
 	animated_sprite.modulate = Color.WHITE
 
-	# Expand and fade (like Slime)
+	# Quick pop and fade - SNAPPY death
 	var tween = create_tween()
-	tween.tween_property(visuals_pivot, "scale", Vector2(2.0, 2.0), 0.3)
-	tween.parallel().tween_property(animated_sprite, "modulate:a", 0.0, 0.3)
+	tween.tween_property(visuals_pivot, "scale", Vector2(1.4, 1.4), DEATH_FADE_DURATION * 0.4)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(animated_sprite, "modulate:a", 0.0, DEATH_FADE_DURATION)
 
 	tween.tween_callback(queue_free)
 

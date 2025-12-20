@@ -168,19 +168,20 @@ func _on_damage_taken():
 	super._on_damage_taken()
 
 func _play_hit_squash():
-	# Squash effect using base_scale
-	visuals_pivot.scale = base_scale * HIT_SQUASH_SCALE.x
+	# Quick squash effect using base_scale - SNAPPY timing
+	visuals_pivot.scale = base_scale * Vector2(HIT_SQUASH_SCALE.x, HIT_SQUASH_SCALE.y)
 	var scale_tween = create_tween()
 	scale_tween.tween_property(visuals_pivot, "scale", base_scale, HIT_SQUASH_DURATION)\
-		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _on_death():
 	set_physics_process(false)
 
-	# Expand and fade
+	# Quick pop and fade - SNAPPY death
 	var tween = create_tween()
-	tween.tween_property(visuals_pivot, "scale", base_scale * 2.0, 0.3)
-	tween.parallel().tween_property(animated_sprite, "modulate:a", 0.0, 0.3)
+	tween.tween_property(visuals_pivot, "scale", base_scale * 1.4, DEATH_FADE_DURATION * 0.4)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(animated_sprite, "modulate:a", 0.0, DEATH_FADE_DURATION)
 
 	tween.tween_callback(queue_free)
 

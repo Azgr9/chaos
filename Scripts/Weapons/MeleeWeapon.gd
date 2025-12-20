@@ -17,6 +17,11 @@ const DEFAULT_KNOCKBACK_STUN: float = 0.15
 const DEFAULT_CRIT_MULTIPLIER: float = 2.0
 const DEFAULT_DASH_ATTACK_MULTIPLIER: float = 1.5
 
+# Animation timing constants
+const DEFAULT_WINDUP_RATIO: float = 0.15   # 15% of duration for windup
+const DEFAULT_ACTIVE_RATIO: float = 0.50   # 50% of duration for active
+const DEFAULT_RECOVERY_RATIO: float = 0.35 # 35% of duration for recovery
+
 # ============================================
 # EXPORTED STATS - Configure per weapon
 # ============================================
@@ -53,6 +58,16 @@ const DEFAULT_DASH_ATTACK_MULTIPLIER: float = 1.5
 @export var skill_cooldown: float = 8.0
 @export var skill_scene: PackedScene  # Override in subclass
 
+@export_group("Animation Settings")
+## Enable hit-stop on impact
+@export var enable_hit_stop: bool = true
+## Custom windup time ratio (0.0 to 1.0)
+@export var windup_ratio: float = DEFAULT_WINDUP_RATIO
+## Custom active time ratio (0.0 to 1.0)
+@export var active_ratio: float = DEFAULT_ACTIVE_RATIO
+## Enable animation canceling during recovery
+@export var allow_recovery_cancel: bool = true
+
 # ============================================
 # NODES - Expected in scene tree
 # ============================================
@@ -85,6 +100,10 @@ var skill_timer: float = 0.0
 var base_attack_cooldown: float = 0.35
 const SPEED_BOOST_PER_HIT: float = 0.1
 
+# Animation state tracking
+var _is_in_active_frames: bool = false
+var _current_attack_data: Dictionary = {}
+
 # ============================================
 # SIGNALS
 # ============================================
@@ -111,8 +130,17 @@ func _ready():
 	await get_tree().process_frame
 	player_reference = get_tree().get_first_node_in_group("player")
 
+	# Register with animation system
+	if CombatAnimationSystem:
+		CombatAnimationSystem.register_weapon(self)
+
 	# Call subclass setup
 	_weapon_ready()
+
+func _exit_tree():
+	# Unregister from animation system
+	if CombatAnimationSystem:
+		CombatAnimationSystem.unregister_weapon(self)
 
 func _process(delta):
 	_update_combo_timer(delta)
@@ -203,10 +231,18 @@ func use_skill() -> bool:
 	if not skill_ready or is_attacking:
 		return false
 
+	# Check animation system for interruptibility
+	if CombatAnimationSystem and not CombatAnimationSystem.is_interruptible(self):
+		return false
+
 	skill_ready = false
 	skill_timer = skill_cooldown
 	skill_used.emit(skill_cooldown)
 	skill_ready_changed.emit(false)
+
+	# Update animation state
+	if CombatAnimationSystem:
+		CombatAnimationSystem.request_transition(self, CombatAnimationSystem.AnimState.SKILL_ACTIVE, true)
 
 	return _perform_skill()
 
@@ -277,6 +313,26 @@ func _perform_attack_animation(pattern: String, duration: float, is_dash_attack:
 		active_attack_tween.kill()
 
 	var is_finisher = is_combo_finisher()
+
+	# Store attack data for animation system
+	_current_attack_data = {
+		"pattern": pattern,
+		"duration": duration,
+		"is_dash_attack": is_dash_attack,
+		"is_finisher": is_finisher,
+		"windup_time": duration * windup_ratio,
+		"active_time": duration * active_ratio,
+		"recovery_time": duration * (1.0 - windup_ratio - active_ratio)
+	}
+
+	# Register animation state with state machine (tracking only, no tween created)
+	if CombatAnimationSystem:
+		CombatAnimationSystem.start_animation(
+			self,
+			CombatAnimationSystem.AnimState.WINDUP,
+			duration,
+			_current_attack_data
+		)
 
 	# Set attack color
 	if is_finisher:
@@ -416,10 +472,20 @@ func _tween_to_idle(tween: Tween):
 
 func _enable_hitbox(is_finisher: bool, is_dash: bool):
 	hit_box_collision.disabled = false
+	_is_in_active_frames = true
 	_create_swing_trail(is_finisher, is_dash)
+
+	# Transition to ACTIVE state
+	if CombatAnimationSystem:
+		CombatAnimationSystem.request_transition(self, CombatAnimationSystem.AnimState.ACTIVE, true)
 
 func _disable_hitbox():
 	hit_box_collision.disabled = true
+	_is_in_active_frames = false
+
+	# Transition to RECOVERY state
+	if CombatAnimationSystem:
+		CombatAnimationSystem.request_transition(self, CombatAnimationSystem.AnimState.RECOVERY, true)
 
 func finish_attack():
 	if active_attack_tween:
@@ -428,10 +494,29 @@ func finish_attack():
 
 	hit_box_collision.set_deferred("disabled", true)
 	is_attacking = false
+	_is_in_active_frames = false
+	_current_attack_data.clear()
+
+	# Transition to IDLE state
+	if CombatAnimationSystem:
+		CombatAnimationSystem.finish_animation(self)
 
 	_setup_idle_state()
 	sprite.color = weapon_color
 	attack_finished.emit()
+
+## Check if currently in active attack frames (hitbox enabled)
+func is_in_active_frames() -> bool:
+	return _is_in_active_frames
+
+## Check if attack can be canceled (during recovery)
+func can_cancel_attack() -> bool:
+	if not allow_recovery_cancel:
+		return false
+	if CombatAnimationSystem:
+		var state = CombatAnimationSystem.get_state(self)
+		return state == CombatAnimationSystem.AnimState.RECOVERY
+	return not is_attacking
 
 func _on_attack_cooldown_finished():
 	can_attack = true
@@ -467,18 +552,38 @@ func _process_hit(target: Node2D):
 	target.take_damage(final_damage, knockback_origin, knockback_power, knockback_stun, player_reference)
 	dealt_damage.emit(target, final_damage)
 
-	# Visual feedback
+	# Emit combat events via CombatEventBus
 	var is_crit = _was_last_hit_crit
+	var is_dash = player_reference and player_reference.is_dashing
+	if CombatEventBus:
+		CombatEventBus.emit_damage(player_reference, target, final_damage, 0, is_crit, is_finisher, is_dash, knockback_power, self)
+
+	# Visual feedback
 	_create_hit_effect(is_finisher, is_crit)
 	_create_impact_particles(target.global_position, is_finisher, is_crit)
 
-	# Brief weapon shake for hitstop feel (no time_scale - it causes issues when player gets hit)
-	if is_finisher or is_crit:
+	# Trigger hit-stop through animation system
+	if enable_hit_stop and CombatAnimationSystem:
+		var hit_type = _get_hit_stop_type(is_finisher, is_crit)
+		CombatAnimationSystem.trigger_hit_stop_for_attack(hit_type)
+	elif is_finisher or is_crit:
+		# Fallback: weapon shake if no animation system
 		_do_weapon_shake()
 
 	# Trigger combo finisher bonus effect
 	if is_finisher:
 		_on_combo_finisher_hit(target)
+
+## Determine hit-stop type based on attack characteristics
+func _get_hit_stop_type(is_finisher: bool, is_crit: bool) -> String:
+	if is_crit:
+		return "critical"
+	elif is_finisher:
+		return "finisher"
+	elif player_reference and player_reference.is_dashing:
+		return "heavy"
+	else:
+		return "medium"
 
 var _was_last_hit_crit: bool = false
 

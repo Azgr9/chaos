@@ -37,6 +37,10 @@ const DEFAULT_BEAM_RANGE: float = 800.0
 @export var beam_range: float = DEFAULT_BEAM_RANGE
 @export var beam_width: float = DEFAULT_BEAM_WIDTH
 
+@export_group("Animation Settings")
+## Enable hit-stop on skill impact
+@export var enable_skill_hit_stop: bool = true
+
 # ============================================
 # NODES - Expected in scene tree
 # ============================================
@@ -82,7 +86,16 @@ func _ready():
 	await get_tree().process_frame
 	player_reference = get_tree().get_first_node_in_group("player")
 
+	# Register with animation system
+	if CombatAnimationSystem:
+		CombatAnimationSystem.register_weapon(self)
+
 	_weapon_ready()
+
+func _exit_tree():
+	# Unregister from animation system
+	if CombatAnimationSystem:
+		CombatAnimationSystem.unregister_weapon(self)
 
 func _process(delta):
 	_update_skill_cooldown(delta)
@@ -147,6 +160,10 @@ func use_skill() -> bool:
 	skill_timer = skill_cooldown
 	skill_used.emit(skill_cooldown)
 	skill_ready_changed.emit(false)
+
+	# Update animation state
+	if CombatAnimationSystem:
+		CombatAnimationSystem.request_transition(self, CombatAnimationSystem.AnimState.SKILL_ACTIVE, true)
 
 	return _perform_skill()
 
@@ -341,6 +358,10 @@ func _damage_enemies_in_beam(origin: Vector2, direction: Vector2, final_damage: 
 		var perpendicular = to_enemy - direction * distance_along
 		if perpendicular.length() <= beam_width * 0.5 + hitbox_tolerance:
 			hit_enemies.append(enemy)
+
+	# Trigger hit-stop for skill if enemies hit
+	if hit_enemies.size() > 0 and enable_skill_hit_stop and CombatAnimationSystem:
+		CombatAnimationSystem.trigger_hit_stop_for_attack("skill")
 
 	var attacker = player_reference if is_instance_valid(player_reference) else null
 	for enemy in hit_enemies:
