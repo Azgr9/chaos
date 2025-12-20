@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 SaveManager="*res://Scripts/Autoloads/SaveManager.gd"
 RunManager="*res://Scripts/Autoloads/RunManager.gd"
+AttackSpeedSystem="*res://Scripts/Systems/AttackSpeedSystem.gd"
 
 [display]
 

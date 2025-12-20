@@ -38,6 +38,10 @@ func _weapon_ready():
 	staff_color = Color(0.4, 0.7, 1.0)  # Ice blue
 	muzzle_flash_color = Color(0.6, 0.9, 1.0)
 
+	# Attack Speed Limits (moderate speed, utility-focused)
+	max_attacks_per_second = 3.0  # Moderate speed
+	min_cooldown = 0.20  # Cannot cast faster than this
+
 	# Skill settings - Blizzard
 	skill_cooldown = 10.0
 	beam_damage = 40.0

@@ -30,6 +30,10 @@ func _weapon_ready():
 	idle_rotation = 30.0
 	idle_scale = Vector2(0.5, 0.8)
 
+	# Attack Speed Limits (fastest melee weapon)
+	max_attacks_per_second = 5.0  # Very fast thrusts
+	min_cooldown = 0.12  # Can go extremely fast
+
 	# Combo settings - fastest combo, 4-hit
 	combo_window = 1.2  # Slightly wider window for usability
 	combo_finisher_multiplier = 2.0  # Big payoff for completing combo

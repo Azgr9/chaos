@@ -25,6 +25,10 @@ func _weapon_ready():
 	idle_rotation = 60.0
 	idle_scale = Vector2(0.7, 0.7)
 
+	# Attack Speed Limits (slowest weapon)
+	max_attacks_per_second = 1.5  # Very slow but powerful
+	min_cooldown = 0.5  # Cannot swing faster than this
+
 	# Combo settings - slow but powerful
 	combo_window = 2.5
 	combo_finisher_multiplier = 2.0  # Massive finisher bonus

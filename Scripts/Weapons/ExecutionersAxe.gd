@@ -31,6 +31,10 @@ func _weapon_ready():
 	weapon_color = AXE_BLADE_COLOR
 	skill_cooldown = 12.0
 
+	# Attack Speed Limits (slow heavy weapon)
+	max_attacks_per_second = 2.0  # Slow but powerful
+	min_cooldown = 0.35  # Cannot swing faster than this
+
 	# Idle appearance
 	idle_rotation = 50.0
 	idle_scale = Vector2(0.7, 0.7)

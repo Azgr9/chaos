@@ -18,6 +18,10 @@ func _weapon_ready():
 	damage = 10.0
 	staff_color = Color("#5a4a3a")  # Dark wood with arcane glow
 
+	# Attack Speed Limits (balanced staff)
+	max_attacks_per_second = 3.5  # Balanced speed
+	min_cooldown = 0.18  # Cannot cast faster than this
+
 	# Beam skill settings
 	skill_cooldown = 10.0
 	beam_damage = 50.0

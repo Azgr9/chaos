@@ -40,6 +40,10 @@ func _weapon_ready():
 	damage = 11.0  # Slightly lower damage for faster speed
 	staff_color = Color("#4488ff")  # Electric blue
 
+	# Attack Speed Limits (fastest magic staff)
+	max_attacks_per_second = 4.5  # Very fast casting
+	min_cooldown = 0.14  # Can cast extremely fast
+
 	# Override skill cooldown
 	skill_cooldown = 8.0
 

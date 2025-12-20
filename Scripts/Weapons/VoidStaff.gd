@@ -35,6 +35,10 @@ func _weapon_ready():
 	staff_color = Color(0.3, 0.1, 0.4)  # Dark purple
 	muzzle_flash_color = Color(0.5, 0.2, 0.6)
 
+	# Attack Speed Limits (slowest but most powerful staff)
+	max_attacks_per_second = 2.0  # Slow but devastating
+	min_cooldown = 0.35  # Cannot cast faster than this
+
 	# Skill settings - Black Hole is very powerful
 	skill_cooldown = 14.0
 	beam_damage = 60.0

@@ -135,14 +135,20 @@ func handle_input():
 	
 	# Attack inputs - CHECK THESE ARE CORRECT
 	if Input.is_action_just_pressed("melee_attack") and not is_attacking:
+		# Register input with AttackSpeedSystem for timing bonus
+		if AttackSpeedSystem:
+			AttackSpeedSystem.register_input()
 		perform_melee_attack()
 		return  # Important: return early so we don't check other attacks
-	
+
 	# Magic attack - use is_action_pressed when staff skill is active for rapid fire
 	var staff_skill_active = current_staff and current_staff.get("skill_active") == true
 	var magic_input = Input.is_action_pressed("magic_attack") if staff_skill_active else Input.is_action_just_pressed("magic_attack")
 
 	if magic_input and not is_attacking:
+		# Register input with AttackSpeedSystem for timing bonus
+		if AttackSpeedSystem:
+			AttackSpeedSystem.register_input()
 		perform_magic_attack()
 		return
 	

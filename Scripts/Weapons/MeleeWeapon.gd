@@ -26,6 +26,12 @@ const DEFAULT_DASH_ATTACK_MULTIPLIER: float = 1.5
 @export var attack_cooldown: float = 0.35
 @export var swing_arc: float = 150.0
 
+@export_group("Attack Speed Limits")
+## Maximum attacks per second this weapon can perform (weapon-specific cap)
+@export var max_attacks_per_second: float = 3.0
+## Minimum cooldown this weapon can have (hard floor, cannot be reduced below this)
+@export var min_cooldown: float = 0.15
+
 @export_group("Visual Settings")
 @export var weapon_length: float = 80.0
 @export var idle_rotation: float = 45.0  # Degrees
@@ -216,6 +222,10 @@ func attack(direction: Vector2, player_damage_multiplier: float = 1.0) -> bool:
 	if not can_attack or is_attacking:
 		return false
 
+	# Check with AttackSpeedSystem if we can attack
+	if AttackSpeedSystem and not AttackSpeedSystem.can_attack(self):
+		return false
+
 	# Set flags immediately to prevent race conditions
 	can_attack = false
 	is_attacking = true
@@ -230,10 +240,22 @@ func attack(direction: Vector2, player_damage_multiplier: float = 1.0) -> bool:
 	combo_count += 1
 	combo_timer = combo_window
 
-	# Calculate attack speed based on combo
+	# Calculate attack speed based on combo (applies bonus, but system enforces cap)
 	var speed_multiplier = 1.0 + (min(combo_count - 1, 2) * SPEED_BOOST_PER_HIT)
 	var modified_duration = attack_duration / speed_multiplier
-	var modified_cooldown = base_attack_cooldown / speed_multiplier
+
+	# Get effective cooldown from AttackSpeedSystem (respects all caps)
+	var modified_cooldown: float
+	if AttackSpeedSystem:
+		modified_cooldown = AttackSpeedSystem.get_effective_cooldown(self, base_attack_cooldown / speed_multiplier)
+		# Register this attack with the system
+		AttackSpeedSystem.register_attack(self)
+	else:
+		# Fallback if system not available
+		modified_cooldown = base_attack_cooldown / speed_multiplier
+
+	# Enforce weapon's minimum cooldown (hard floor)
+	modified_cooldown = maxf(modified_cooldown, min_cooldown)
 
 	# Check for dash attack
 	var is_dash_attack = player_reference and player_reference.is_dashing

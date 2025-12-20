@@ -21,6 +21,12 @@ const DEFAULT_BEAM_RANGE: float = 800.0
 @export var multi_shot: int = 1
 @export var damage: float = 10.0
 
+@export_group("Attack Speed Limits")
+## Maximum attacks per second this weapon can perform (weapon-specific cap)
+@export var max_attacks_per_second: float = 3.5
+## Minimum cooldown this weapon can have (hard floor, cannot be reduced below this)
+@export var min_cooldown: float = 0.12
+
 @export_group("Visual Settings")
 @export var staff_color: Color = Color("#8b4513")
 @export var muzzle_flash_color: Color = Color.WHITE
@@ -156,13 +162,31 @@ func attack(direction: Vector2, magic_damage_multiplier: float = 1.0) -> bool:
 	if not can_attack:
 		return false
 
+	# Check with AttackSpeedSystem if we can attack
+	if AttackSpeedSystem and not AttackSpeedSystem.can_attack(self):
+		return false
+
 	damage_multiplier = magic_damage_multiplier
 
 	_fire_projectiles(direction)
 	_play_attack_animation()
 
 	can_attack = false
-	cooldown_timer.start(attack_cooldown)
+
+	# Get effective cooldown from AttackSpeedSystem (respects all caps)
+	var effective_cooldown: float
+	if AttackSpeedSystem:
+		effective_cooldown = AttackSpeedSystem.get_effective_cooldown(self, attack_cooldown)
+		# Register this attack with the system
+		AttackSpeedSystem.register_attack(self)
+	else:
+		# Fallback if system not available
+		effective_cooldown = attack_cooldown
+
+	# Enforce weapon's minimum cooldown (hard floor)
+	effective_cooldown = maxf(effective_cooldown, min_cooldown)
+
+	cooldown_timer.start(effective_cooldown)
 
 	return true
 

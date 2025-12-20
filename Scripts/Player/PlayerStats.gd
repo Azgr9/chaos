@@ -8,6 +8,14 @@ extends Resource
 @export var magic_damage_multiplier: float = 1.0
 @export var attack_speed_multiplier: float = 1.0
 
+# Attack Speed System
+# Base attack speed cap (attacks per second) - global limit for this player
+@export var base_attack_speed_cap: float = 4.0
+# Current effective attack speed cap (modified by buffs/debuffs)
+var effective_attack_speed_cap: float = 4.0
+# Bonus attack speed from temporary effects (additive percentage: 0.2 = +20%)
+var bonus_attack_speed: float = 0.0
+
 # Special upgrades
 @export var lifesteal_amount: float = 0.0
 @export var crit_chance: float = 0.0
@@ -54,3 +62,30 @@ func apply_upgrade(upgrade_type: String, value: float):
 			magic_damage_multiplier += value
 		"attack_speed":
 			attack_speed_multiplier += value
+			_recalculate_attack_speed_cap()
+
+## Recalculate effective attack speed cap based on multipliers and bonuses
+func _recalculate_attack_speed_cap():
+	effective_attack_speed_cap = base_attack_speed_cap * attack_speed_multiplier * (1.0 + bonus_attack_speed)
+	# Clamp to absolute maximum (10 attacks per second)
+	effective_attack_speed_cap = minf(effective_attack_speed_cap, 10.0)
+
+## Get the current effective attack speed multiplier
+func get_attack_speed_multiplier() -> float:
+	return attack_speed_multiplier * (1.0 + bonus_attack_speed)
+
+## Add temporary bonus attack speed
+func add_bonus_attack_speed(amount: float):
+	bonus_attack_speed += amount
+	_recalculate_attack_speed_cap()
+
+## Remove temporary bonus attack speed
+func remove_bonus_attack_speed(amount: float):
+	bonus_attack_speed -= amount
+	bonus_attack_speed = maxf(0.0, bonus_attack_speed)
+	_recalculate_attack_speed_cap()
+
+## Clear all temporary attack speed bonuses
+func clear_bonus_attack_speed():
+	bonus_attack_speed = 0.0
+	_recalculate_attack_speed_cap()

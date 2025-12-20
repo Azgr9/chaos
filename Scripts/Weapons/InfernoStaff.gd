@@ -41,6 +41,10 @@ func _weapon_ready():
 	staff_color = Color("#8b0000")  # Dark red crystal staff
 	muzzle_flash_color = Color(1.0, 0.5, 0.1)  # Orange flash
 
+	# Attack Speed Limits (slower, higher damage staff)
+	max_attacks_per_second = 2.5  # Slower but powerful
+	min_cooldown = 0.28  # Cannot cast faster than this
+
 	# Skill settings - Volcano Eruption
 	skill_cooldown = 10.0  # Powerful skill needs longer cooldown
 	beam_damage = 0.0  # Not using beam
