@@ -344,10 +344,6 @@ func _unfreeze():
 # ============================================
 # SHOCK CHAIN
 # ============================================
-# Cache for shock chain targets (refreshed each call since positions change)
-var _cached_shock_targets: Array = []
-var _cached_shock_group: String = ""
-
 func _trigger_shock_chain(_effect: StatusEffect):
 	if not target or not is_instance_valid(target):
 		return
