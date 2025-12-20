@@ -435,10 +435,13 @@ func _deal_effect_damage(entity: Node2D, damage: float, effect_type: EffectType,
 	# Map effect to damage type
 	var damage_type = _get_damage_type(effect_type)
 
+	# Validate source is still valid (may have been freed since effect was applied)
+	var valid_source = source if is_instance_valid(source) else null
+
 	if entity.is_in_group("player"):
 		entity.take_damage(damage, Vector2.ZERO)
 	else:
-		entity.take_damage(damage, Vector2.ZERO, 0.0, 0.0, source, damage_type)
+		entity.take_damage(damage, Vector2.ZERO, 0.0, 0.0, valid_source, damage_type)
 
 func _get_damage_type(effect_type: EffectType) -> int:
 	match effect_type:
@@ -469,7 +472,8 @@ func _trigger_shock_chain(entity: Node2D, effect: Effect):
 
 	if closest:
 		var chain_damage = effect.value * 0.5
-		_deal_effect_damage(closest, chain_damage, EffectType.SHOCK, effect.source)
+		var valid_source = effect.source if is_instance_valid(effect.source) else null
+		_deal_effect_damage(closest, chain_damage, EffectType.SHOCK, valid_source)
 		effect_triggered.emit(entity, EffectType.SHOCK, chain_damage)
 
 # ============================================
@@ -503,7 +507,8 @@ func _check_interactions_before_apply(entity: Node2D, new_effect: EffectType):
 func _trigger_shatter(entity: Node2D, freeze_effect: Effect):
 	# Big burst of ice damage
 	var shatter_damage = freeze_effect.value * 2.0
-	_deal_effect_damage(entity, shatter_damage, EffectType.FREEZE, freeze_effect.source)
+	var valid_source = freeze_effect.source if is_instance_valid(freeze_effect.source) else null
+	_deal_effect_damage(entity, shatter_damage, EffectType.FREEZE, valid_source)
 
 	# Visual effect
 	_create_shatter_visual(entity.global_position)
