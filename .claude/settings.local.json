@@ -7,7 +7,8 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nAdd missing PitHazard.gd script\n\nThe Pit.tscn scene referenced a non-existent script.\nCreated PitHazard.gd that extends Hazard base class and\nimplements instant-kill pit behavior.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(where:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nFix multiple code issues found in audit\n\n- Player.gd: Remove unused debug_mode variable, fix attack safety timer memory leak\n- Rapier.gd: Fix race condition in flurry skill with proper validity checks after awaits\n- Healer.gd: Add null checks in _find_most_damaged_ally to prevent crashes\n- Boss.gd: Add is_instance_valid checks after all await statements\n- StatusEffects.gd: Implement _update_visuals, add DamageNumberManager null check\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(dir \"C:\\Users\\alizg\\OneDrive\\Desktop\\chaos\\Scenes\\Player\"\")"
     ],
     "deny": [],
     "ask": []
