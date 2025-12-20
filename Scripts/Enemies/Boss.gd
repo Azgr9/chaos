@@ -164,12 +164,12 @@ func _on_damage_taken():
 		_enter_phase_3()
 
 func _play_hit_squash():
-	# Boss squash effect
+	# Quick boss squash effect - SNAPPY timing
 	if visuals_pivot:
 		visuals_pivot.scale = HIT_SQUASH_SCALE
 		var scale_tween = create_tween()
 		scale_tween.tween_property(visuals_pivot, "scale", Vector2.ONE, HIT_SQUASH_DURATION)\
-			.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _enter_phase_2():
 	current_phase = Phase.PHASE_2
@@ -285,7 +285,8 @@ func _perform_slam_attack():
 	# Wind up
 	await get_tree().create_timer(SLAM_WARNING_TIME).timeout
 
-	if is_dead:
+	# Validate after await
+	if not is_instance_valid(self) or is_dead:
 		return
 
 	# Slam
@@ -294,6 +295,10 @@ func _perform_slam_attack():
 	_create_slam_effect()
 
 	await get_tree().create_timer(0.3).timeout
+
+	# Validate after await
+	if not is_instance_valid(self):
+		return
 	is_performing_attack = false
 
 func _create_slam_warning():
@@ -353,7 +358,8 @@ func _perform_charge_attack():
 	_create_charge_warning(charge_dir)
 	await get_tree().create_timer(0.5).timeout
 
-	if is_dead:
+	# Validate after await
+	if not is_instance_valid(self) or is_dead:
 		return
 
 	# Charge!

@@ -116,9 +116,14 @@ func _find_most_damaged_ally() -> Enemy:
 	var lowest_health_percent: float = 1.0
 
 	for enemy in enemies:
+		# Skip self and invalid enemies
 		if enemy == self or not is_instance_valid(enemy):
 			continue
-		if enemy.is_dead:
+		# Check is_dead property exists and is true
+		if not enemy is Enemy or enemy.is_dead:
+			continue
+		# Validate health properties exist
+		if enemy.max_health <= 0:
 			continue
 
 		var health_percent = enemy.current_health / enemy.max_health
@@ -208,22 +213,23 @@ func _on_damage_taken():
 	super._on_damage_taken()
 
 func _play_hit_squash():
-	# Squash effect preserving facing direction
+	# Quick squash effect preserving facing direction - SNAPPY timing
 	var facing = sign(visuals_pivot.scale.x) if visuals_pivot.scale.x != 0 else 1.0
 	visuals_pivot.scale = Vector2(HIT_SQUASH_SCALE.x * facing, HIT_SQUASH_SCALE.y)
 	var scale_tween = create_tween()
 	scale_tween.tween_property(visuals_pivot, "scale", Vector2(facing, 1.0), HIT_SQUASH_DURATION)\
-		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _on_death():
 	heal_timer.stop()
 	set_physics_process(false)
 
-	# Sad deflation
+	# Quick deflation - SNAPPY death
 	var tween = create_tween()
-	tween.tween_property(visuals_pivot, "scale", Vector2(1.5, 0.3), 0.2)
-	tween.tween_property(visuals_pivot, "scale", Vector2.ZERO, 0.2)
-	tween.parallel().tween_property(sprite, "modulate:a", 0.0, 0.3)
+	tween.tween_property(visuals_pivot, "scale", Vector2(1.4, 0.4), DEATH_FADE_DURATION * 0.5)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(visuals_pivot, "scale", Vector2.ZERO, DEATH_FADE_DURATION * 0.5)
+	tween.parallel().tween_property(sprite, "modulate:a", 0.0, DEATH_FADE_DURATION)
 
 	tween.tween_callback(queue_free)
 

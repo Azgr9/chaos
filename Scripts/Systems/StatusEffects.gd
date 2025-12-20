@@ -251,6 +251,10 @@ func _deal_effect_damage(amount: float, effect_type: EffectType):
 			# Pass damage type to enemy so it spawns correctly colored damage number
 			target.take_damage(amount, Vector2.ZERO, 0.0, 0.0, null, damage_type)
 
+	# Emit combat event for status effect damage
+	if CombatEventBus:
+		CombatEventBus.status_triggered.emit(target, effect_type, amount)
+
 func _get_damage_type_for_effect(effect_type: EffectType) -> DamageTypes.Type:
 	match effect_type:
 		EffectType.BURN:
@@ -268,7 +272,8 @@ func _spawn_effect_damage_number(amount: float, effect_type: EffectType):
 		return
 
 	var damage_type = _get_damage_type_for_effect(effect_type)
-	DamageNumberManager.spawn(target.global_position, amount, damage_type)
+	if DamageNumberManager:
+		DamageNumberManager.spawn(target.global_position, amount, damage_type)
 
 # ============================================
 # CHILL / FREEZE
@@ -339,6 +344,10 @@ func _unfreeze():
 # ============================================
 # SHOCK CHAIN
 # ============================================
+# Cache for shock chain targets (refreshed each call since positions change)
+var _cached_shock_targets: Array = []
+var _cached_shock_group: String = ""
+
 func _trigger_shock_chain(_effect: StatusEffect):
 	if not target or not is_instance_valid(target):
 		return
@@ -459,5 +468,19 @@ func _remove_effect_visual(effect_type: EffectType):
 				bleed_visual = null
 
 func _update_visuals():
-	# Update stack indicators if needed
-	pass
+	# Update visual intensity based on stack count
+	for effect_type in active_effects.keys():
+		var effect = active_effects[effect_type]
+		var visual = _get_visual_for_effect(effect_type)
+		if visual and is_instance_valid(visual):
+			# Pulse intensity based on stacks
+			var intensity = 0.5 + (effect.stacks / float(_get_max_stacks(effect_type))) * 0.5
+			visual.modulate.a = intensity
+
+func _get_visual_for_effect(effect_type: EffectType) -> Node2D:
+	match effect_type:
+		EffectType.BURN: return burn_visual
+		EffectType.CHILL: return chill_visual
+		EffectType.SHOCK: return shock_visual
+		EffectType.BLEED: return bleed_visual
+	return null

@@ -51,14 +51,18 @@ var dash_direction: Vector2 = Vector2.ZERO
 @export var dash_cooldown: float = 0.5
 var dash_cooldown_timer: float = 0.0
 
-# Invulnerability (for katana dash)
+# Invulnerability (for katana dash and i-frames)
 var is_invulnerable: bool = false
+
+# I-frames after taking damage (prevents stun-lock)
+const IFRAMES_DURATION: float = 0.4  # 0.4 second of invulnerability after hit
+var iframes_timer: float = 0.0
+var _iframes_flash_tween: Tween = null
 
 # Fire immunity (for Inferno Staff ability)
 var is_fire_immune: bool = false
 
-# Debug mode
-var debug_mode: bool = false
+# Debug mode (DEPRECATED - now handled by DebugMenu)
 
 # Phoenix Feather revive tracking
 var phoenix_revive_used: bool = false
@@ -103,6 +107,12 @@ func _physics_process(delta):
 	# Update dash cooldown
 	if dash_cooldown_timer > 0:
 		dash_cooldown_timer -= delta
+
+	# Update i-frames timer
+	if iframes_timer > 0:
+		iframes_timer -= delta
+		if iframes_timer <= 0:
+			_end_iframes()
 
 	handle_input()
 
@@ -297,8 +307,10 @@ var _attack_safety_timer: SceneTreeTimer = null
 
 func _start_attack_safety_timeout():
 	# Disconnect previous timer if it exists to prevent memory leak
-	if _attack_safety_timer and _attack_safety_timer.timeout.is_connected(_on_attack_safety_timeout):
-		_attack_safety_timer.timeout.disconnect(_on_attack_safety_timeout)
+	if _attack_safety_timer:
+		if _attack_safety_timer.timeout.is_connected(_on_attack_safety_timeout):
+			_attack_safety_timer.timeout.disconnect(_on_attack_safety_timeout)
+		_attack_safety_timer = null
 
 	# Safety timeout to force reset if attack_finished signal never fires
 	_attack_safety_timer = get_tree().create_timer(1.5)
@@ -469,8 +481,8 @@ func _on_weapon_broke():
 		current_weapon_index = 0
 
 func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO) -> bool:
-	# Ignore damage if invulnerable - return false to indicate no damage applied
-	if is_invulnerable:
+	# Ignore damage if invulnerable (dash, i-frames, etc) - return false to indicate no damage applied
+	if is_invulnerable or iframes_timer > 0:
 		return false
 
 	# Apply damage reduction from relics
@@ -479,6 +491,9 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO) -> bool:
 
 	var is_dead = stats.take_damage(reduced_amount)
 	health_changed.emit(stats.current_health, stats.max_health)
+
+	# Start i-frames to prevent stun-lock
+	_start_iframes()
 
 	# Screen shake on player damage - scale with percentage of health lost
 	if camera and camera.has_method("add_trauma"):
@@ -518,12 +533,18 @@ func _reset_state_on_death():
 	is_attacking = false
 	is_melee_attacking = false
 	is_magic_attacking = false
+	iframes_timer = 0.0
 	modulate = Color.WHITE
 
 	# Clear attack safety timer
 	if _attack_safety_timer and _attack_safety_timer.timeout.is_connected(_on_attack_safety_timeout):
 		_attack_safety_timer.timeout.disconnect(_on_attack_safety_timeout)
 	_attack_safety_timer = null
+
+	# Clear i-frames flash tween
+	if _iframes_flash_tween and _iframes_flash_tween.is_valid():
+		_iframes_flash_tween.kill()
+	_iframes_flash_tween = null
 
 func _try_phoenix_revive() -> bool:
 	# Check if we already used a revive this run
@@ -608,8 +629,34 @@ func _play_hit_effect():
 	var tween = create_tween()
 	# Return to normal with bounce
 	tween.tween_property(visuals_pivot, "scale", original_scale, 0.15).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
-	# Flash back to white
-	tween.parallel().tween_property(sprite, "modulate", Color.WHITE, 0.1)
+	# Flash back to white - but don't override i-frames flashing
+	if iframes_timer <= 0:
+		tween.parallel().tween_property(sprite, "modulate", Color.WHITE, 0.1)
+
+func _start_iframes():
+	# Start invulnerability frames after taking damage
+	iframes_timer = IFRAMES_DURATION
+
+	# Kill existing flash tween to prevent conflicts
+	if _iframes_flash_tween and _iframes_flash_tween.is_valid():
+		_iframes_flash_tween.kill()
+
+	# Create flashing effect during i-frames
+	_iframes_flash_tween = create_tween()
+	_iframes_flash_tween.set_loops(int(IFRAMES_DURATION / 0.1))  # Flash every 0.1s
+	_iframes_flash_tween.tween_property(sprite, "modulate:a", 0.3, 0.05)
+	_iframes_flash_tween.tween_property(sprite, "modulate:a", 1.0, 0.05)
+
+func _end_iframes():
+	# End invulnerability frames
+	iframes_timer = 0.0
+
+	# Stop flashing and reset to normal
+	if _iframes_flash_tween and _iframes_flash_tween.is_valid():
+		_iframes_flash_tween.kill()
+		_iframes_flash_tween = null
+
+	sprite.modulate = Color.WHITE
 
 func heal(amount: float):
 	stats.heal(amount)
