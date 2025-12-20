@@ -38,6 +38,7 @@ func _weapon_ready():
 	projectile_spread = 5.0
 	multi_shot = 1
 	damage = 11.0  # Slightly lower damage for faster speed
+	damage_type = DamageTypes.Type.ELECTRIC  # Applies SHOCK status effect
 	staff_color = Color("#4488ff")  # Electric blue
 
 	# Attack Speed Limits (fastest magic staff)
@@ -191,7 +192,7 @@ func _perform_chain_lightning():
 	for target in chain_targets:
 		if is_instance_valid(target) and target.has_method("take_damage"):
 			var final_damage = chain_damage * damage_multiplier
-			target.take_damage(final_damage, origin, 150.0, 0.1, attacker)
+			target.take_damage(final_damage, origin, 150.0, 0.1, attacker, damage_type)
 
 	# Draw lightning visual
 	_draw_lightning_chain(chain_targets)

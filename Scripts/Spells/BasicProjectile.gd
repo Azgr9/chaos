@@ -11,6 +11,7 @@ extends Area2D
 @export var pierce_count: int = 0  # How many enemies it can pass through
 @export var knockback_power: float = 400.0
 @export var hitstun_duration: float = 0.1
+@export var damage_type: DamageTypes.Type = DamageTypes.Type.PHYSICAL
 
 # Nodes
 @onready var sprite: ColorRect = $Sprite
@@ -43,7 +44,7 @@ func _ready():
 	# Visual setup
 	_create_spawn_effect()
 
-func initialize(start_position: Vector2, dir: Vector2, magic_damage_multiplier: float = 1.0, kb_power: float = 400.0, stun_dur: float = 0.1, attacker: Node2D = null):
+func initialize(start_position: Vector2, dir: Vector2, magic_damage_multiplier: float = 1.0, kb_power: float = 400.0, stun_dur: float = 0.1, attacker: Node2D = null, dmg_type: DamageTypes.Type = DamageTypes.Type.PHYSICAL):
 	global_position = start_position
 	direction = dir.normalized()
 	velocity = direction * speed
@@ -51,6 +52,7 @@ func initialize(start_position: Vector2, dir: Vector2, magic_damage_multiplier: 
 	knockback_power = kb_power
 	hitstun_duration = stun_dur
 	shooter = attacker
+	damage_type = dmg_type
 
 	# Rotate projectile to face direction
 	rotation = direction.angle()
@@ -83,7 +85,7 @@ func _on_area_entered(area: Area2D):
 
 		# Deal damage with knockback position (pass shooter for thorns reflection)
 		var final_damage = damage * damage_multiplier
-		parent.take_damage(final_damage, global_position, knockback_power, hitstun_duration, shooter)
+		parent.take_damage(final_damage, global_position, knockback_power, hitstun_duration, shooter, damage_type)
 		projectile_hit.emit(parent, final_damage)
 
 		# Visual feedback

@@ -30,6 +30,7 @@ const DEFAULT_RECOVERY_RATIO: float = 0.35 # 35% of duration for recovery
 @export var attack_duration: float = 0.25
 @export var attack_cooldown: float = 0.35
 @export var swing_arc: float = 150.0
+@export var damage_type: DamageTypes.Type = DamageTypes.Type.PHYSICAL
 
 @export_group("Attack Speed Limits")
 ## Maximum attacks per second this weapon can perform (weapon-specific cap)
@@ -549,7 +550,7 @@ func _process_hit(target: Node2D):
 	var knockback_origin = player_reference.global_position if player_reference else global_position
 
 	# Apply damage
-	target.take_damage(final_damage, knockback_origin, knockback_power, knockback_stun, player_reference)
+	target.take_damage(final_damage, knockback_origin, knockback_power, knockback_stun, player_reference, damage_type)
 	dealt_damage.emit(target, final_damage)
 
 	# Emit combat events via CombatEventBus

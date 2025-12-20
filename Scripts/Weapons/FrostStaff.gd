@@ -34,6 +34,7 @@ func _weapon_ready():
 	projectile_spread = 3.0
 	multi_shot = 1
 	damage = 10.0
+	damage_type = DamageTypes.Type.ICE  # Applies CHILL status effect
 
 	staff_color = Color(0.4, 0.7, 1.0)  # Ice blue
 	muzzle_flash_color = Color(0.6, 0.9, 1.0)
@@ -297,10 +298,10 @@ func _blizzard_damage_tick(center: Vector2):
 
 		var distance = enemy.global_position.distance_to(center)
 		if distance < blizzard_radius:
-			# Deal damage
+			# Deal damage with ICE type to apply CHILL
 			var tick_damage = blizzard_damage_per_tick * damage_multiplier
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(tick_damage, center, 50.0, 0.05, attacker)
+				enemy.take_damage(tick_damage, center, 50.0, 0.05, attacker, damage_type)
 
 			# Apply slow
 			_apply_slow_effect(enemy)

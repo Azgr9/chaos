@@ -20,6 +20,7 @@ const DEFAULT_BEAM_RANGE: float = 800.0
 @export var projectile_spread: float = 5.0  # Degrees of random spread
 @export var multi_shot: int = 1
 @export var damage: float = 10.0
+@export var damage_type: DamageTypes.Type = DamageTypes.Type.PHYSICAL
 
 @export_group("Attack Speed Limits")
 ## Maximum attacks per second this weapon can perform (weapon-specific cap)
@@ -226,7 +227,8 @@ func _fire_projectiles(direction: Vector2):
 			damage_multiplier,
 			400.0,  # knockback_power
 			0.1,    # hitstun_duration
-			player_reference  # attacker for thorns
+			player_reference,  # attacker for thorns
+			damage_type  # elemental damage type
 		)
 
 		# Apply custom projectile visuals
@@ -366,7 +368,7 @@ func _damage_enemies_in_beam(origin: Vector2, direction: Vector2, final_damage: 
 	var attacker = player_reference if is_instance_valid(player_reference) else null
 	for enemy in hit_enemies:
 		if enemy.has_method("take_damage"):
-			enemy.take_damage(final_damage, origin, 200.0, 0.1, attacker)
+			enemy.take_damage(final_damage, origin, 200.0, 0.1, attacker, damage_type)
 			_create_beam_hit_effect(enemy.global_position)
 
 func _create_beam_hit_effect(pos: Vector2):

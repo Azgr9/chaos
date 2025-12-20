@@ -28,6 +28,7 @@ func _weapon_ready():
 	swing_arc = 0.0  # No swing - pure stab
 	weapon_length = 120.0  # Longest melee reach
 	weapon_color = RAPIER_BLADE_COLOR
+	damage_type = DamageTypes.Type.BLEED  # Applies BLEED status effect
 	idle_rotation = 25.0  # Angled forward, ready stance
 	idle_scale = Vector2(0.4, 1.0)  # Thin and long
 

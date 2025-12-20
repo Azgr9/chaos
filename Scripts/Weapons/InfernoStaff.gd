@@ -37,6 +37,7 @@ func _weapon_ready():
 	projectile_spread = 8.0
 	multi_shot = 1
 	damage = 14.0  # Higher base damage for slower speed
+	damage_type = DamageTypes.Type.FIRE  # Applies BURN status effect
 
 	staff_color = Color("#8b0000")  # Dark red crystal staff
 	muzzle_flash_color = Color(1.0, 0.5, 0.1)  # Orange flash
@@ -270,7 +271,7 @@ func _deal_eruption_damage(center: Vector2):
 
 			if enemy.has_method("take_damage"):
 				var attacker = player_reference if is_instance_valid(player_reference) else null
-				enemy.take_damage(final_damage, center, 400.0, 0.2, attacker)
+				enemy.take_damage(final_damage, center, 400.0, 0.2, attacker, damage_type)
 
 			# Create hit effect
 			_create_eruption_hit(enemy.global_position)
