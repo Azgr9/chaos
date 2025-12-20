@@ -19,11 +19,17 @@ const DEFAULT_KNOCKBACK_POWER: float = 600.0
 const KNOCKBACK_DECAY_RATE: float = 10.0
 const KNOCKBACK_MIN_THRESHOLD: float = 5.0
 
-# Hit flash settings (consistent across all enemies)
+# Hit flash settings (consistent across all enemies) - SNAPPY timing
 const HIT_FLASH_COLOR: Color = Color(10.0, 10.0, 10.0, 1.0)  # Very bright white
-const HIT_FLASH_DURATION: float = 0.12  # How long the flash lasts
-const HIT_SQUASH_SCALE: Vector2 = Vector2(1.3, 0.7)  # Squash on hit
-const HIT_SQUASH_DURATION: float = 0.25  # Squash recovery time
+const HIT_FLASH_DURATION: float = 0.04  # Quick flash (was 0.12)
+const HIT_SQUASH_SCALE: Vector2 = Vector2(1.2, 0.8)  # Squash on hit
+const HIT_SQUASH_DURATION: float = 0.08  # Quick squash recovery (was 0.25)
+
+# Death animation settings - SNAPPY timing
+const DEATH_FADE_DURATION: float = 0.12  # Quick death fade
+const DEATH_PARTICLE_DURATION: float = 0.15  # Quick particle fade
+const DEATH_PARTICLE_DISTANCE: float = 60.0  # Shorter particle travel
+const HEALTH_BAR_FADE_DURATION: float = 0.1  # Quick health bar fade
 
 # ============================================
 # EXPORTED STATS
@@ -281,10 +287,10 @@ func die():
 	# Create death particles (common effect)
 	_create_death_particles()
 
-	# Fade out health bar
+	# Fade out health bar quickly
 	if health_bar:
 		var tween = create_tween()
-		tween.tween_property(health_bar, "modulate:a", 0.0, 0.3)
+		tween.tween_property(health_bar, "modulate:a", 0.0, HEALTH_BAR_FADE_DURATION)
 
 	# Call subclass death handler
 	_on_death()
@@ -295,15 +301,16 @@ func _create_death_particles():
 
 	for i in range(particle_count):
 		var particle = ColorRect.new()
-		particle.size = Vector2(16, 16)
-		particle.position = Vector2(randf_range(-32, 32), randf_range(-32, 32))
+		particle.size = Vector2(12, 12)  # Slightly smaller
+		particle.position = Vector2(randf_range(-20, 20), randf_range(-20, 20))
 		particle.color = particle_color
 		add_child(particle)
 
 		var particle_tween = create_tween()
 		var random_dir = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
-		particle_tween.tween_property(particle, "position", particle.position + random_dir * 120, 0.5)
-		particle_tween.parallel().tween_property(particle, "modulate:a", 0.0, 0.5)
+		particle_tween.tween_property(particle, "position", particle.position + random_dir * DEATH_PARTICLE_DISTANCE, DEATH_PARTICLE_DURATION)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		particle_tween.parallel().tween_property(particle, "modulate:a", 0.0, DEATH_PARTICLE_DURATION)
 
 func _drop_gold():
 	if RunManager:
@@ -351,12 +358,34 @@ func make_random_elite():
 # ============================================
 # STATUS EFFECTS
 # ============================================
+# Note: Uses component-based StatusEffects for per-entity tracking
+# StatusEffectManager autoload can also apply effects via apply_effect()
+
 func apply_status_effect(effect_type: StatusEffects.EffectType, source: Node2D = null, stacks: int = 1):
+	# Use component-based system for visual effects attached to this entity
 	if not status_effects:
 		status_effects = StatusEffects.new()
 		add_child(status_effects)
 
 	status_effects.apply_effect(effect_type, source, stacks)
+
+	# Also notify centralized manager if available (for cross-system effects)
+	if StatusEffectManager:
+		# Map local effect type to manager effect type
+		var manager_type = _map_to_manager_effect_type(effect_type)
+		if manager_type >= 0:
+			StatusEffectManager.apply_effect(self, manager_type, status_effects._get_duration(effect_type), 0.0, source, stacks)
+
+func _map_to_manager_effect_type(local_type: StatusEffects.EffectType) -> int:
+	# Map StatusEffects.EffectType to StatusEffectManager.EffectType
+	if not StatusEffectManager:
+		return -1
+	match local_type:
+		StatusEffects.EffectType.BURN: return StatusEffectManager.EffectType.BURN
+		StatusEffects.EffectType.CHILL: return StatusEffectManager.EffectType.CHILL
+		StatusEffects.EffectType.SHOCK: return StatusEffectManager.EffectType.SHOCK
+		StatusEffects.EffectType.BLEED: return StatusEffectManager.EffectType.BLEED
+	return -1
 
 func has_status_effect(effect_type: StatusEffects.EffectType) -> bool:
 	if status_effects:
