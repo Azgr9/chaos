@@ -95,6 +95,12 @@ func _add_electric_trail(projectile: Node2D):
 			timer.queue_free()
 			return
 
+		# Check if self (LightningStaff) is still valid
+		if not is_instance_valid(self):
+			timer.stop()
+			timer.queue_free()
+			return
+
 		# Electric spark particle
 		var spark = ColorRect.new()
 		spark.size = Vector2(4, 8)
@@ -107,7 +113,7 @@ func _add_electric_trail(projectile: Node2D):
 		# Small arc/zap away from projectile
 		var offset = Vector2(randf_range(-15, 15), randf_range(-15, 15))
 
-		var tween = create_tween()
+		var tween = get_tree().create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(spark, "global_position", projectile.global_position + offset, 0.1)
 		tween.tween_property(spark, "modulate:a", 0.0, 0.1)
@@ -131,7 +137,7 @@ func _create_mini_bolt(pos: Vector2):
 
 	bolt.points = PackedVector2Array([pos, mid_pos, end_pos])
 
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.tween_property(bolt, "modulate:a", 0.0, 0.08)
 	tween.tween_callback(bolt.queue_free)
 
@@ -251,7 +257,7 @@ func _create_lightning_bolt(from: Vector2, to: Vector2):
 	bolt.points = points
 
 	# Fade out
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.tween_property(bolt, "modulate:a", 0.0, 0.2)
 	tween.tween_callback(bolt.queue_free)
 
@@ -262,16 +268,16 @@ func _play_attack_animation():
 	# Purple/blue muzzle flash for lightning
 	muzzle_flash.modulate.a = 1.0
 	muzzle_flash.color = Color("#66ccff")
-	var flash_tween = create_tween()
+	var flash_tween = get_tree().create_tween()
 	flash_tween.tween_property(muzzle_flash, "modulate:a", 0.0, 0.1)
 
 	# Staff recoil
-	var recoil_tween = create_tween()
+	var recoil_tween = get_tree().create_tween()
 	recoil_tween.tween_property(self, "position:x", -12, 0.05)
 	recoil_tween.tween_property(self, "position:x", 0, 0.1)
 
 	# Electric blue glow
 	sprite.color = Color("#66ccff")
 	await get_tree().create_timer(0.1).timeout
-	if not ability_active:
+	if is_instance_valid(self) and sprite and not ability_active:
 		sprite.color = staff_color

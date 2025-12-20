@@ -623,7 +623,7 @@ func _create_hit_effect(is_finisher: bool, is_crit: bool):
 	var squash = 1.6 if (is_finisher or is_crit) else 1.4
 	sprite.scale = Vector2(squash, 0.8)
 
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(sprite, "color", weapon_color, 0.1)
 	tween.tween_property(sprite, "scale", original_scale, 0.15)\
@@ -645,7 +645,7 @@ func _create_impact_particles(hit_position: Vector2, is_finisher: bool, is_crit:
 		var direction = Vector2.from_angle(angle)
 		var distance = randf_range(80, 140) if (is_finisher or is_crit) else randf_range(60, 100)
 
-		var tween = create_tween()
+		var tween = get_tree().create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(particle, "global_position", hit_position + direction * distance, 0.3)\
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
@@ -661,7 +661,7 @@ func _spawn_crit_text(spawn_position: Vector2):
 	get_tree().current_scene.add_child(label)
 	label.global_position = spawn_position + Vector2(-80, -120)
 
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.tween_property(label, "global_position:y", spawn_position.y - 200, 0.5)
 	tween.parallel().tween_property(label, "scale", Vector2(1.5, 1.5), 0.2)
 	tween.tween_property(label, "scale", Vector2(1.0, 1.0), 0.3)
@@ -676,7 +676,7 @@ func _do_weapon_shake():
 	var original_pos = pivot.position
 	var shake_amount = 3.0
 
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.tween_property(pivot, "position", original_pos + Vector2(shake_amount, 0), 0.02)
 	tween.tween_property(pivot, "position", original_pos + Vector2(-shake_amount, 0), 0.02)
 	tween.tween_property(pivot, "position", original_pos + Vector2(shake_amount * 0.5, 0), 0.02)
@@ -687,6 +687,10 @@ func _create_swing_trail(is_finisher: bool, is_dash: bool):
 
 	for i in range(trail_count):
 		await get_tree().create_timer(0.02).timeout
+
+		# Check if self is still valid after await
+		if not is_instance_valid(self):
+			return
 
 		var trail = ColorRect.new()
 		trail.size = sprite.size
@@ -703,7 +707,7 @@ func _create_swing_trail(is_finisher: bool, is_dash: bool):
 		trail.rotation = pivot.rotation
 		trail.scale = sprite.scale
 
-		var tween = create_tween()
+		var tween = get_tree().create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(trail, "modulate:a", 0.0, 0.2)
 		tween.tween_property(trail, "scale", trail.scale * 1.3, 0.2)

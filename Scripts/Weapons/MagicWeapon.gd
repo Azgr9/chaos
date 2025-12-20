@@ -252,11 +252,11 @@ func _calculate_spread_angle(projectile_index: int) -> float:
 func _play_attack_animation():
 	# Muzzle flash
 	muzzle_flash.modulate.a = 1.0
-	var flash_tween = create_tween()
+	var flash_tween = get_tree().create_tween()
 	flash_tween.tween_property(muzzle_flash, "modulate:a", 0.0, 0.1)
 
 	# Staff recoil
-	var recoil_tween = create_tween()
+	var recoil_tween = get_tree().create_tween()
 	recoil_tween.tween_property(self, "position:x", -12, 0.05)
 	recoil_tween.tween_property(self, "position:x", 0, 0.1)
 
@@ -264,7 +264,8 @@ func _play_attack_animation():
 	var original_color = sprite.color
 	sprite.color = staff_color.lightened(0.3)
 	await get_tree().create_timer(0.1).timeout
-	sprite.color = original_color
+	if is_instance_valid(self) and sprite:
+		sprite.color = original_color
 
 func _on_cooldown_finished():
 	can_attack = true
@@ -326,21 +327,33 @@ func _animate_beam(beam_visual: Node2D):
 	beam_visual.modulate = Color(1, 1, 1, 0)
 	beam_visual.scale = Vector2(1, 0.3)
 
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(beam_visual, "modulate:a", 1.0, 0.05)
 	tween.tween_property(beam_visual, "scale:y", 1.2, 0.05)
 
 	await tween.finished
+
+	if not is_instance_valid(self) or not is_instance_valid(beam_visual):
+		if is_instance_valid(beam_visual):
+			beam_visual.queue_free()
+		return
+
 	await get_tree().create_timer(0.15).timeout
 
-	var fade = create_tween()
+	if not is_instance_valid(self) or not is_instance_valid(beam_visual):
+		if is_instance_valid(beam_visual):
+			beam_visual.queue_free()
+		return
+
+	var fade = get_tree().create_tween()
 	fade.set_parallel(true)
 	fade.tween_property(beam_visual, "modulate:a", 0.0, 0.3)
 	fade.tween_property(beam_visual, "scale:y", 0.1, 0.3)
 
 	await fade.finished
-	beam_visual.queue_free()
+	if is_instance_valid(beam_visual):
+		beam_visual.queue_free()
 
 func _damage_enemies_in_beam(origin: Vector2, direction: Vector2, final_damage: float):
 	var enemies = _get_enemies()
@@ -379,7 +392,7 @@ func _create_beam_hit_effect(pos: Vector2):
 	flash.pivot_offset = Vector2(16, 16)
 	get_tree().root.add_child(flash)
 
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(flash, "scale", Vector2(2, 2), 0.2)
 	tween.tween_property(flash, "modulate:a", 0.0, 0.2)
