@@ -94,7 +94,7 @@ func _animate_precision_stab(duration: float, is_dash_attack: bool):
 	if active_attack_tween:
 		active_attack_tween.kill()
 
-	active_attack_tween = create_tween()
+	active_attack_tween = get_tree().create_tween()
 
 	var is_finisher = is_combo_finisher()
 	var attack_num = get_attack_in_combo()
@@ -307,7 +307,7 @@ func _perform_flurry_stab(direction: Vector2, stab_index: int):
 			if dot > 0.4:  # Wider cone for skill
 				var flurry_damage = damage * damage_multiplier * FLURRY_DAMAGE_MULTIPLIER
 				if enemy.has_method("take_damage"):
-					enemy.take_damage(flurry_damage, player_reference.global_position, 50.0, 0.02, player_reference)
+					enemy.take_damage(flurry_damage, player_reference.global_position, 50.0, 0.02, player_reference, damage_type)
 					dealt_damage.emit(enemy, flurry_damage)
 
 func _create_mini_stab_trail(stab_dir: Vector2):

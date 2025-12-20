@@ -354,7 +354,7 @@ func _perform_attack_animation(pattern: String, duration: float, is_dash_attack:
 			_animate_horizontal_swing(duration, is_dash_attack, false)
 
 func _animate_horizontal_swing(duration: float, is_dash_attack: bool, reverse: bool):
-	active_attack_tween = create_tween()
+	active_attack_tween = get_tree().create_tween()
 
 	# Get the base angle from attack direction
 	# The sword sprite points UP (negative Y), so we need to add 90 degrees
@@ -401,7 +401,7 @@ func _animate_horizontal_swing(duration: float, is_dash_attack: bool, reverse: b
 	_tween_to_idle(active_attack_tween)
 
 func _animate_overhead_swing(duration: float, is_dash_attack: bool):
-	active_attack_tween = create_tween()
+	active_attack_tween = get_tree().create_tween()
 
 	# Get the base angle from attack direction (add 90 for sprite orientation)
 	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
@@ -436,7 +436,7 @@ func _animate_overhead_swing(duration: float, is_dash_attack: bool):
 	_tween_to_idle(active_attack_tween)
 
 func _animate_stab(duration: float, _is_dash_attack: bool):
-	active_attack_tween = create_tween()
+	active_attack_tween = get_tree().create_tween()
 
 	# Get the base angle (add 90 for sprite orientation)
 	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
