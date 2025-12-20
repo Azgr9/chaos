@@ -256,11 +256,26 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback
 	if stun_duration > 0:
 		hitstun_timer = stun_duration
 
+	# Apply status effect based on damage type
+	_apply_status_from_damage_type(damage_type, attacker)
+
 	# Visual feedback (subclass override)
 	_on_damage_taken()
 
 func _spawn_damage_number(damage_amount: float, damage_type: DamageTypes.Type = DamageTypes.Type.PHYSICAL):
 	DamageNumberManager.spawn(global_position, damage_amount, damage_type)
+
+func _apply_status_from_damage_type(damage_type: DamageTypes.Type, attacker: Node2D = null):
+	# Automatically apply status effects based on damage type
+	match damage_type:
+		DamageTypes.Type.FIRE:
+			apply_status_effect(StatusEffects.EffectType.BURN, attacker)
+		DamageTypes.Type.ICE:
+			apply_status_effect(StatusEffects.EffectType.CHILL, attacker)
+		DamageTypes.Type.ELECTRIC:
+			apply_status_effect(StatusEffects.EffectType.SHOCK, attacker)
+		DamageTypes.Type.BLEED:
+			apply_status_effect(StatusEffects.EffectType.BLEED, attacker)
 
 # ============================================
 # DEATH SYSTEM (Consolidated)

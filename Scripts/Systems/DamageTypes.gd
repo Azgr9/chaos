@@ -7,19 +7,21 @@ extends RefCounted
 
 enum Type {
 	PHYSICAL,   # White - melee, basic attacks
-	FIRE,       # Orange - fire grates, burn effects
+	FIRE,       # Orange - fire grates, burn effects -> applies BURN
+	ICE,        # Light blue - ice effects -> applies CHILL
 	POISON,     # Green - poison effects
-	ELECTRIC,   # Cyan/Blue - lightning, shock
+	ELECTRIC,   # Cyan/Blue - lightning, shock -> applies SHOCK
 	SPIKE,      # Gray - spikes, crushers
 	CRIT,       # Yellow - critical hits
 	HEAL,       # Green (bright) - healing numbers
-	BLEED       # Dark red - bleed effects
+	BLEED       # Dark red - bleed effects -> applies BLEED
 }
 
 # Color mapping for each damage type
 const COLORS = {
 	Type.PHYSICAL: Color.WHITE,
 	Type.FIRE: Color(1.0, 0.5, 0.1, 1.0),      # Orange
+	Type.ICE: Color(0.6, 0.85, 1.0, 1.0),      # Light blue
 	Type.POISON: Color(0.4, 0.9, 0.2, 1.0),    # Green
 	Type.ELECTRIC: Color(0.3, 0.8, 1.0, 1.0),  # Cyan
 	Type.SPIKE: Color(0.7, 0.7, 0.7, 1.0),     # Gray
