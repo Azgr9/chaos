@@ -10,10 +10,10 @@ extends Node
 # ENUMS
 # ============================================
 enum EffectType {
-	BURN,    # DoT, stacks intensity
-	CHILL,   # Slow, stacks to freeze
-	SHOCK,   # Chance to chain damage
-	BLEED    # DoT that increases with movement
+	BURN,    # Fixed DoT, stacks intensity (3 dmg/stack/tick)
+	CHILL,   # Slow, stacks to freeze (4 stacks = frozen)
+	SHOCK,   # Chance to chain damage to nearby targets
+	BLEED    # % max health DoT (2% max HP/stack/tick)
 }
 
 # ============================================
@@ -49,9 +49,8 @@ const SHOCK_CHAIN_RANGE: float = 150.0
 const SHOCK_CHAIN_DAMAGE: float = 5.0
 const SHOCK_DURATION: float = 2.0
 
-const BLEED_BASE_DAMAGE: float = 2.0
-const BLEED_MOVEMENT_MULTIPLIER: float = 0.02  # Per pixel moved
-const BLEED_TICK_RATE: float = 0.4
+const BLEED_PERCENT_PER_STACK: float = 0.02  # 2% max health per stack per tick
+const BLEED_TICK_RATE: float = 0.5
 const BLEED_MAX_STACKS: int = 3
 const BLEED_DURATION: float = 4.0
 
@@ -63,7 +62,6 @@ var active_effects: Dictionary = {}  # EffectType -> StatusEffect
 var is_frozen: bool = false
 var base_speed: float = 0.0
 var last_position: Vector2 = Vector2.ZERO
-var distance_moved: float = 0.0
 
 # Visual nodes
 var burn_visual: Node2D = null
@@ -93,11 +91,6 @@ func _ready():
 func _process(delta):
 	if not target or not is_instance_valid(target):
 		return
-
-	# Track movement for bleed
-	var current_pos = target.global_position
-	distance_moved += current_pos.distance_to(last_position)
-	last_position = current_pos
 
 	# Process active effects
 	_process_effects(delta)
@@ -134,9 +127,9 @@ func _trigger_effect_tick(effect: StatusEffect):
 			effect_triggered.emit(EffectType.BURN, burn_damage)
 
 		EffectType.BLEED:
-			var bleed_damage = BLEED_BASE_DAMAGE * effect.stacks
-			bleed_damage += distance_moved * BLEED_MOVEMENT_MULTIPLIER * effect.stacks
-			distance_moved = 0.0  # Reset distance
+			# Percentage-based damage: 2% max health per stack per tick
+			var max_health = _get_target_max_health()
+			var bleed_damage = max_health * BLEED_PERCENT_PER_STACK * effect.stacks
 			_deal_effect_damage(bleed_damage, EffectType.BLEED)
 			effect_triggered.emit(EffectType.BLEED, bleed_damage)
 
@@ -150,6 +143,15 @@ func _get_tick_rate(effect_type: EffectType) -> float:
 		EffectType.BLEED: return BLEED_TICK_RATE
 		EffectType.SHOCK: return 0.5
 		_: return 1.0
+
+func _get_target_max_health() -> float:
+	if not target or not is_instance_valid(target):
+		return 100.0  # Fallback
+	if "max_health" in target:
+		return target.max_health
+	if target.has_method("get_max_health"):
+		return target.get_max_health()
+	return 100.0  # Fallback
 
 # ============================================
 # EFFECT APPLICATION
