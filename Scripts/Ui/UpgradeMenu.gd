@@ -298,12 +298,17 @@ func _swap_weapon_to_katana():
 	if not player_reference:
 		return
 
+	# Verify player has weapon holder node - prevents crash if node is missing
+	var weapon_holder = player_reference.get_node_or_null("WeaponPivot/WeaponHolder")
+	if not weapon_holder:
+		push_warning("UpgradeMenu: WeaponHolder not found on player")
+		return
+
 	# Mark as purchased
 	katana_purchased = true
 
 	# Add new katana to inventory (don't remove old weapons!)
 	var new_weapon = KATANA_SCENE.instantiate()
-	var weapon_holder = player_reference.get_node("WeaponPivot/WeaponHolder")
 	weapon_holder.add_child(new_weapon)
 	new_weapon.position = Vector2.ZERO
 
@@ -324,12 +329,17 @@ func _swap_weapon_to_axe():
 	if not player_reference:
 		return
 
+	# Verify player has weapon holder node - prevents crash if node is missing
+	var weapon_holder = player_reference.get_node_or_null("WeaponPivot/WeaponHolder")
+	if not weapon_holder:
+		push_warning("UpgradeMenu: WeaponHolder not found on player")
+		return
+
 	# Mark as purchased
 	axe_purchased = true
 
 	# Add new Executioner's Axe to inventory (don't remove old weapons!)
 	var new_weapon = EXECUTIONERS_AXE_SCENE.instantiate()
-	var weapon_holder = player_reference.get_node("WeaponPivot/WeaponHolder")
 	weapon_holder.add_child(new_weapon)
 	new_weapon.position = Vector2.ZERO
 
@@ -419,12 +429,17 @@ func _swap_weapon_to_inferno_staff():
 	if not player_reference:
 		return
 
+	# Verify player has staff holder node - prevents crash if node is missing
+	var staff_holder = player_reference.get_node_or_null("StaffPivot/StaffHolder")
+	if not staff_holder:
+		push_warning("UpgradeMenu: StaffHolder not found on player")
+		return
+
 	# Mark as purchased
 	inferno_staff_purchased = true
 
 	# Add new inferno staff to inventory (don't remove old staffs!)
 	var new_staff = INFERNO_STAFF_SCENE.instantiate()
-	var staff_holder = player_reference.get_node("StaffPivot/StaffHolder")
 	staff_holder.add_child(new_staff)
 	new_staff.position = Vector2.ZERO
 
@@ -441,12 +456,17 @@ func _swap_weapon_to_staff():
 	if not player_reference:
 		return
 
+	# Verify player has staff holder node - prevents crash if node is missing
+	var staff_holder = player_reference.get_node_or_null("StaffPivot/StaffHolder")
+	if not staff_holder:
+		push_warning("UpgradeMenu: StaffHolder not found on player")
+		return
+
 	# Mark as purchased
 	staff_purchased = true
 
 	# Add new lightning staff to inventory (don't remove old staffs!)
 	var new_staff = LIGHTNING_STAFF_SCENE.instantiate()
-	var staff_holder = player_reference.get_node("StaffPivot/StaffHolder")
 	staff_holder.add_child(new_staff)
 	new_staff.position = Vector2.ZERO
 
@@ -497,10 +517,15 @@ func _swap_weapon_to_rapier():
 	if not player_reference:
 		return
 
+	# Verify player has weapon holder node - prevents crash if node is missing
+	var weapon_holder = player_reference.get_node_or_null("WeaponPivot/WeaponHolder")
+	if not weapon_holder:
+		push_warning("UpgradeMenu: WeaponHolder not found on player")
+		return
+
 	rapier_purchased = true
 
 	var new_weapon = RAPIER_SCENE.instantiate()
-	var weapon_holder = player_reference.get_node("WeaponPivot/WeaponHolder")
 	weapon_holder.add_child(new_weapon)
 	new_weapon.position = Vector2.ZERO
 
@@ -550,10 +575,15 @@ func _swap_weapon_to_warhammer():
 	if not player_reference:
 		return
 
+	# Verify player has weapon holder node - prevents crash if node is missing
+	var weapon_holder = player_reference.get_node_or_null("WeaponPivot/WeaponHolder")
+	if not weapon_holder:
+		push_warning("UpgradeMenu: WeaponHolder not found on player")
+		return
+
 	warhammer_purchased = true
 
 	var new_weapon = WARHAMMER_SCENE.instantiate()
-	var weapon_holder = player_reference.get_node("WeaponPivot/WeaponHolder")
 	weapon_holder.add_child(new_weapon)
 	new_weapon.position = Vector2.ZERO
 
@@ -603,10 +633,15 @@ func _swap_weapon_to_frost_staff():
 	if not player_reference:
 		return
 
+	# Verify player has staff holder node - prevents crash if node is missing
+	var staff_holder = player_reference.get_node_or_null("StaffPivot/StaffHolder")
+	if not staff_holder:
+		push_warning("UpgradeMenu: StaffHolder not found on player")
+		return
+
 	frost_staff_purchased = true
 
 	var new_staff = FROST_STAFF_SCENE.instantiate()
-	var staff_holder = player_reference.get_node("StaffPivot/StaffHolder")
 	staff_holder.add_child(new_staff)
 	new_staff.position = Vector2.ZERO
 
@@ -652,10 +687,15 @@ func _swap_weapon_to_void_staff():
 	if not player_reference:
 		return
 
+	# Verify player has staff holder node - prevents crash if node is missing
+	var staff_holder = player_reference.get_node_or_null("StaffPivot/StaffHolder")
+	if not staff_holder:
+		push_warning("UpgradeMenu: StaffHolder not found on player")
+		return
+
 	void_staff_purchased = true
 
 	var new_staff = VOID_STAFF_SCENE.instantiate()
-	var staff_holder = player_reference.get_node("StaffPivot/StaffHolder")
 	staff_holder.add_child(new_staff)
 	new_staff.position = Vector2.ZERO
 

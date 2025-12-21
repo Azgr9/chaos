@@ -213,8 +213,9 @@ func apply_effect(entity: Node2D, effect_type: EffectType, duration: float = 0.0
 	# Initialize entity tracking if needed
 	if entity_id not in _entity_effects:
 		_entity_effects[entity_id] = {}
-		# Connect to entity's tree_exiting to clean up
-		entity.tree_exiting.connect(_on_entity_removed.bind(entity_id))
+		# Connect to entity's tree_exiting to clean up (guard against duplicate connections)
+		if not entity.tree_exiting.is_connected(_on_entity_removed):
+			entity.tree_exiting.connect(_on_entity_removed.bind(entity_id))
 
 	var effects = _entity_effects[entity_id]
 
@@ -357,9 +358,13 @@ func _process(delta):
 	var entities_to_clean: Array = []
 
 	for entity_id in _entity_effects:
-		# Check if entity still exists
-		var entity = instance_from_id(entity_id) as Node2D
-		if not is_instance_valid(entity):
+		# Check if entity still exists - safe null check before cast
+		var entity_obj = instance_from_id(entity_id)
+		if entity_obj == null:
+			entities_to_clean.append(entity_id)
+			continue
+		var entity = entity_obj as Node2D
+		if entity == null or not is_instance_valid(entity):
 			entities_to_clean.append(entity_id)
 			continue
 

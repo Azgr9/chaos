@@ -147,6 +147,9 @@ func show_warning() -> void:
 
 	# Auto-activate after warning duration
 	await get_tree().create_timer(warning_duration).timeout
+	# Guard: hazard may have been freed during await (e.g., wave reset)
+	if not is_instance_valid(self):
+		return
 	activate()
 
 func activate() -> void:

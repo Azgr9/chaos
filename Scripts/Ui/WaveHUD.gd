@@ -13,10 +13,10 @@ var wave_manager: WaveManager
 var game_manager: GameManager
 
 func _ready():
-	# Find managers
-	wave_manager = get_node("/root/Game/WaveManager")
-	game_manager = get_node("/root/Game/GameManager")
-	
+	# Find managers - use get_node_or_null to prevent crash if scene structure changes
+	wave_manager = get_node_or_null("/root/Game/WaveManager")
+	game_manager = get_node_or_null("/root/Game/GameManager")
+
 	# Connect signals
 	if wave_manager:
 		wave_manager.wave_started.connect(_on_wave_started)
