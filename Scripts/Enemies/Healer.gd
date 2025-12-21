@@ -32,6 +32,12 @@ const HEAL_PULSE_COLOR: Color = Color(0.4, 1.0, 0.6)
 var time_alive: float = 0.0
 var is_healing: bool = false
 
+# ============================================
+# PERFORMANCE: Cached enemy list
+# ============================================
+var _cached_enemies: Array = []
+var _cache_frame: int = -1
+
 func _setup_enemy():
 
 	# Stats loaded from scene file via 
@@ -110,8 +116,15 @@ func _update_movement(_delta):
 		var strafe = sin(time_alive * 1.5) * 0.6
 		velocity = perpendicular * move_speed * strafe
 
+func _get_cached_enemies() -> Array:
+	var current_frame = Engine.get_process_frames()
+	if _cache_frame != current_frame:
+		_cached_enemies = get_tree().get_nodes_in_group("enemies")
+		_cache_frame = current_frame
+	return _cached_enemies
+
 func _find_most_damaged_ally() -> Enemy:
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = _get_cached_enemies()
 	var most_damaged: Enemy = null
 	var lowest_health_percent: float = 1.0
 
@@ -139,7 +152,7 @@ func _on_heal_timer_timeout():
 	_heal_nearby_enemies()
 
 func _heal_nearby_enemies():
-	var enemies = get_tree().get_nodes_in_group("enemies")
+	var enemies = _get_cached_enemies()
 	var healed_any = false
 
 	for enemy in enemies:
