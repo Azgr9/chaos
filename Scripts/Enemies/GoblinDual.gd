@@ -192,7 +192,7 @@ func _on_damage_taken():
 func _play_hit_squash():
 	# Quick squash effect - SNAPPY timing
 	visuals_pivot.scale = Vector2(HIT_SQUASH_SCALE.x, HIT_SQUASH_SCALE.y)
-	var scale_tween = create_tween()
+	var scale_tween = get_tree().create_tween()
 	scale_tween.tween_property(visuals_pivot, "scale", Vector2(1.0, 1.0), HIT_SQUASH_DURATION)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -206,7 +206,7 @@ func _on_death():
 	animated_sprite.modulate = Color.WHITE
 
 	# Quick pop and fade - SNAPPY death
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.tween_property(visuals_pivot, "scale", Vector2(1.4, 1.4), DEATH_FADE_DURATION * 0.4)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.parallel().tween_property(animated_sprite, "modulate:a", 0.0, DEATH_FADE_DURATION)
@@ -254,7 +254,7 @@ func _do_attack():
 				damage_dealt.emit(damage)
 				# Flash effect when hitting
 				animated_sprite.modulate = Color(1.5, 1.5, 0.5)
-				var tween = create_tween()
+				var tween = get_tree().create_tween()
 				tween.tween_property(animated_sprite, "modulate", Color.WHITE, 0.1)
 			break
 
@@ -278,7 +278,7 @@ func _end_dash():
 
 	# Reset visual
 	animated_sprite.modulate = Color.WHITE
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.tween_property(visuals_pivot, "scale", Vector2(1.0, 1.0), 0.1)
 
 func _create_dash_trail():
@@ -299,6 +299,6 @@ func _create_dash_trail():
 		get_parent().add_child(ghost)
 
 		# Fade out ghost
-		var ghost_tween = ghost.create_tween()
+		var ghost_tween = get_tree().create_tween()
 		ghost_tween.tween_property(ghost, "modulate:a", 0.0, 0.3)
 		ghost_tween.tween_callback(ghost.queue_free)

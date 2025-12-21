@@ -59,7 +59,7 @@ func _add_arcane_trail(projectile: Node2D):
 		get_tree().current_scene.add_child(sparkle)
 		sparkle.global_position = projectile.global_position + Vector2(randf_range(-5, 5), randf_range(-5, 5))
 
-		var tween = create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(sparkle, "scale", Vector2(0.2, 0.2), 0.2)
 		tween.tween_property(sparkle, "modulate:a", 0.0, 0.2)

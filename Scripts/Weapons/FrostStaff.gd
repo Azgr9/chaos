@@ -133,7 +133,7 @@ func _add_frost_trail(projectile: Node2D):
 		crystal.rotation = randf_range(-PI/4, PI/4)
 
 		# Float and fade
-		var tween = get_tree().create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(crystal, "global_position:y", crystal.global_position.y - 15, 0.3)
 		tween.tween_property(crystal, "global_position:x", crystal.global_position.x + randf_range(-10, 10), 0.3)
@@ -155,7 +155,7 @@ func _spawn_trail_snowflake(pos: Vector2):
 	get_tree().current_scene.add_child(snow)
 	snow.global_position = pos + Vector2(randf_range(-8, 8), randf_range(-8, 8))
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(snow, "global_position:y", snow.global_position.y + 20, 0.4)
 	tween.tween_property(snow, "rotation", randf() * TAU, 0.4)
@@ -209,7 +209,7 @@ func _create_frost_effect(pos: Vector2):
 		crystal.global_position = pos + Vector2(randf_range(-15, 15), randf_range(-15, 15))
 		crystal.rotation = randf_range(-PI/4, PI/4)
 
-		var tween = get_tree().create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(crystal, "global_position:y", crystal.global_position.y - 30, 0.4)
 		tween.tween_property(crystal, "modulate:a", 0.0, 0.4)
@@ -249,7 +249,7 @@ func _create_blizzard(pos: Vector2):
 
 	# Spawn animation
 	base_visual.scale = Vector2(0.3, 0.3)
-	var spawn_tween = create_tween()
+	var spawn_tween = TweenHelper.create_tween()
 	spawn_tween.tween_property(base_visual, "scale", Vector2(1, 1), 0.3)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -325,7 +325,7 @@ func _spawn_snowflake(center: Vector2):
 	snowflake.global_position = center + Vector2.from_angle(angle) * dist + Vector2(0, -50)
 
 	# Fall animation
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(snowflake, "global_position:y", snowflake.global_position.y + 80, 0.8)
 	tween.tween_property(snowflake, "global_position:x", snowflake.global_position.x + randf_range(-20, 20), 0.8)
@@ -339,13 +339,13 @@ func _play_skill_animation():
 	sprite.color = Color(0.6, 0.9, 1.0)
 
 	# Recoil
-	var recoil_tween = get_tree().create_tween()
+	var recoil_tween = TweenHelper.create_tween()
 	recoil_tween.tween_property(self, "position:x", -15, 0.1)
 	recoil_tween.tween_property(self, "position:x", 0, 0.2)
 
 	# Muzzle flash
 	muzzle_flash.modulate = Color(0.6, 0.9, 1.0, 1.0)
-	var flash_tween = get_tree().create_tween()
+	var flash_tween = TweenHelper.create_tween()
 	flash_tween.tween_property(muzzle_flash, "modulate:a", 0.0, 0.2)
 
 	# Return to normal color
@@ -357,11 +357,11 @@ func _play_attack_animation():
 	# Ice blue muzzle flash
 	muzzle_flash.modulate.a = 1.0
 	muzzle_flash.color = Color(0.6, 0.9, 1.0)
-	var flash_tween = get_tree().create_tween()
+	var flash_tween = TweenHelper.create_tween()
 	flash_tween.tween_property(muzzle_flash, "modulate:a", 0.0, 0.1)
 
 	# Staff recoil
-	var recoil_tween = get_tree().create_tween()
+	var recoil_tween = TweenHelper.create_tween()
 	recoil_tween.tween_property(self, "position:x", -10, 0.05)
 	recoil_tween.tween_property(self, "position:x", 0, 0.1)
 

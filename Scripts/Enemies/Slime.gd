@@ -136,7 +136,7 @@ func _perform_hop_visual():
 	# Play move animation during hop
 	_play_directional_animation("move")
 
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 
 	# Squash before jump
 	tween.tween_property(visuals_pivot, "scale", Vector2(base_scale.x * HOP_STRETCH, base_scale.y * HOP_SQUASH), 0.1)
@@ -170,7 +170,7 @@ func _on_damage_taken():
 func _play_hit_squash():
 	# Quick squash effect using base_scale - SNAPPY timing
 	visuals_pivot.scale = base_scale * Vector2(HIT_SQUASH_SCALE.x, HIT_SQUASH_SCALE.y)
-	var scale_tween = create_tween()
+	var scale_tween = get_tree().create_tween()
 	scale_tween.tween_property(visuals_pivot, "scale", base_scale, HIT_SQUASH_DURATION)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -178,7 +178,7 @@ func _on_death():
 	set_physics_process(false)
 
 	# Quick pop and fade - SNAPPY death
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.tween_property(visuals_pivot, "scale", base_scale * 1.4, DEATH_FADE_DURATION * 0.4)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.parallel().tween_property(animated_sprite, "modulate:a", 0.0, DEATH_FADE_DURATION)
@@ -202,5 +202,5 @@ func _on_attack_box_area_entered(area: Area2D):
 			damage_dealt.emit(damage)
 			# Flash effect when hitting
 			animated_sprite.modulate = Color(1.5, 1.5, 0.5)  # Yellow tint
-			var tween = create_tween()
+			var tween = get_tree().create_tween()
 			tween.tween_property(animated_sprite, "modulate", Color(1, 1, 1, 1), 0.1)

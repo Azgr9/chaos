@@ -86,7 +86,7 @@ func _create_katana_slash_trail():
 		slash.global_position = global_position
 		slash.rotation = pivot.rotation + (i - 1) * 0.1
 
-		var tween = create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(slash, "modulate:a", 0.0, 0.1)
 		tween.tween_property(slash, "scale:x", 0.1, 0.1)
@@ -131,16 +131,11 @@ func _execute_dash_slash():
 	player.modulate = Color(1, 1, 1, 0.5)
 
 	# Perform dash movement
-	var tween = create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.tween_property(player, "global_position", target_position, DASH_TIME)\
 		.set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_OUT)
 
-	tween.finished.connect(func():
-		if is_instance_valid(player):
-			player.is_invulnerable = false
-			player.modulate = Color.WHITE
-		is_dash_slashing = false
-	)
+	tween.finished.connect(_on_dash_slash_finished.bind(player))
 
 	# Visual effects
 	_create_slash_effect(player.global_position)
@@ -148,6 +143,12 @@ func _execute_dash_slash():
 
 	# Damage enemies during dash
 	_dash_damage_loop(player, direction)
+
+func _on_dash_slash_finished(player: Node2D):
+	if is_instance_valid(player):
+		player.is_invulnerable = false
+		player.modulate = Color.WHITE
+	is_dash_slashing = false
 
 func _calculate_safe_dash_position(player: Node2D, desired: Vector2, direction: Vector2) -> Vector2:
 	var space_state = get_world_2d().direct_space_state
@@ -209,7 +210,7 @@ func _create_dash_trail():
 		get_tree().current_scene.add_child(ghost)
 		ghost.global_position = player_reference.global_position
 
-		var tween = create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.tween_property(ghost, "modulate:a", 0.0, 0.3)
 		tween.tween_callback(ghost.queue_free)
 
@@ -228,7 +229,7 @@ func _create_slash_effect(hit_position: Vector2):
 		var direction = Vector2.from_angle(angle)
 		var distance = randf_range(40, 80)
 
-		var tween = create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(particle, "global_position", hit_position + direction * distance, 0.2)
 		tween.tween_property(particle, "modulate:a", 0.0, 0.2)
@@ -257,7 +258,7 @@ func _create_cross_slash_effect():
 		slash.rotation = (PI / 4) if i == 0 else (-PI / 4)
 		slash.scale = Vector2(0.5, 0.5)
 
-		var tween = create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(slash, "scale", Vector2(1.5, 1.5), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		tween.tween_property(slash, "modulate:a", 0.0, 0.2)

@@ -309,9 +309,13 @@ func attack(direction: Vector2, player_damage_multiplier: float = 1.0) -> bool:
 	return true
 
 func _perform_attack_animation(pattern: String, duration: float, is_dash_attack: bool):
-	# Kill existing tween
+	# Kill existing tween and clean up state
 	if active_attack_tween:
 		active_attack_tween.kill()
+		active_attack_tween = null
+		# Ensure hitbox is disabled if previous attack was interrupted
+		hit_box_collision.set_deferred("disabled", true)
+		_is_in_active_frames = false
 
 	var is_finisher = is_combo_finisher()
 
@@ -354,7 +358,7 @@ func _perform_attack_animation(pattern: String, duration: float, is_dash_attack:
 			_animate_horizontal_swing(duration, is_dash_attack, false)
 
 func _animate_horizontal_swing(duration: float, is_dash_attack: bool, reverse: bool):
-	active_attack_tween = get_tree().create_tween()
+	active_attack_tween = TweenHelper.create_tween()
 
 	# Get the base angle from attack direction
 	# The sword sprite points UP (negative Y), so we need to add 90 degrees
@@ -401,7 +405,7 @@ func _animate_horizontal_swing(duration: float, is_dash_attack: bool, reverse: b
 	_tween_to_idle(active_attack_tween)
 
 func _animate_overhead_swing(duration: float, is_dash_attack: bool):
-	active_attack_tween = get_tree().create_tween()
+	active_attack_tween = TweenHelper.create_tween()
 
 	# Get the base angle from attack direction (add 90 for sprite orientation)
 	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
@@ -436,7 +440,7 @@ func _animate_overhead_swing(duration: float, is_dash_attack: bool):
 	_tween_to_idle(active_attack_tween)
 
 func _animate_stab(duration: float, _is_dash_attack: bool):
-	active_attack_tween = get_tree().create_tween()
+	active_attack_tween = TweenHelper.create_tween()
 
 	# Get the base angle (add 90 for sprite orientation)
 	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
@@ -469,7 +473,12 @@ func _tween_to_idle(tween: Tween):
 	tween.tween_property(pivot, "position", Vector2.ZERO, 0.15)
 	tween.parallel().tween_property(pivot, "rotation", deg_to_rad(idle_rotation), 0.15)
 	tween.parallel().tween_property(sprite, "scale", idle_scale, 0.15)
-	tween.tween_callback(finish_attack)
+	tween.tween_callback(_finish_attack_callback)
+
+func _finish_attack_callback():
+	# Named callback function to avoid lambda capture issues
+	if is_instance_valid(self):
+		finish_attack()
 
 func _enable_hitbox(is_finisher: bool, is_dash: bool):
 	hit_box_collision.disabled = false
@@ -623,8 +632,7 @@ func _create_hit_effect(is_finisher: bool, is_crit: bool):
 	var squash = 1.6 if (is_finisher or is_crit) else 1.4
 	sprite.scale = Vector2(squash, 0.8)
 
-	var tween = get_tree().create_tween()
-	tween.set_parallel(true)
+	var tween = TweenHelper.create_parallel_tween()
 	tween.tween_property(sprite, "color", weapon_color, 0.1)
 	tween.tween_property(sprite, "scale", original_scale, 0.15)\
 		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
@@ -632,26 +640,10 @@ func _create_hit_effect(is_finisher: bool, is_crit: bool):
 func _create_impact_particles(hit_position: Vector2, is_finisher: bool, is_crit: bool):
 	var particle_count = 8 if (is_finisher or is_crit) else 4
 	var particle_color = _get_hit_color(is_finisher, false, is_crit)
+	var size = 24.0 if (is_finisher or is_crit) else 16.0
+	var distance = 120.0 if (is_finisher or is_crit) else 80.0
 
-	for i in range(particle_count):
-		var particle = ColorRect.new()
-		var size = 24 if (is_finisher or is_crit) else 16
-		particle.size = Vector2(size, size)
-		particle.color = particle_color
-		get_tree().current_scene.add_child(particle)
-		particle.global_position = hit_position
-
-		var angle = (TAU / particle_count) * i + randf_range(-0.2, 0.2)
-		var direction = Vector2.from_angle(angle)
-		var distance = randf_range(80, 140) if (is_finisher or is_crit) else randf_range(60, 100)
-
-		var tween = get_tree().create_tween()
-		tween.set_parallel(true)
-		tween.tween_property(particle, "global_position", hit_position + direction * distance, 0.3)\
-			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		tween.tween_property(particle, "modulate:a", 0.0, 0.3)
-		tween.tween_property(particle, "scale", Vector2(0.5, 0.5), 0.3)
-		tween.tween_callback(particle.queue_free)
+	TweenHelper.create_particle_burst(hit_position, particle_count, particle_color, Vector2(size, size), distance, 0.3)
 
 func _spawn_crit_text(spawn_position: Vector2):
 	var label = Label.new()
@@ -661,7 +653,7 @@ func _spawn_crit_text(spawn_position: Vector2):
 	get_tree().current_scene.add_child(label)
 	label.global_position = spawn_position + Vector2(-80, -120)
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.tween_property(label, "global_position:y", spawn_position.y - 200, 0.5)
 	tween.parallel().tween_property(label, "scale", Vector2(1.5, 1.5), 0.2)
 	tween.tween_property(label, "scale", Vector2(1.0, 1.0), 0.3)
@@ -676,7 +668,7 @@ func _do_weapon_shake():
 	var original_pos = pivot.position
 	var shake_amount = 3.0
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.tween_property(pivot, "position", original_pos + Vector2(shake_amount, 0), 0.02)
 	tween.tween_property(pivot, "position", original_pos + Vector2(-shake_amount, 0), 0.02)
 	tween.tween_property(pivot, "position", original_pos + Vector2(shake_amount * 0.5, 0), 0.02)
@@ -707,8 +699,4 @@ func _create_swing_trail(is_finisher: bool, is_dash: bool):
 		trail.rotation = pivot.rotation
 		trail.scale = sprite.scale
 
-		var tween = get_tree().create_tween()
-		tween.set_parallel(true)
-		tween.tween_property(trail, "modulate:a", 0.0, 0.2)
-		tween.tween_property(trail, "scale", trail.scale * 1.3, 0.2)
-		tween.tween_callback(trail.queue_free)
+		TweenHelper.scale_fade_free(trail, trail.scale * 1.3, 0.2)

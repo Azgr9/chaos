@@ -101,7 +101,7 @@ func _spawn_minion():
 	is_spawning = true
 
 	# Spawn animation
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	portal.modulate.a = 1.0
 	sprite.color = SPAWN_COLOR
 	tween.tween_property(portal, "scale", Vector2(1.5, 1.5), 0.2)
@@ -149,7 +149,7 @@ func _create_spawn_effect(pos: Vector2):
 		var angle = (i / 6.0) * TAU
 		var dir = Vector2(cos(angle), sin(angle))
 
-		var tween = create_tween()
+		var tween = get_tree().create_tween()
 		tween.tween_property(particle, "global_position", pos + dir * 30, 0.3)
 		tween.parallel().tween_property(particle, "modulate:a", 0.0, 0.3)
 		tween.tween_callback(particle.queue_free)
@@ -162,7 +162,7 @@ func _play_hit_squash():
 	# Squash effect preserving facing direction
 	var facing = sign(visuals_pivot.scale.x) if visuals_pivot.scale.x != 0 else 1.0
 	visuals_pivot.scale = Vector2(HIT_SQUASH_SCALE.x * facing, HIT_SQUASH_SCALE.y)
-	var scale_tween = create_tween()
+	var scale_tween = get_tree().create_tween()
 	scale_tween.tween_property(visuals_pivot, "scale", Vector2(facing, 1.0), HIT_SQUASH_DURATION)\
 		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
@@ -176,7 +176,7 @@ func _on_death():
 			minion.die()
 
 	# Implode effect
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	# Grow portal
 	tween.tween_property(portal, "scale", Vector2(2, 2), 0.2)
 	tween.parallel().tween_property(portal, "modulate:a", 1.0, 0.2)

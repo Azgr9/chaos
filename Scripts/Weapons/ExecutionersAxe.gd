@@ -77,7 +77,7 @@ func _perform_attack_animation(pattern: String, duration: float, is_dash_attack:
 			_animate_overhead_chop(duration, is_dash_attack)
 
 func _animate_overhead_chop(duration: float, _is_dash_attack: bool):
-	active_attack_tween = create_tween()
+	active_attack_tween = TweenHelper.create_tween()
 
 	# Get the base angle from attack direction
 	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
@@ -115,7 +115,7 @@ func _animate_overhead_chop(duration: float, _is_dash_attack: bool):
 
 func _animate_slam(duration: float, _is_dash_attack: bool):
 	# Finisher slam - bigger, more dramatic
-	active_attack_tween = create_tween()
+	active_attack_tween = TweenHelper.create_tween()
 
 	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
 
@@ -194,7 +194,7 @@ func _create_shockwave_ring(pos: Vector2, delay: float, alpha: float):
 	get_tree().current_scene.add_child(ring)
 	ring.global_position = pos - Vector2(20, 20)
 
-	var tween = create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(ring, "scale", Vector2(5, 5), 0.35)
 	tween.tween_property(ring, "modulate:a", 0.0, 0.35)
@@ -211,7 +211,7 @@ func _create_ground_cracks(pos: Vector2):
 		crack.global_position = pos
 		crack.scale = Vector2(0, 1)
 
-		var tween = create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.tween_property(crack, "scale:x", 1.0, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		tween.tween_interval(0.3)
 		tween.tween_property(crack, "modulate:a", 0.0, 0.4)
@@ -231,7 +231,7 @@ func _create_debris_particles(pos: Vector2, count: int):
 		var dist = randf_range(80, 150)
 		var end_pos = debris.global_position + dir * dist
 
-		var tween = create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(debris, "global_position", end_pos, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		tween.tween_property(debris, "global_position:y", end_pos.y + 100, 0.5).set_delay(0.25)
@@ -252,7 +252,7 @@ func _create_impact_sparks(pos: Vector2, count: int):
 		var dir = Vector2.from_angle(angle)
 		var dist = randf_range(40, 100)
 
-		var tween = create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(spark, "global_position", pos + dir * dist, 0.25)
 		tween.tween_property(spark, "scale", Vector2(0.2, 0.2), 0.25)
@@ -274,7 +274,7 @@ func _create_charge_glow():
 	add_child(glow)
 	glow.position = Vector2(-15, -30)
 
-	var tween = create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.tween_property(glow, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(glow.queue_free)
 
@@ -296,7 +296,7 @@ func _create_finisher_charge_effect():
 		particle.global_position = start_pos
 
 		# Converge to axe position
-		var tween = create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(particle, "global_position", global_position, 0.25)
 		tween.tween_property(particle, "scale", Vector2(0.3, 0.3), 0.25)
@@ -318,7 +318,7 @@ func _spawn_trail_particle():
 	trail.global_position = global_position
 	trail.rotation = pivot.rotation
 
-	var tween = create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(trail, "modulate:a", 0.0, 0.2)
 	tween.tween_property(trail, "scale", Vector2(0.5, 1.5), 0.2)
@@ -341,7 +341,7 @@ func _create_chop_sparks():
 		var angle = randf_range(-PI/3, PI/3) + current_attack_direction.angle()
 		var dir = Vector2.from_angle(angle)
 
-		var tween = create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(spark, "global_position", spark_pos + dir * randf_range(30, 60), 0.15)
 		tween.tween_property(spark, "modulate:a", 0.0, 0.15)

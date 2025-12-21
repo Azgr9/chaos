@@ -281,10 +281,11 @@ func perform_melee_attack():
 		var mouse_pos = get_global_mouse_position()
 		var attack_direction = (mouse_pos - global_position).normalized()
 
-		# Lock player during attack
-		is_attacking = true
-		is_melee_attacking = true
-		input_vector = Vector2.ZERO
+		# Connect to attack finished signal BEFORE calling attack
+		# This prevents race condition where fast attacks complete before signal is connected
+		if current_weapon.has_signal("attack_finished"):
+			if not current_weapon.attack_finished.is_connected(_on_attack_finished):
+				current_weapon.attack_finished.connect(_on_attack_finished)
 
 		# Face the attack direction immediately
 		facing_direction = attack_direction
@@ -292,16 +293,17 @@ func perform_melee_attack():
 		# The weapon uses current_attack_direction internally for direction-aware animations
 		weapon_pivot.rotation = 0
 
-		# Perform the SWORD attack
-		current_weapon.attack(attack_direction, stats.melee_damage_multiplier)
+		# Perform the SWORD attack - only lock player if attack succeeds
+		var attack_started = current_weapon.attack(attack_direction, stats.melee_damage_multiplier)
 
-		# Connect to attack finished signal if not already connected
-		if current_weapon.has_signal("attack_finished"):
-			if not current_weapon.attack_finished.is_connected(_on_attack_finished):
-				current_weapon.attack_finished.connect(_on_attack_finished)
+		if attack_started:
+			# Lock player during attack
+			is_attacking = true
+			is_melee_attacking = true
+			input_vector = Vector2.ZERO
 
-		# Safety timeout - force reset attack state if signal doesn't fire
-		_start_attack_safety_timeout()
+			# Safety timeout - force reset attack state if signal doesn't fire
+			_start_attack_safety_timeout()
 
 var _attack_safety_timer: SceneTreeTimer = null
 
@@ -313,7 +315,7 @@ func _start_attack_safety_timeout():
 		_attack_safety_timer = null
 
 	# Safety timeout to force reset if attack_finished signal never fires
-	_attack_safety_timer = get_tree().create_timer(1.5)
+	_attack_safety_timer = get_tree().create_timer(0.6)
 	_attack_safety_timer.timeout.connect(_on_attack_safety_timeout)
 
 func _on_attack_safety_timeout():
@@ -323,7 +325,11 @@ func _on_attack_safety_timeout():
 		_on_attack_finished()
 
 func _on_attack_finished():
-	_attack_safety_timer = null  # Clear safety timer
+	# Disconnect and clear safety timer to prevent it from firing after normal completion
+	if _attack_safety_timer and _attack_safety_timer.timeout.is_connected(_on_attack_safety_timeout):
+		_attack_safety_timer.timeout.disconnect(_on_attack_safety_timeout)
+	_attack_safety_timer = null
+
 	is_attacking = false
 	is_melee_attacking = false
 	visuals_pivot.scale.y = 1.0
@@ -457,14 +463,14 @@ func switch_to_staff(index: int):
 func _weapon_switch_effect():
 	# Quick flash effect when switching weapons
 	if current_weapon:
-		var tween = create_tween()
+		var tween = get_tree().create_tween()
 		tween.tween_property(current_weapon, "modulate", Color(1.5, 1.5, 1.5), 0.1)
 		tween.tween_property(current_weapon, "modulate", Color.WHITE, 0.1)
 
 func _staff_switch_effect():
 	# Quick flash effect when switching staffs
 	if current_staff:
-		var tween = create_tween()
+		var tween = get_tree().create_tween()
 		tween.tween_property(current_staff, "modulate", Color(1.2, 1.2, 1.5), 0.1)
 		tween.tween_property(current_staff, "modulate", Color.WHITE, 0.1)
 
@@ -587,7 +593,7 @@ func _phoenix_revive_effect():
 	ring.pivot_offset = ring.size / 2
 	add_child(ring)
 
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(ring, "scale", Vector2(15, 15), 0.5)
 	tween.tween_property(ring, "modulate:a", 0.0, 0.5)
@@ -614,7 +620,7 @@ func _apply_hit_recoil(from_position: Vector2):
 	var original_pos = visuals_pivot.position
 	var recoil_offset = recoil_direction * 8.0  # Small 8 pixel recoil
 
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.tween_property(visuals_pivot, "position", original_pos + recoil_offset, 0.05)
 	tween.tween_property(visuals_pivot, "position", original_pos, 0.1).set_trans(Tween.TRANS_ELASTIC)
 
@@ -626,7 +632,7 @@ func _play_hit_effect():
 	var original_scale = visuals_pivot.scale
 	visuals_pivot.scale = Vector2(original_scale.x * 1.2, original_scale.y * 0.8)
 
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	# Return to normal with bounce
 	tween.tween_property(visuals_pivot, "scale", original_scale, 0.15).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	# Flash back to white - but don't override i-frames flashing
@@ -642,7 +648,7 @@ func _start_iframes():
 		_iframes_flash_tween.kill()
 
 	# Create flashing effect during i-frames
-	_iframes_flash_tween = create_tween()
+	_iframes_flash_tween = get_tree().create_tween()
 	_iframes_flash_tween.set_loops(int(IFRAMES_DURATION / 0.1))  # Flash every 0.1s
 	_iframes_flash_tween.tween_property(sprite, "modulate:a", 0.3, 0.05)
 	_iframes_flash_tween.tween_property(sprite, "modulate:a", 1.0, 0.05)
@@ -674,14 +680,14 @@ func on_enemy_killed():
 		add_child(heal_label)
 		heal_label.position = Vector2(0, -120)
 
-		var tween = create_tween()
+		var tween = get_tree().create_tween()
 		tween.tween_property(heal_label, "position:y", -200, 0.5)
 		tween.parallel().tween_property(heal_label, "modulate:a", 0.0, 0.5)
 		tween.tween_callback(heal_label.queue_free)
 
 		# Green flash on player
 		sprite.modulate = Color.GREEN
-		var flash_tween = create_tween()
+		var flash_tween = get_tree().create_tween()
 		flash_tween.tween_property(sprite, "modulate", Color.WHITE, 0.3)
 
 func _spawn_and_equip_staff(staff_scene: PackedScene):
@@ -724,6 +730,8 @@ func perform_dash():
 
 	# Dash animation and duration
 	await get_tree().create_timer(dash_duration).timeout
+	if not is_instance_valid(self):
+		return
 	is_dashing = false
 	is_invulnerable = false
 	sprite.modulate = Color.WHITE
@@ -733,6 +741,10 @@ func _create_dash_trail():
 	for i in range(3):
 		await get_tree().create_timer(dash_duration / 3.0).timeout
 
+		# Check if self is still valid after await
+		if not is_instance_valid(self):
+			return
+
 		var ghost = Sprite2D.new()
 		ghost.texture = sprite.texture
 		ghost.global_position = global_position
@@ -741,7 +753,7 @@ func _create_dash_trail():
 		get_parent().add_child(ghost)
 
 		# Fade out ghost
-		var tween = create_tween()
+		var tween = get_tree().create_tween()
 		tween.tween_property(ghost, "modulate:a", 0.0, 0.3)
 		tween.tween_callback(ghost.queue_free)
 

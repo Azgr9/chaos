@@ -90,7 +90,7 @@ func _shoot_arrow():
 	is_shooting = true
 	can_shoot = false
 
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 
 	# Pull bow back
 	bow.position.x = 20
@@ -137,7 +137,7 @@ func _play_hit_squash():
 	# Quick squash effect preserving facing direction - SNAPPY timing
 	var facing = sign(visuals_pivot.scale.x) if visuals_pivot.scale.x != 0 else 1.0
 	visuals_pivot.scale = Vector2(HIT_SQUASH_SCALE.x * facing, HIT_SQUASH_SCALE.y)
-	var scale_tween = create_tween()
+	var scale_tween = get_tree().create_tween()
 	scale_tween.tween_property(visuals_pivot, "scale", Vector2(facing, 1.0), HIT_SQUASH_DURATION)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -146,7 +146,7 @@ func _on_death():
 	shoot_timer.stop()
 
 	# Quick fall over - SNAPPY death
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.tween_property(visuals_pivot, "rotation", deg_to_rad(90), DEATH_FADE_DURATION)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.parallel().tween_property(visuals_pivot, "scale", Vector2(0.8, 1.2), DEATH_FADE_DURATION)

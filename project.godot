@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 SaveManager="*res://Scripts/Autoloads/SaveManager.gd"
 RunManager="*res://Scripts/Autoloads/RunManager.gd"
+TweenHelper="*res://Scripts/Systems/TweenHelper.gd"
 AttackSpeedSystem="*res://Scripts/Systems/AttackSpeedSystem.gd"
 CombatAnimationSystem="*res://Scripts/Systems/CombatAnimationSystem.gd"
 CombatEventBus="*res://Scripts/Systems/CombatEventBus.gd"

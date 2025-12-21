@@ -113,7 +113,7 @@ func _start_intro():
 	modulate.a = 0.0
 	scale = Vector2(0.5, 0.5)
 
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.tween_property(self, "modulate:a", 1.0, 1.0)
 	tween.parallel().tween_property(self, "scale", Vector2(1.0, 1.0), 1.0)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -142,7 +142,7 @@ func _show_boss_title():
 	# Center on screen
 	title.global_position = Vector2(640 - 200, 300)
 
-	var tween = title.create_tween()
+	var tween = get_tree().create_tween()
 	tween.tween_property(title, "modulate:a", 1.0, 0.3)
 	tween.tween_interval(1.5)
 	tween.tween_property(title, "modulate:a", 0.0, 0.5)
@@ -167,7 +167,7 @@ func _play_hit_squash():
 	# Quick boss squash effect - SNAPPY timing
 	if visuals_pivot:
 		visuals_pivot.scale = HIT_SQUASH_SCALE
-		var scale_tween = create_tween()
+		var scale_tween = get_tree().create_tween()
 		scale_tween.tween_property(visuals_pivot, "scale", Vector2.ONE, HIT_SQUASH_DURATION)\
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -216,7 +216,7 @@ func _show_phase_text(text: String):
 	get_tree().current_scene.add_child(label)
 	label.global_position = global_position + Vector2(-80, -100)
 
-	var tween = label.create_tween()
+	var tween = get_tree().create_tween()
 	tween.tween_property(label, "global_position:y", label.global_position.y - 50, 0.8)
 	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.8)
 	tween.tween_callback(label.queue_free)
@@ -309,7 +309,7 @@ func _create_slam_warning():
 	add_child(warning)
 
 	# Pulse warning
-	var tween = warning.create_tween().set_loops(int(SLAM_WARNING_TIME / 0.2))
+	var tween = get_tree().create_tween().set_loops(int(SLAM_WARNING_TIME / 0.2))
 	tween.tween_property(warning, "modulate:a", 0.8, 0.1)
 	tween.tween_property(warning, "modulate:a", 0.3, 0.1)
 
@@ -337,7 +337,7 @@ func _create_slam_effect():
 		var angle = (TAU / 16) * i
 		var direction = Vector2.from_angle(angle)
 
-		var tween = particle.create_tween()
+		var tween = get_tree().create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(particle, "global_position", global_position + direction * SLAM_RADIUS, 0.3)
 		tween.tween_property(particle, "modulate:a", 0.0, 0.3)
@@ -366,7 +366,7 @@ func _perform_charge_attack():
 	var start_pos = global_position
 	var end_pos = start_pos + charge_dir * 500
 
-	var tween = create_tween()
+	var tween = get_tree().create_tween()
 	tween.tween_property(self, "global_position", end_pos, CHARGE_DURATION)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
@@ -505,7 +505,7 @@ func _create_summon_effect(pos: Vector2):
 		var offset = Vector2(randf_range(-30, 30), 50)
 		particle.global_position = pos + offset
 
-		var tween = particle.create_tween()
+		var tween = get_tree().create_tween()
 		tween.tween_property(particle, "global_position:y", pos.y - 20, 0.4)
 		tween.parallel().tween_property(particle, "modulate:a", 0.0, 0.4)
 		tween.tween_callback(particle.queue_free)
@@ -532,7 +532,7 @@ func _create_boss_visuals():
 		aura_container.add_child(particle)
 
 	# Rotate aura
-	var tween = aura_container.create_tween().set_loops()
+	var tween = get_tree().create_tween().set_loops()
 	tween.tween_property(aura_container, "rotation", TAU, 3.0)
 
 func _get_phase_color() -> Color:
@@ -547,7 +547,7 @@ func _start_rage_aura():
 		return
 
 	# Make aura pulse red
-	var tween = aura_container.create_tween().set_loops()
+	var tween = get_tree().create_tween().set_loops()
 	tween.tween_property(aura_container, "modulate", Color(1.5, 0.5, 0.5, 1), 0.3)
 	tween.tween_property(aura_container, "modulate", Color(1, 1, 1, 1), 0.3)
 
@@ -587,7 +587,7 @@ func _create_death_explosion():
 	var direction = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
 	var distance = randf_range(100, 200)
 
-	var tween = particle.create_tween()
+	var tween = get_tree().create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(particle, "global_position", particle.global_position + direction * distance, 0.5)
 	tween.tween_property(particle, "modulate:a", 0.0, 0.5)

@@ -27,7 +27,7 @@ func _perform_spin():
 	visual.scale = Vector2(0.5, 0.5)
 	modulate.a = 0.0
 
-	var tween = create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.set_parallel(true)
 
 	# Fade in and scale up

@@ -92,7 +92,7 @@ func _create_sword_swing_trail():
 		trail.global_position = global_position
 		trail.rotation = pivot.rotation + randf_range(-0.2, 0.2)
 
-		var tween = create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(trail, "modulate:a", 0.0, 0.15)
 		tween.tween_property(trail, "scale", Vector2(0.3, 1.0), 0.15)
@@ -114,7 +114,7 @@ func _create_finisher_flash():
 	get_tree().current_scene.add_child(flash)
 	flash.global_position = player_reference.global_position + current_attack_direction * 50
 
-	var tween = create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(flash, "scale", Vector2(2, 2), 0.2)
 	tween.tween_property(flash, "modulate:a", 0.0, 0.2)

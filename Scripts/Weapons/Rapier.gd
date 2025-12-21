@@ -93,8 +93,12 @@ func _perform_attack_animation(pattern: String, duration: float, is_dash_attack:
 func _animate_precision_stab(duration: float, is_dash_attack: bool):
 	if active_attack_tween:
 		active_attack_tween.kill()
+		active_attack_tween = null
+		# Ensure hitbox is disabled if previous attack was interrupted
+		hit_box_collision.set_deferred("disabled", true)
+		_is_in_active_frames = false
 
-	active_attack_tween = get_tree().create_tween()
+	active_attack_tween = TweenHelper.create_tween()
 
 	var is_finisher = is_combo_finisher()
 	var attack_num = get_attack_in_combo()
@@ -185,7 +189,7 @@ func _create_stab_trail(is_finisher: bool):
 	trail.global_position = global_position + current_attack_direction * 60
 	trail.rotation = current_attack_direction.angle() + PI/2
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(trail, "scale", Vector2(0.3, 1.8), 0.06)
 	tween.tween_property(trail, "modulate:a", 0.0, 0.10)
@@ -210,7 +214,7 @@ func _create_thrust_sparks():
 		var dir = Vector2.from_angle(angle)
 		spark.rotation = angle
 
-		var stween = get_tree().create_tween()
+		var stween = TweenHelper.create_tween()
 		stween.set_parallel(true)
 		stween.tween_property(spark, "global_position", hit_pos + dir * 35, 0.08)
 		stween.tween_property(spark, "modulate:a", 0.0, 0.10)
@@ -286,7 +290,7 @@ func _perform_flurry_stab(direction: Vector2, stab_index: int):
 
 	# Stab motion - extended reach
 	var stab_distance = 90.0 + randf_range(-10, 10)
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.tween_property(pivot, "position", stab_direction * stab_distance, FLURRY_INTERVAL * 0.35)
 	tween.tween_property(pivot, "position", Vector2.ZERO, FLURRY_INTERVAL * 0.35)
 
@@ -319,7 +323,7 @@ func _create_mini_stab_trail(stab_dir: Vector2):
 	trail.global_position = global_position + stab_dir * 50
 	trail.rotation = stab_dir.angle() + PI/2
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(trail, "modulate:a", 0.0, 0.08)
 	tween.chain().tween_callback(trail.queue_free)
@@ -341,7 +345,7 @@ func _create_flurry_finish_effect(direction: Vector2):
 
 		var dir = Vector2.from_angle(angle)
 
-		var tween = get_tree().create_tween()
+		var tween = TweenHelper.create_tween()
 		tween.set_parallel(true)
 		tween.tween_property(line, "global_position", hit_pos + dir * 50, 0.12)
 		tween.tween_property(line, "scale:y", 0.3, 0.12)
@@ -367,7 +371,7 @@ func _create_precision_thrust_effect(hit_pos: Vector2):
 	thrust_line.global_position = hit_pos
 	thrust_line.rotation = current_attack_direction.angle() + PI/2
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(thrust_line, "scale", Vector2(0.2, 1.8), 0.08)
 	tween.tween_property(thrust_line, "modulate:a", 0.0, 0.15)
@@ -386,7 +390,7 @@ func _create_precision_thrust_effect(hit_pos: Vector2):
 		var dir = Vector2.from_angle(angle)
 		spark.rotation = angle
 
-		var stween = get_tree().create_tween()
+		var stween = TweenHelper.create_tween()
 		stween.set_parallel(true)
 		stween.tween_property(spark, "global_position", hit_pos + dir * 50, 0.10)
 		stween.tween_property(spark, "modulate:a", 0.0, 0.12)
