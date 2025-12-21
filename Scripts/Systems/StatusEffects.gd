@@ -127,9 +127,10 @@ func _trigger_effect_tick(effect: StatusEffect):
 			effect_triggered.emit(EffectType.BURN, burn_damage)
 
 		EffectType.BLEED:
-			# Percentage-based damage: 2% max health per stack per tick
+			# Percentage-based damage: 2% max health per stack per tick (minimum 1 damage)
 			var max_health = _get_target_max_health()
 			var bleed_damage = max_health * BLEED_PERCENT_PER_STACK * effect.stacks
+			bleed_damage = maxf(bleed_damage, 1.0)  # Minimum 1 damage
 			_deal_effect_damage(bleed_damage, EffectType.BLEED)
 			effect_triggered.emit(EffectType.BLEED, bleed_damage)
 
@@ -322,6 +323,8 @@ func _freeze():
 
 	# Auto-unfreeze after duration
 	await get_tree().create_timer(FREEZE_DURATION).timeout
+	if not is_instance_valid(self):
+		return
 	_unfreeze()
 
 func _unfreeze():
@@ -401,7 +404,7 @@ func _create_lightning_visual(from: Vector2, to: Vector2):
 	get_tree().current_scene.add_child(lightning)
 
 	# Fade out
-	var tween = lightning.create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.tween_property(lightning, "modulate:a", 0.0, 0.2)
 	tween.tween_callback(lightning.queue_free)
 

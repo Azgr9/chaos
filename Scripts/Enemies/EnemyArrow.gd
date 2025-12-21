@@ -57,6 +57,6 @@ func _on_lifetime_timeout():
 
 func _destroy_arrow():
 	# Simple fade out
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.tween_property(self, "modulate:a", 0.0, 0.2)
 	tween.tween_callback(queue_free)

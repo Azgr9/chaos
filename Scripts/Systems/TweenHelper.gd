@@ -11,11 +11,12 @@ extends Node
 
 ## Creates a scene-tree bound tween (not bound to caller object)
 ## This prevents "Lambda capture at index 0 was freed" errors
-func create_tween() -> Tween:
+## Named 'new_tween' to avoid overriding Node.create_tween()
+func new_tween() -> Tween:
 	return get_tree().create_tween()
 
 ## Creates a tween with parallel mode enabled
-func create_parallel_tween() -> Tween:
+func new_parallel_tween() -> Tween:
 	var tween = get_tree().create_tween()
 	tween.set_parallel(true)
 	return tween
@@ -24,8 +25,8 @@ func create_parallel_tween() -> Tween:
 # COMMON VISUAL EFFECTS
 # ============================================
 
-## Fade out and free a node
-func fade_and_free(node: Node2D, duration: float = 0.2) -> Tween:
+## Fade out and free a node (works with Node2D and Control)
+func fade_and_free(node: CanvasItem, duration: float = 0.2) -> Tween:
 	if not is_instance_valid(node):
 		return null
 	var tween = get_tree().create_tween()
@@ -33,8 +34,8 @@ func fade_and_free(node: Node2D, duration: float = 0.2) -> Tween:
 	tween.tween_callback(node.queue_free)
 	return tween
 
-## Scale and fade out a node then free it
-func scale_fade_free(node: Node2D, target_scale: Vector2, duration: float = 0.2) -> Tween:
+## Scale and fade out a node then free it (works with Node2D and Control)
+func scale_fade_free(node: CanvasItem, target_scale: Vector2, duration: float = 0.2) -> Tween:
 	if not is_instance_valid(node):
 		return null
 	var tween = get_tree().create_tween()
@@ -44,7 +45,7 @@ func scale_fade_free(node: Node2D, target_scale: Vector2, duration: float = 0.2)
 	tween.tween_callback(node.queue_free)
 	return tween
 
-## Move node to position and fade out then free
+## Move node to position and fade out then free (Node2D only - uses global_position)
 func move_fade_free(node: Node2D, target_pos: Vector2, duration: float = 0.3) -> Tween:
 	if not is_instance_valid(node):
 		return null
@@ -103,16 +104,16 @@ func create_ring_effect(pos: Vector2, color: Color, start_size: float = 40.0,
 	tween.tween_callback(ring.queue_free)
 
 ## Flash a node's color and return to original
-func flash_color(node: CanvasItem, flash_color: Color, original_color: Color, duration: float = 0.1) -> Tween:
+func flash_node_color(node: CanvasItem, to_color: Color, original_color: Color, duration: float = 0.1) -> Tween:
 	if not is_instance_valid(node):
 		return null
-	node.modulate = flash_color
+	node.modulate = to_color
 	var tween = get_tree().create_tween()
 	tween.tween_property(node, "modulate", original_color, duration)
 	return tween
 
-## Squash and stretch effect
-func squash_stretch(node: Node2D, squash_scale: Vector2, normal_scale: Vector2, duration: float = 0.15) -> Tween:
+## Squash and stretch effect (works with Node2D and Control)
+func squash_stretch(node: CanvasItem, squash_scale: Vector2, normal_scale: Vector2, duration: float = 0.15) -> Tween:
 	if not is_instance_valid(node):
 		return null
 	node.scale = squash_scale

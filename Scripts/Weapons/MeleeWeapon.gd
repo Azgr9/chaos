@@ -358,7 +358,7 @@ func _perform_attack_animation(pattern: String, duration: float, is_dash_attack:
 			_animate_horizontal_swing(duration, is_dash_attack, false)
 
 func _animate_horizontal_swing(duration: float, is_dash_attack: bool, reverse: bool):
-	active_attack_tween = TweenHelper.create_tween()
+	active_attack_tween = TweenHelper.new_tween()
 
 	# Get the base angle from attack direction
 	# The sword sprite points UP (negative Y), so we need to add 90 degrees
@@ -405,7 +405,7 @@ func _animate_horizontal_swing(duration: float, is_dash_attack: bool, reverse: b
 	_tween_to_idle(active_attack_tween)
 
 func _animate_overhead_swing(duration: float, is_dash_attack: bool):
-	active_attack_tween = TweenHelper.create_tween()
+	active_attack_tween = TweenHelper.new_tween()
 
 	# Get the base angle from attack direction (add 90 for sprite orientation)
 	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
@@ -440,7 +440,7 @@ func _animate_overhead_swing(duration: float, is_dash_attack: bool):
 	_tween_to_idle(active_attack_tween)
 
 func _animate_stab(duration: float, _is_dash_attack: bool):
-	active_attack_tween = TweenHelper.create_tween()
+	active_attack_tween = TweenHelper.new_tween()
 
 	# Get the base angle (add 90 for sprite orientation)
 	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
@@ -632,7 +632,7 @@ func _create_hit_effect(is_finisher: bool, is_crit: bool):
 	var squash = 1.6 if (is_finisher or is_crit) else 1.4
 	sprite.scale = Vector2(squash, 0.8)
 
-	var tween = TweenHelper.create_parallel_tween()
+	var tween = TweenHelper.new_parallel_tween()
 	tween.tween_property(sprite, "color", weapon_color, 0.1)
 	tween.tween_property(sprite, "scale", original_scale, 0.15)\
 		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
@@ -653,7 +653,7 @@ func _spawn_crit_text(spawn_position: Vector2):
 	get_tree().current_scene.add_child(label)
 	label.global_position = spawn_position + Vector2(-80, -120)
 
-	var tween = TweenHelper.create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.tween_property(label, "global_position:y", spawn_position.y - 200, 0.5)
 	tween.parallel().tween_property(label, "scale", Vector2(1.5, 1.5), 0.2)
 	tween.tween_property(label, "scale", Vector2(1.0, 1.0), 0.3)
@@ -668,7 +668,7 @@ func _do_weapon_shake():
 	var original_pos = pivot.position
 	var shake_amount = 3.0
 
-	var tween = TweenHelper.create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.tween_property(pivot, "position", original_pos + Vector2(shake_amount, 0), 0.02)
 	tween.tween_property(pivot, "position", original_pos + Vector2(-shake_amount, 0), 0.02)
 	tween.tween_property(pivot, "position", original_pos + Vector2(shake_amount * 0.5, 0), 0.02)

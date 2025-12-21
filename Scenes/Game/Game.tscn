@@ -1,7 +1,7 @@
 [gd_scene load_steps=11 format=3 uid="uid://dk43727mj1esl"]
 
 [ext_resource type="PackedScene" uid="uid://cputkgt8et483" path="res://Scenes/Game/Arena.tscn" id="1_gwu2e"]
-[ext_resource type="PackedScene" path="res://Scenes/Player/player.tscn" id="2_xbxml"]
+[ext_resource type="PackedScene" uid="uid://dm80m7r7kiiua" path="res://Scenes/Player/player.tscn" id="2_xbxml"]
 [ext_resource type="Script" uid="uid://qh02i550hrbk" path="res://Scripts/Player/PlayerStats.gd" id="3_ln2h6"]
 [ext_resource type="Script" uid="uid://brhs5a6uhxrck" path="res://Scripts/Player/CameraShake.gd" id="3_shake"]
 [ext_resource type="Script" uid="uid://yhlbvdhwd02s" path="res://Scripts/Game/WaveManager.gd" id="4_y3kpf"]
@@ -23,8 +23,8 @@ position = Vector2(1280, 720)
 stats = SubResource("Resource_3k6gv")
 
 [node name="Camera2D" type="Camera2D" parent="Player"]
-process_callback = 0
 zoom = Vector2(0.5, 0.5)
+process_callback = 0
 position_smoothing_enabled = true
 script = ExtResource("3_shake")
 

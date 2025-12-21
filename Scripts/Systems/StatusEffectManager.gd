@@ -407,8 +407,10 @@ func _process_tick(entity: Node2D, effect: Effect):
 			effect_triggered.emit(entity, effect.type, damage)
 
 		EffectType.BLEED:
-			var damage = effect.value * effect.stacks
-			# Could track movement here for bonus damage
+			# Percentage-based damage: 2% max health per stack per tick (minimum 1 damage)
+			var max_health = _get_entity_max_health(entity)
+			var damage = max_health * 0.02 * effect.stacks  # 2% per stack
+			damage = maxf(damage, 1.0)  # Minimum 1 damage
 			_deal_effect_damage(entity, damage, effect.type, effect.source)
 			effect_triggered.emit(entity, effect.type, damage)
 
@@ -442,6 +444,18 @@ func _deal_effect_damage(entity: Node2D, damage: float, effect_type: EffectType,
 		entity.take_damage(damage, Vector2.ZERO)
 	else:
 		entity.take_damage(damage, Vector2.ZERO, 0.0, 0.0, valid_source, damage_type)
+
+func _get_entity_max_health(entity: Node2D) -> float:
+	if not is_instance_valid(entity):
+		return 100.0  # Fallback
+	if "max_health" in entity:
+		return entity.max_health
+	if entity.has_method("get_max_health"):
+		return entity.get_max_health()
+	# For player, check stats object
+	if "stats" in entity and entity.stats and "max_health" in entity.stats:
+		return entity.stats.max_health
+	return 100.0  # Fallback
 
 func _get_damage_type(effect_type: EffectType) -> int:
 	match effect_type:
@@ -527,7 +541,7 @@ func _create_shatter_visual(pos: Vector2):
 		var dir = Vector2.from_angle(angle)
 		shard.rotation = angle
 
-		var tween = shard.create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
 		tween.tween_property(shard, "global_position", pos + dir * 60, 0.3)
 		tween.tween_property(shard, "modulate:a", 0.0, 0.3)

@@ -81,7 +81,7 @@ func _perform_attack_animation(pattern: String, duration: float, is_dash_attack:
 			_animate_hammer_overhead(duration, is_dash_attack)
 
 func _animate_hammer_overhead(duration: float, _is_dash_attack: bool):
-	active_attack_tween = TweenHelper.create_tween()
+	active_attack_tween = TweenHelper.new_tween()
 
 	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
 
@@ -116,7 +116,7 @@ func _animate_hammer_overhead(duration: float, _is_dash_attack: bool):
 	_tween_to_idle(active_attack_tween)
 
 func _animate_hammer_slam(duration: float, _is_dash_attack: bool):
-	active_attack_tween = TweenHelper.create_tween()
+	active_attack_tween = TweenHelper.new_tween()
 
 	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
 
@@ -166,7 +166,7 @@ func _create_ground_crack():
 	get_tree().current_scene.add_child(ring)
 	ring.global_position = impact_pos - Vector2(20, 20)
 
-	var tween = TweenHelper.create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(ring, "scale", Vector2(5, 5), 0.4)
 	tween.tween_property(ring, "modulate:a", 0.0, 0.4)
@@ -184,7 +184,7 @@ func _create_ground_crack():
 		var dir = Vector2.from_angle(angle)
 		var dist = randf_range(60, 120)
 
-		var dtween = TweenHelper.create_tween()
+		var dtween = TweenHelper.new_tween()
 		dtween.set_parallel(true)
 		dtween.tween_property(debris, "global_position", impact_pos + dir * dist, 0.3)
 		dtween.tween_property(debris, "global_position:y", debris.global_position.y + 50, 0.3).set_delay(0.15)
@@ -219,7 +219,7 @@ func _execute_earthquake():
 	sprite.scale = Vector2(1.5, 1.5)
 
 	# Leap up
-	var leap_tween = TweenHelper.create_tween()
+	var leap_tween = TweenHelper.new_tween()
 	leap_tween.tween_property(player_reference, "global_position:y", original_pos.y - 100, 0.3)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
@@ -231,7 +231,7 @@ func _execute_earthquake():
 		return
 
 	# Slam down
-	var slam_tween = TweenHelper.create_tween()
+	var slam_tween = TweenHelper.new_tween()
 	slam_tween.tween_property(player_reference, "global_position:y", original_pos.y, 0.15)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
@@ -303,7 +303,7 @@ func _create_shockwave_ring(pos: Vector2, delay: float):
 	get_tree().current_scene.add_child(ring)
 	ring.global_position = pos - Vector2(25, 25)
 
-	var tween = TweenHelper.create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(ring, "scale", Vector2(EARTHQUAKE_RADIUS / 25, EARTHQUAKE_RADIUS / 25), 0.4)
 	tween.tween_property(ring, "modulate:a", 0.0, 0.4)
@@ -321,7 +321,7 @@ func _create_earthquake_debris(pos: Vector2):
 		var dir = Vector2.from_angle(angle)
 		var dist = randf_range(80, EARTHQUAKE_RADIUS)
 
-		var tween = TweenHelper.create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
 		tween.tween_property(debris, "global_position", pos + dir * dist, 0.5)
 		tween.tween_property(debris, "rotation", randf_range(-PI, PI), 0.5)

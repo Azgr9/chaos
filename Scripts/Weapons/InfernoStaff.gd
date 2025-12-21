@@ -63,7 +63,7 @@ func _spawn_staff_ember():
 	add_child(ember)
 	ember.position = Vector2(randf_range(-5, 5), randf_range(-20, -10))
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(ember, "position:y", ember.position.y - 20, 0.4)
 	tween.tween_property(ember, "modulate:a", 0.0, 0.4)
@@ -107,12 +107,13 @@ func _grant_fire_immunity():
 	_create_fire_aura()
 
 	# Timer to remove immunity
-	var timer = get_tree().create_timer(fire_immunity_duration)
-	timer.timeout.connect(func():
-		if is_instance_valid(player_reference):
-			player_reference.is_fire_immune = false
-			player_reference.modulate = Color.WHITE
-	)
+	_remove_fire_immunity_delayed()
+
+func _remove_fire_immunity_delayed():
+	await get_tree().create_timer(fire_immunity_duration).timeout
+	if is_instance_valid(player_reference):
+		player_reference.is_fire_immune = false
+		player_reference.modulate = Color.WHITE
 
 func _create_fire_aura():
 	if not player_reference:
@@ -176,7 +177,7 @@ func _create_volcano_eruption(center: Vector2):
 	get_tree().current_scene.add_child(flash)
 	flash.global_position = center
 
-	var flash_tween = get_tree().create_tween()
+	var flash_tween = TweenHelper.new_tween()
 	flash_tween.set_parallel(true)
 	flash_tween.tween_property(flash, "scale", Vector2(1.5, 1.5), 0.15)
 	flash_tween.tween_property(flash, "modulate:a", 0.0, 0.15)
@@ -207,7 +208,7 @@ func _create_eruption_ring(center: Vector2, delay: float, radius: float):
 	ring.global_position = center
 	ring.scale = Vector2(0.3, 0.3)
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(ring, "scale", Vector2(1.2, 1.2), 0.3).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 	tween.tween_property(ring, "modulate:a", 0.0, 0.3)
@@ -239,7 +240,7 @@ func _spawn_eruption_particle(center: Vector2):
 	var peak_height = randf_range(50, 120)
 	var duration = randf_range(0.4, 0.7)
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 
 	# Horizontal movement
@@ -287,7 +288,7 @@ func _create_eruption_hit(pos: Vector2):
 	get_tree().current_scene.add_child(hit)
 	hit.global_position = pos
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(hit, "scale", Vector2(2, 2), 0.2)
 	tween.tween_property(hit, "modulate:a", 0.0, 0.2)
@@ -317,13 +318,13 @@ func _play_skill_animation():
 	sprite.color = Color(1.0, 0.3, 0.1)
 
 	# Recoil
-	var recoil_tween = get_tree().create_tween()
+	var recoil_tween = TweenHelper.new_tween()
 	recoil_tween.tween_property(self, "position:x", -20, 0.1)
 	recoil_tween.tween_property(self, "position:x", 0, 0.2)
 
 	# Muzzle flash
 	muzzle_flash.modulate = Color(1.0, 0.5, 0.1, 1.0)
-	var flash_tween = get_tree().create_tween()
+	var flash_tween = TweenHelper.new_tween()
 	flash_tween.tween_property(muzzle_flash, "modulate:a", 0.0, 0.2)
 
 	# Return to normal color
@@ -384,7 +385,7 @@ func _add_flame_trail(projectile: Node2D):
 		flame.global_position = projectile.global_position + Vector2(randf_range(-6, 6), randf_range(-6, 6))
 
 		# Flames rise and fade
-		var tween = get_tree().create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
 		tween.tween_property(flame, "global_position:y", flame.global_position.y - randf_range(15, 30), 0.25)
 		tween.tween_property(flame, "scale", Vector2(0.2, 0.4), 0.25)
@@ -405,7 +406,7 @@ func _spawn_smoke_particle(pos: Vector2):
 	get_tree().current_scene.add_child(smoke)
 	smoke.global_position = pos
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(smoke, "global_position:y", pos.y - 40, 0.5)
 	tween.tween_property(smoke, "global_position:x", pos.x + randf_range(-15, 15), 0.5)
@@ -441,7 +442,7 @@ func _animate_lava_bubbles(center: Vector2, duration: float):
 			bubble.global_position = spawn_pos
 
 			# Bubble rises and pops
-			var tween = get_tree().create_tween()
+			var tween = TweenHelper.new_tween()
 			tween.set_parallel(true)
 			tween.tween_property(bubble, "global_position:y", spawn_pos.y - randf_range(20, 40), 0.3)
 			tween.tween_property(bubble, "scale", Vector2(1.5, 1.5), 0.15)

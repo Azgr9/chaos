@@ -144,7 +144,7 @@ func _play_hit_flash():
 	modulate = HIT_FLASH_COLOR
 
 	# Always restore to white - prevents color corruption from rapid damage
-	_flash_tween = get_tree().create_tween()
+	_flash_tween = TweenHelper.new_tween()
 	_flash_tween.tween_property(self, "modulate", Color.WHITE, HIT_FLASH_DURATION)
 
 	# Squash effect on visuals pivot if it exists
@@ -304,7 +304,7 @@ func die():
 
 	# Fade out health bar quickly
 	if health_bar:
-		var tween = get_tree().create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.tween_property(health_bar, "modulate:a", 0.0, HEALTH_BAR_FADE_DURATION)
 
 	# Call subclass death handler
@@ -321,7 +321,7 @@ func _create_death_particles():
 		particle.color = particle_color
 		add_child(particle)
 
-		var particle_tween = get_tree().create_tween()
+		var particle_tween = TweenHelper.new_tween()
 		var random_dir = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
 		particle_tween.tween_property(particle, "position", particle.position + random_dir * DEATH_PARTICLE_DISTANCE, DEATH_PARTICLE_DURATION)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -457,6 +457,6 @@ func _create_hazard_hit_effect():
 	flash.color = Color(1, 0.5, 0.2, 0.6)
 	add_child(flash)
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.tween_property(flash, "modulate:a", 0.0, 0.2)
 	tween.tween_callback(flash.queue_free)

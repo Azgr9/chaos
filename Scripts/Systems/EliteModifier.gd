@@ -258,7 +258,7 @@ func _create_thorns_effect(target_pos: Vector2):
 		var direction = (target_pos - enemy.global_position).normalized()
 		var offset = direction.rotated(randf_range(-0.3, 0.3))
 
-		var tween = spike.create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.tween_property(spike, "global_position", enemy.global_position + offset * 100, 0.2)
 		tween.parallel().tween_property(spike, "modulate:a", 0.0, 0.2)
 		tween.tween_callback(spike.queue_free)
@@ -276,7 +276,7 @@ func _create_vampiric_effect():
 		particle.global_position = enemy.global_position + offset
 		get_tree().current_scene.add_child(particle)
 
-		var tween = particle.create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.tween_property(particle, "global_position", enemy.global_position, 0.3)
 		tween.parallel().tween_property(particle, "modulate:a", 0.0, 0.3)
 		tween.tween_callback(particle.queue_free)
@@ -293,7 +293,7 @@ func _create_shield_hit_effect():
 	flash.color.a = 0.5
 	enemy.add_child(flash)
 
-	var tween = flash.create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.tween_property(flash, "modulate:a", 0.0, 0.15)
 	tween.tween_callback(flash.queue_free)
 
@@ -312,7 +312,7 @@ func _create_shield_break_effect():
 		var angle = (TAU / 12) * i
 		var direction = Vector2.from_angle(angle)
 
-		var tween = shard.create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
 		tween.tween_property(shard, "global_position", enemy.global_position + direction * 80, 0.4)
 		tween.tween_property(shard, "modulate:a", 0.0, 0.4)

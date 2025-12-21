@@ -65,7 +65,7 @@ func _perform_leap():
 	# Create anticipation effect
 	_create_windup_effect()
 
-	var tween = TweenHelper.create_tween()
+	var tween = TweenHelper.new_tween()
 
 	# Brief pause for drama
 	tween.tween_interval(0.1)
@@ -90,7 +90,7 @@ func _perform_leap():
 
 	# Move player with us (smooth arc)
 	if player_ref:
-		var player_tween = TweenHelper.create_tween()
+		var player_tween = TweenHelper.new_tween()
 		player_tween.tween_property(player_ref, "global_position", mid_pos, LEAP_DURATION * 0.4)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		player_tween.tween_property(player_ref, "global_position", end_pos, LEAP_DURATION * 0.3)\
@@ -127,6 +127,8 @@ func _on_impact():
 
 	# Disable hitbox after brief moment
 	await get_tree().create_timer(0.15).timeout
+	if not is_instance_valid(self):
+		return
 	$HitBox/CollisionShape2D.disabled = true
 
 func _create_impact_effect():
@@ -145,7 +147,7 @@ func _create_impact_effect():
 		crack.global_position = global_position
 		crack.scale = Vector2(0, 1)
 
-		var crack_tween = TweenHelper.create_tween()
+		var crack_tween = TweenHelper.new_tween()
 		# Cracks shoot out
 		crack_tween.tween_property(crack, "scale:x", 1.0, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		crack_tween.tween_interval(0.4)
@@ -167,7 +169,7 @@ func _create_impact_effect():
 		var dist = randf_range(100, 200)
 		var end_pos = debris.global_position + dir * dist
 
-		var debris_tween = TweenHelper.create_tween()
+		var debris_tween = TweenHelper.new_tween()
 		debris_tween.set_parallel(true)
 		debris_tween.tween_property(debris, "global_position", end_pos, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		debris_tween.tween_property(debris, "global_position:y", end_pos.y + 120, 0.6).set_delay(0.25)
@@ -188,7 +190,7 @@ func _create_impact_effect():
 		var dir = Vector2.from_angle(angle)
 		var dist = randf_range(50, 120)
 
-		var spark_tween = TweenHelper.create_tween()
+		var spark_tween = TweenHelper.new_tween()
 		spark_tween.set_parallel(true)
 		spark_tween.tween_property(spark, "global_position", global_position + dir * dist, 0.2)
 		spark_tween.tween_property(spark, "scale", Vector2(0.2, 0.2), 0.2)
@@ -197,6 +199,8 @@ func _create_impact_effect():
 
 func _create_shockwave(delay: float, alpha: float):
 	await get_tree().create_timer(delay).timeout
+	if not is_instance_valid(self):
+		return
 
 	var shockwave = ColorRect.new()
 	shockwave.size = Vector2(50, 50)
@@ -205,7 +209,7 @@ func _create_shockwave(delay: float, alpha: float):
 	get_tree().current_scene.add_child(shockwave)
 	shockwave.global_position = global_position - Vector2(25, 25)
 
-	var tween = TweenHelper.create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(shockwave, "scale", Vector2(6, 6), 0.4)
 	tween.tween_property(shockwave, "modulate:a", 0.0, 0.4)
@@ -228,7 +232,7 @@ func _create_leap_trail(start: Vector2, end: Vector2):
 		ghost.global_position = pos - Vector2(15, 25)
 
 		# Fade in then out with delay
-		var ghost_tween = TweenHelper.create_tween()
+		var ghost_tween = TweenHelper.new_tween()
 		ghost_tween.tween_property(ghost, "modulate:a", 0.4, 0.05).set_delay(i * 0.06)
 		ghost_tween.tween_property(ghost, "modulate:a", 0.0, 0.3)
 		ghost_tween.tween_callback(ghost.queue_free)
@@ -246,7 +250,7 @@ func _create_windup_effect():
 		var start_pos = global_position + Vector2.from_angle(angle) * 60
 		particle.global_position = start_pos
 
-		var tween = TweenHelper.create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
 		tween.tween_property(particle, "global_position", global_position, 0.15)
 		tween.tween_property(particle, "scale", Vector2(0.3, 0.3), 0.15)
@@ -266,7 +270,7 @@ func _create_execution_effect():
 		var dir = Vector2.from_angle(angle)
 		var dist = randf_range(60, 140)
 
-		var tween = TweenHelper.create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
 		tween.tween_property(blood, "global_position", global_position + dir * dist, 0.35)
 		tween.tween_property(blood, "scale:y", 2.0, 0.2)

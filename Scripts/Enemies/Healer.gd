@@ -166,18 +166,18 @@ func _play_heal_animation():
 
 	# Pulse effect
 	sprite.color = HEAL_PULSE_COLOR
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.tween_property(sprite, "color", HEALER_COLOR, 0.3)
 
 	# Scale pulse
 	visuals_pivot.scale = Vector2(1.2, 1.2)
-	var scale_tween = get_tree().create_tween()
+	var scale_tween = TweenHelper.new_tween()
 	scale_tween.tween_property(visuals_pivot, "scale", Vector2.ONE, 0.3)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 	# Aura flash
 	heal_aura.modulate.a = 0.6
-	var aura_tween = get_tree().create_tween()
+	var aura_tween = TweenHelper.new_tween()
 	aura_tween.tween_property(heal_aura, "modulate:a", 0.2, 0.5)
 
 	is_healing = false
@@ -190,7 +190,7 @@ func _create_heal_effect(target_pos: Vector2):
 	get_tree().current_scene.add_child(heal_particle)
 	heal_particle.global_position = global_position
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.tween_property(heal_particle, "global_position", target_pos, 0.3)
 	tween.parallel().tween_property(heal_particle, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(heal_particle.queue_free)
@@ -203,7 +203,7 @@ func _create_heal_effect(target_pos: Vector2):
 	get_tree().current_scene.add_child(plus)
 	plus.global_position = target_pos - Vector2(8, 8)
 
-	var plus_tween = get_tree().create_tween()
+	var plus_tween = TweenHelper.new_tween()
 	plus_tween.tween_property(plus, "global_position:y", target_pos.y - 30, 0.5)
 	plus_tween.parallel().tween_property(plus, "modulate:a", 0.0, 0.5)
 	plus_tween.tween_callback(plus.queue_free)
@@ -216,7 +216,7 @@ func _play_hit_squash():
 	# Quick squash effect preserving facing direction - SNAPPY timing
 	var facing = sign(visuals_pivot.scale.x) if visuals_pivot.scale.x != 0 else 1.0
 	visuals_pivot.scale = Vector2(HIT_SQUASH_SCALE.x * facing, HIT_SQUASH_SCALE.y)
-	var scale_tween = get_tree().create_tween()
+	var scale_tween = TweenHelper.new_tween()
 	scale_tween.tween_property(visuals_pivot, "scale", Vector2(facing, 1.0), HIT_SQUASH_DURATION)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -225,7 +225,7 @@ func _on_death():
 	set_physics_process(false)
 
 	# Quick deflation - SNAPPY death
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.tween_property(visuals_pivot, "scale", Vector2(1.4, 0.4), DEATH_FADE_DURATION * 0.5)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(visuals_pivot, "scale", Vector2.ZERO, DEATH_FADE_DURATION * 0.5)

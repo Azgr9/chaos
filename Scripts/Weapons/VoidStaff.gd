@@ -99,6 +99,12 @@ func _add_void_trail(projectile: Node2D):
 			timer.queue_free()
 			return
 
+		# Check if self (VoidStaff) is still valid before calling methods
+		if not is_instance_valid(self):
+			timer.stop()
+			timer.queue_free()
+			return
+
 		# Main void trail - dark core
 		var trail = ColorRect.new()
 		trail.size = Vector2(14, 14)
@@ -107,7 +113,7 @@ func _add_void_trail(projectile: Node2D):
 		get_tree().current_scene.add_child(trail)
 		trail.global_position = projectile.global_position
 
-		var tween = TweenHelper.create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
 		tween.tween_property(trail, "scale", Vector2(0.2, 0.2), 0.25)
 		tween.tween_property(trail, "modulate:a", 0.0, 0.25)
@@ -136,7 +142,7 @@ func _spawn_void_swirl_particle(center: Vector2):
 	particle.global_position = center + start_offset
 
 	# Spiral into center
-	var tween = TweenHelper.create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(particle, "global_position", center, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween.tween_property(particle, "scale", Vector2(0.3, 0.3), 0.2)
@@ -153,7 +159,7 @@ func _spawn_void_spark(pos: Vector2):
 	spark.global_position = pos
 	spark.rotation = randf() * TAU
 
-	var tween = TweenHelper.create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(spark, "scale", Vector2(0.2, 0.2), 0.1)
 	tween.tween_property(spark, "modulate:a", 0.0, 0.1)
@@ -201,7 +207,7 @@ func _create_black_hole(pos: Vector2):
 
 	# Spawn animation
 	black_hole.scale = Vector2(0.1, 0.1)
-	var spawn_tween = TweenHelper.create_tween()
+	var spawn_tween = TweenHelper.new_tween()
 	spawn_tween.tween_property(black_hole, "scale", Vector2(1, 1), 0.3)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -253,7 +259,7 @@ func _run_black_hole(black_hole: Node2D, core: ColorRect, ring: ColorRect, cente
 
 	# Collapse animation
 	if is_instance_valid(black_hole):
-		var collapse_tween = TweenHelper.create_tween()
+		var collapse_tween = TweenHelper.new_tween()
 		collapse_tween.tween_property(black_hole, "scale", Vector2(0.1, 0.1), 0.2)
 		collapse_tween.tween_callback(black_hole.queue_free)
 
@@ -311,7 +317,7 @@ func _spawn_void_particle(center: Vector2):
 	particle.global_position = start_pos
 
 	# Spiral toward center
-	var tween = TweenHelper.create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(particle, "global_position", center, 0.5)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
@@ -327,7 +333,7 @@ func _create_void_hit_effect(pos: Vector2):
 	get_tree().current_scene.add_child(flash)
 	flash.global_position = pos - Vector2(8, 8)
 
-	var tween = TweenHelper.create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(flash, "scale", Vector2(0.3, 0.3), 0.15)
 	tween.tween_property(flash, "modulate:a", 0.0, 0.15)
@@ -349,7 +355,7 @@ func _create_void_burst(center: Vector2):
 		var dir = Vector2.from_angle(angle)
 		var dist = randf_range(100, 180)
 
-		var tween = TweenHelper.create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
 		tween.tween_property(particle, "global_position", center + dir * dist, 0.3)\
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
@@ -363,32 +369,34 @@ func _play_skill_animation():
 	sprite.color = Color(0.5, 0.2, 0.6)
 
 	# Strong recoil
-	var recoil_tween = TweenHelper.create_tween()
+	var recoil_tween = TweenHelper.new_tween()
 	recoil_tween.tween_property(self, "position:x", -20, 0.1)
 	recoil_tween.tween_property(self, "position:x", 0, 0.2)
 
 	# Muzzle flash
 	muzzle_flash.modulate = Color(0.5, 0.2, 0.6, 1.0)
-	var flash_tween = TweenHelper.create_tween()
+	var flash_tween = TweenHelper.new_tween()
 	flash_tween.tween_property(muzzle_flash, "modulate:a", 0.0, 0.2)
 
 	# Return to normal color
 	await get_tree().create_timer(0.3).timeout
-	sprite.color = original_color
+	if is_instance_valid(self) and sprite:
+		sprite.color = original_color
 
 func _play_attack_animation():
 	# Dark purple muzzle flash
 	muzzle_flash.modulate.a = 1.0
 	muzzle_flash.color = Color(0.5, 0.2, 0.6)
-	var flash_tween = TweenHelper.create_tween()
+	var flash_tween = TweenHelper.new_tween()
 	flash_tween.tween_property(muzzle_flash, "modulate:a", 0.0, 0.1)
 
 	# Staff recoil
-	var recoil_tween = TweenHelper.create_tween()
+	var recoil_tween = TweenHelper.new_tween()
 	recoil_tween.tween_property(self, "position:x", -12, 0.05)
 	recoil_tween.tween_property(self, "position:x", 0, 0.1)
 
 	# Brief void glow
 	sprite.color = Color(0.5, 0.2, 0.6)
 	await get_tree().create_timer(0.1).timeout
-	sprite.color = staff_color
+	if is_instance_valid(self) and sprite:
+		sprite.color = staff_color

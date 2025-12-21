@@ -52,6 +52,12 @@ func _add_arcane_trail(projectile: Node2D):
 			timer.queue_free()
 			return
 
+		# Check if self (BasicStaff) is still valid
+		if not is_instance_valid(self):
+			timer.stop()
+			timer.queue_free()
+			return
+
 		var sparkle = ColorRect.new()
 		sparkle.size = Vector2(8, 8)
 		sparkle.color = ARCANE_GLOW
@@ -59,7 +65,7 @@ func _add_arcane_trail(projectile: Node2D):
 		get_tree().current_scene.add_child(sparkle)
 		sparkle.global_position = projectile.global_position + Vector2(randf_range(-5, 5), randf_range(-5, 5))
 
-		var tween = TweenHelper.create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
 		tween.tween_property(sparkle, "scale", Vector2(0.2, 0.2), 0.2)
 		tween.tween_property(sparkle, "modulate:a", 0.0, 0.2)

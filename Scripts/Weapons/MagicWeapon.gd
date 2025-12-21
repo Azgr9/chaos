@@ -208,7 +208,7 @@ func attack(direction: Vector2, magic_damage_multiplier: float = 1.0) -> bool:
 
 	return true
 
-func _fire_projectiles(direction: Vector2):
+func _fire_projectiles(_direction: Vector2):
 	for i in range(multi_shot):
 		if not projectile_scene:
 			continue
@@ -216,9 +216,14 @@ func _fire_projectiles(direction: Vector2):
 		var projectile = projectile_scene.instantiate()
 		get_tree().root.add_child(projectile)
 
+		# Calculate direction from projectile spawn point to mouse for accurate aiming
+		# This fixes the offset issue where projectiles would miss the mouse target
+		var mouse_pos = player_reference.get_global_mouse_position() if player_reference else get_global_mouse_position()
+		var aim_direction = (mouse_pos - projectile_spawn.global_position).normalized()
+
 		# Calculate spread
 		var spread_angle = _calculate_spread_angle(i)
-		var final_direction = direction.rotated(spread_angle)
+		var final_direction = aim_direction.rotated(spread_angle)
 
 		# Initialize projectile (pass player for thorns reflection)
 		projectile.initialize(
@@ -252,11 +257,11 @@ func _calculate_spread_angle(projectile_index: int) -> float:
 func _play_attack_animation():
 	# Muzzle flash
 	muzzle_flash.modulate.a = 1.0
-	var flash_tween = get_tree().create_tween()
+	var flash_tween = TweenHelper.new_tween()
 	flash_tween.tween_property(muzzle_flash, "modulate:a", 0.0, 0.1)
 
 	# Staff recoil
-	var recoil_tween = get_tree().create_tween()
+	var recoil_tween = TweenHelper.new_tween()
 	recoil_tween.tween_property(self, "position:x", -12, 0.05)
 	recoil_tween.tween_property(self, "position:x", 0, 0.1)
 
@@ -327,7 +332,7 @@ func _animate_beam(beam_visual: Node2D):
 	beam_visual.modulate = Color(1, 1, 1, 0)
 	beam_visual.scale = Vector2(1, 0.3)
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(beam_visual, "modulate:a", 1.0, 0.05)
 	tween.tween_property(beam_visual, "scale:y", 1.2, 0.05)
@@ -346,7 +351,7 @@ func _animate_beam(beam_visual: Node2D):
 			beam_visual.queue_free()
 		return
 
-	var fade = get_tree().create_tween()
+	var fade = TweenHelper.new_tween()
 	fade.set_parallel(true)
 	fade.tween_property(beam_visual, "modulate:a", 0.0, 0.3)
 	fade.tween_property(beam_visual, "scale:y", 0.1, 0.3)
@@ -392,7 +397,7 @@ func _create_beam_hit_effect(pos: Vector2):
 	flash.pivot_offset = Vector2(16, 16)
 	get_tree().root.add_child(flash)
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(flash, "scale", Vector2(2, 2), 0.2)
 	tween.tween_property(flash, "modulate:a", 0.0, 0.2)

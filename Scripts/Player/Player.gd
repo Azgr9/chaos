@@ -463,14 +463,14 @@ func switch_to_staff(index: int):
 func _weapon_switch_effect():
 	# Quick flash effect when switching weapons
 	if current_weapon:
-		var tween = get_tree().create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.tween_property(current_weapon, "modulate", Color(1.5, 1.5, 1.5), 0.1)
 		tween.tween_property(current_weapon, "modulate", Color.WHITE, 0.1)
 
 func _staff_switch_effect():
 	# Quick flash effect when switching staffs
 	if current_staff:
-		var tween = get_tree().create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.tween_property(current_staff, "modulate", Color(1.2, 1.2, 1.5), 0.1)
 		tween.tween_property(current_staff, "modulate", Color.WHITE, 0.1)
 
@@ -593,7 +593,7 @@ func _phoenix_revive_effect():
 	ring.pivot_offset = ring.size / 2
 	add_child(ring)
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(ring, "scale", Vector2(15, 15), 0.5)
 	tween.tween_property(ring, "modulate:a", 0.0, 0.5)
@@ -620,7 +620,7 @@ func _apply_hit_recoil(from_position: Vector2):
 	var original_pos = visuals_pivot.position
 	var recoil_offset = recoil_direction * 8.0  # Small 8 pixel recoil
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	tween.tween_property(visuals_pivot, "position", original_pos + recoil_offset, 0.05)
 	tween.tween_property(visuals_pivot, "position", original_pos, 0.1).set_trans(Tween.TRANS_ELASTIC)
 
@@ -632,7 +632,7 @@ func _play_hit_effect():
 	var original_scale = visuals_pivot.scale
 	visuals_pivot.scale = Vector2(original_scale.x * 1.2, original_scale.y * 0.8)
 
-	var tween = get_tree().create_tween()
+	var tween = TweenHelper.new_tween()
 	# Return to normal with bounce
 	tween.tween_property(visuals_pivot, "scale", original_scale, 0.15).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	# Flash back to white - but don't override i-frames flashing
@@ -648,7 +648,7 @@ func _start_iframes():
 		_iframes_flash_tween.kill()
 
 	# Create flashing effect during i-frames
-	_iframes_flash_tween = get_tree().create_tween()
+	_iframes_flash_tween = TweenHelper.new_tween()
 	_iframes_flash_tween.set_loops(int(IFRAMES_DURATION / 0.1))  # Flash every 0.1s
 	_iframes_flash_tween.tween_property(sprite, "modulate:a", 0.3, 0.05)
 	_iframes_flash_tween.tween_property(sprite, "modulate:a", 1.0, 0.05)
@@ -680,14 +680,14 @@ func on_enemy_killed():
 		add_child(heal_label)
 		heal_label.position = Vector2(0, -120)
 
-		var tween = get_tree().create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.tween_property(heal_label, "position:y", -200, 0.5)
 		tween.parallel().tween_property(heal_label, "modulate:a", 0.0, 0.5)
 		tween.tween_callback(heal_label.queue_free)
 
 		# Green flash on player
 		sprite.modulate = Color.GREEN
-		var flash_tween = get_tree().create_tween()
+		var flash_tween = TweenHelper.new_tween()
 		flash_tween.tween_property(sprite, "modulate", Color.WHITE, 0.3)
 
 func _spawn_and_equip_staff(staff_scene: PackedScene):
@@ -753,7 +753,7 @@ func _create_dash_trail():
 		get_parent().add_child(ghost)
 
 		# Fade out ghost
-		var tween = get_tree().create_tween()
+		var tween = TweenHelper.new_tween()
 		tween.tween_property(ghost, "modulate:a", 0.0, 0.3)
 		tween.tween_callback(ghost.queue_free)
 
