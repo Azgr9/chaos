@@ -74,6 +74,33 @@ signal player_revived
 signal weapon_switched(weapon: Node2D)
 signal staff_switched(staff: Node2D)
 
+# ============================================
+# STATE QUERIES - Safe external access to player state
+# ============================================
+
+## Returns true if player can perform actions (not attacking, dashing, or dead)
+func can_act() -> bool:
+	return not is_attacking and not is_dashing and stats != null and stats.current_health > 0
+
+## Returns true if player is dead (use this for external checks)
+func check_is_dead() -> bool:
+	return stats == null or stats.current_health <= 0
+
+## Returns true if player is busy with an action (attacking or dashing)
+func is_busy() -> bool:
+	return is_attacking or is_dashing
+
+## Returns current attack state as string for debugging/UI
+func get_attack_state() -> String:
+	if is_melee_attacking:
+		return "melee"
+	elif is_magic_attacking:
+		return "magic"
+	elif is_attacking:
+		return "attacking"
+	else:
+		return "idle"
+
 func _ready():
 	# Add to player group so enemies can find us
 	add_to_group("player")
@@ -355,6 +382,9 @@ func perform_magic_attack():
 
 		# Magic attacks are instant, so reset immediately after cooldown
 		await get_tree().create_timer(0.3).timeout
+		# CRITICAL: Check validity after await
+		if not is_instance_valid(self):
+			return
 		is_attacking = false
 		is_magic_attacking = false
 func _spawn_and_equip_weapon(weapon_scene: PackedScene):
@@ -601,10 +631,16 @@ func _phoenix_revive_effect():
 
 	# Flash back to normal
 	await get_tree().create_timer(0.5).timeout
+	# CRITICAL: Check validity after await - player might die again during revive
+	if not is_instance_valid(self):
+		return
 	sprite.modulate = Color.WHITE
 
 	# Brief invulnerability window
 	await get_tree().create_timer(1.0).timeout
+	# CRITICAL: Check validity after await
+	if not is_instance_valid(self):
+		return
 	is_invulnerable = false
 
 func _apply_hit_recoil(from_position: Vector2):
