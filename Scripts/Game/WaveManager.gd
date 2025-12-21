@@ -410,6 +410,9 @@ func _spawn_enemies_staggered(enemies: Array):
 	for enemy_type in enemies:
 		# Spawn with staggered delay
 		await get_tree().create_timer(delay).timeout
+		# CRITICAL: Check validity after await - prevents crash if wave ends/scene changes
+		if not is_instance_valid(self) or not wave_active:
+			return
 		_spawn_enemy_of_type(enemy_type)
 		delay += 0.3  # 0.3 second stagger between spawns in batch
 
@@ -544,6 +547,9 @@ func _complete_wave():
 
 	# Wait before starting next wave
 	await get_tree().create_timer(3.0).timeout
+	# Check validity after await - prevents crash if scene changed during wait
+	if not is_instance_valid(self):
+		return
 	start_next_wave()
 
 func _show_wave_notification():
