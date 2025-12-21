@@ -120,12 +120,18 @@ func _start_intro():
 
 	# Screen shake
 	await get_tree().create_timer(0.5).timeout
+	# CRITICAL: Check validity after await
+	if not is_instance_valid(self):
+		return
 	_add_screen_shake(0.6)
 
 	# Show boss name
 	_show_boss_title()
 
 	await get_tree().create_timer(1.5).timeout
+	# CRITICAL: Check validity after await
+	if not is_instance_valid(self):
+		return
 	intro_complete = true
 	is_performing_attack = false
 	current_phase = Phase.PHASE_1
@@ -435,18 +441,25 @@ func _fire_projectile(index: int, total: int):
 	var lifetime = 3.0
 	var time_alive = 0.0
 
-	# Simple projectile movement
+	# Simple projectile movement with proper validity checks
 	while time_alive < lifetime and is_instance_valid(projectile):
 		await get_tree().process_frame
+		# CRITICAL: Check both boss and projectile validity after await
+		if not is_instance_valid(self) or is_dead:
+			if is_instance_valid(projectile):
+				projectile.queue_free()
+			return
 		if not is_instance_valid(projectile):
 			break
 
 		var delta = get_process_delta_time()
+		# Safeguard against abnormally large delta (e.g., after pause)
+		delta = minf(delta, 0.1)
 		time_alive += delta
 		projectile.global_position += direction * speed * delta
 
-		# Check player hit
-		if player_reference and projectile.global_position.distance_to(player_reference.global_position) < 30:
+		# Check player hit - with null check
+		if is_instance_valid(player_reference) and projectile.global_position.distance_to(player_reference.global_position) < 30:
 			var damage_applied = player_reference.take_damage(PROJECTILE_DAMAGE, projectile.global_position)
 			if damage_applied:
 				# Only destroy projectile if damage went through
@@ -467,9 +480,13 @@ func _perform_summon():
 
 	for i in range(count):
 		await get_tree().create_timer(0.3).timeout
+		# CRITICAL: Check validity after await
+		if not is_instance_valid(self) or is_dead:
+			return
 		_spawn_minion()
 
-	is_performing_attack = false
+	if is_instance_valid(self):
+		is_performing_attack = false
 
 func _spawn_minion():
 	# Spawn a slime minion
@@ -531,8 +548,8 @@ func _create_boss_visuals():
 		particle.position = Vector2.from_angle((TAU / 8) * i) * 50
 		aura_container.add_child(particle)
 
-	# Rotate aura
-	var tween = TweenHelper.new_tween().set_loops()
+	# Rotate aura - bind to aura_container so tween dies with it
+	var tween = aura_container.create_tween().set_loops()
 	tween.tween_property(aura_container, "rotation", TAU, 3.0)
 
 func _get_phase_color() -> Color:
@@ -546,8 +563,8 @@ func _start_rage_aura():
 	if not aura_container:
 		return
 
-	# Make aura pulse red
-	var tween = TweenHelper.new_tween().set_loops()
+	# Make aura pulse red - bind to aura_container so tween dies with it
+	var tween = aura_container.create_tween().set_loops()
 	tween.tween_property(aura_container, "modulate", Color(1.5, 0.5, 0.5, 1), 0.3)
 	tween.tween_property(aura_container, "modulate", Color(1, 1, 1, 1), 0.3)
 
@@ -572,10 +589,14 @@ func _on_death():
 	# Explosion particles
 	for i in range(30):
 		await get_tree().create_timer(0.05).timeout
+		# CRITICAL: Check validity after await in death sequence
+		if not is_instance_valid(self):
+			return
 		_create_death_explosion()
 
 	await get_tree().create_timer(0.5).timeout
-	queue_free()
+	if is_instance_valid(self):
+		queue_free()
 
 func _create_death_explosion():
 	var particle = ColorRect.new()
