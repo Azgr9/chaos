@@ -12,6 +12,8 @@ signal relic_collected(relic: Resource)
 signal stats_changed
 signal gold_changed(new_amount: int)
 signal wave_completed(wave_number: int)
+signal bloodlust_activated(stack_count: int)
+signal bloodlust_cleared
 
 # Run data structure - resets each run
 var run_data: Dictionary = {
@@ -25,6 +27,9 @@ var run_data: Dictionary = {
 
 	# Bestiary - kills by enemy type this run
 	"kills_by_type": {},
+
+	# Bloodlust system - skip portal for stacking bonuses
+	"bloodlust_stacks": 0,
 
 	"calculated_stats": {
 		"max_health": 100.0,
@@ -70,6 +75,7 @@ func start_new_run():
 	run_data.run_active = true
 	run_data.collected_relics.clear()
 	run_data.kills_by_type.clear()
+	run_data.bloodlust_stacks = 0
 
 	# Apply training bonuses from SaveManager
 	_apply_training_bonuses()
@@ -174,6 +180,11 @@ func recalculate_stats():
 	for relic in run_data.collected_relics:
 		_apply_item_stats(relic)
 
+	# Apply bloodlust bonuses
+	if run_data.bloodlust_stacks > 0:
+		run_data.calculated_stats.damage_multiplier *= get_bloodlust_damage_multiplier()
+		run_data.calculated_stats.gold_multiplier *= get_bloodlust_gold_multiplier()
+
 	stats_changed.emit()
 
 func _apply_item_stats(item: Resource):
@@ -270,3 +281,44 @@ func has_special_effect(effect_name: String) -> bool:
 		if "special_effect" in relic and relic.special_effect == effect_name:
 			return true
 	return false
+
+# ============================================
+# BLOODLUST SYSTEM
+# ============================================
+# Bloodlust is activated when player destroys the portal instead of entering
+# Each stack gives bonuses but prevents healing/shopping for that wave transition
+
+const BLOODLUST_GOLD_BONUS := 0.25  # +25% gold per stack
+const BLOODLUST_DAMAGE_BONUS := 0.15  # +15% damage per stack
+const BLOODLUST_ENEMY_HP_PENALTY := 0.10  # +10% enemy HP per stack (after 2 stacks)
+
+func activate_bloodlust():
+	run_data.bloodlust_stacks += 1
+	bloodlust_activated.emit(run_data.bloodlust_stacks)
+	recalculate_stats()
+	print("[RunManager] BLOODLUST activated! Stack: %d" % run_data.bloodlust_stacks)
+
+func clear_bloodlust():
+	if run_data.bloodlust_stacks > 0:
+		run_data.bloodlust_stacks = 0
+		bloodlust_cleared.emit()
+		recalculate_stats()
+		print("[RunManager] Bloodlust cleared")
+
+func get_bloodlust_stacks() -> int:
+	return run_data.bloodlust_stacks
+
+func has_bloodlust() -> bool:
+	return run_data.bloodlust_stacks > 0
+
+func get_bloodlust_gold_multiplier() -> float:
+	return 1.0 + (run_data.bloodlust_stacks * BLOODLUST_GOLD_BONUS)
+
+func get_bloodlust_damage_multiplier() -> float:
+	return 1.0 + (run_data.bloodlust_stacks * BLOODLUST_DAMAGE_BONUS)
+
+func get_bloodlust_enemy_hp_multiplier() -> float:
+	# Only applies penalty after 2+ stacks
+	if run_data.bloodlust_stacks >= 2:
+		return 1.0 + ((run_data.bloodlust_stacks - 1) * BLOODLUST_ENEMY_HP_PENALTY)
+	return 1.0

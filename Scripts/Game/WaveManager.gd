@@ -545,12 +545,11 @@ func _complete_wave():
 		all_waves_completed.emit()
 		return
 
-	# Wait before starting next wave
-	await get_tree().create_timer(3.0).timeout
-	# Check validity after await - prevents crash if scene changed during wait
-	if not is_instance_valid(self):
-		return
-	start_next_wave()
+	# Portal system now handles wave transitions
+	# GameManager spawns portal -> player enters OR destroys portal
+	# -> GameManager calls start_next_wave() if portal destroyed
+	# -> or opens UpgradeMenu, then start_next_wave() on menu close
+	# DON'T auto-start next wave here anymore
 
 func _show_wave_notification():
 	# Create a simple wave notification

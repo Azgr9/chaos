@@ -122,6 +122,10 @@ func _ready():
 	hit_box.body_entered.connect(_on_hit_box_body_entered)
 	attack_timer.timeout.connect(_on_attack_cooldown_finished)
 
+	# Setup collision layers - ensure we can hit portal (layer 4) and enemies (layer 16)
+	# Mask 20 = 4 (portal) + 16 (enemies)
+	hit_box.collision_mask = 20
+
 	hit_box_collision.disabled = true
 	base_attack_cooldown = attack_cooldown
 
@@ -571,7 +575,12 @@ func _on_attack_cooldown_finished():
 # HIT DETECTION
 # ============================================
 func _on_hit_box_area_entered(area: Area2D):
-	_process_hit(area.get_parent())
+	# Check if the area itself has take_damage (like Portal)
+	if area.has_method("take_damage"):
+		_process_hit(area)
+	else:
+		# Otherwise try parent (like enemy hitboxes)
+		_process_hit(area.get_parent())
 
 func _on_hit_box_body_entered(body: Node2D):
 	_process_hit(body)

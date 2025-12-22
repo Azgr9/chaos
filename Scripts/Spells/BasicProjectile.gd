@@ -36,6 +36,10 @@ func _ready():
 	# Add to projectiles group for cleanup
 	add_to_group("projectiles")
 
+	# Setup collision mask - ensure we can hit portal (layer 4) and enemies (layer 16)
+	# Mask 24 = 8 (walls) + 16 (enemies) OR use 28 = 4 + 8 + 16 to include portal
+	collision_mask = 28  # 4 (portal) + 8 (walls) + 16 (enemies)
+
 	# Connect collision signals
 	area_entered.connect(_on_area_entered)
 	body_entered.connect(_on_body_entered)
@@ -77,16 +81,17 @@ func _create_spawn_effect():
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _on_area_entered(area: Area2D):
-	var parent = area.get_parent()
-	
-	# Check if it's an enemy hurtbox
-	if not parent in hit_enemies and parent.has_method("take_damage"):
-		hit_enemies.append(parent)
+	# Check if the area itself has take_damage (like Portal)
+	var target = area if area.has_method("take_damage") else area.get_parent()
+
+	# Check if it's a valid target with take_damage
+	if not target in hit_enemies and target.has_method("take_damage"):
+		hit_enemies.append(target)
 
 		# Deal damage with knockback position (pass shooter for thorns reflection)
 		var final_damage = damage * damage_multiplier
-		parent.take_damage(final_damage, global_position, knockback_power, hitstun_duration, shooter, damage_type)
-		projectile_hit.emit(parent, final_damage)
+		target.take_damage(final_damage, global_position, knockback_power, hitstun_duration, shooter, damage_type)
+		projectile_hit.emit(target, final_damage)
 
 		# Visual feedback
 		_create_hit_effect()

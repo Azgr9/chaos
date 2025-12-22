@@ -30,6 +30,9 @@ func _ready():
 	hit_box.area_entered.connect(_on_hit_box_area_entered)
 	hit_box.body_entered.connect(_on_hit_box_body_entered)
 
+	# Setup collision mask - ensure we can hit portal (layer 4) and enemies (layer 16)
+	hit_box.collision_mask = 20  # 4 (portal) + 16 (enemies)
+
 	# Disable hitbox until impact
 	$HitBox/CollisionShape2D.disabled = true
 
@@ -285,15 +288,16 @@ func _cleanup():
 	queue_free()
 
 func _on_hit_box_area_entered(area: Area2D):
-	var parent = area.get_parent()
+	# Check if the area itself has take_damage (like Portal)
+	var target = area if area.has_method("take_damage") else area.get_parent()
 
-	if parent in hits_this_slam:
+	if target in hits_this_slam:
 		return
 
-	if parent.has_method("take_damage"):
-		hits_this_slam.append(parent)
-		parent.take_damage(damage, global_position, 600.0, 0.3, player_ref)
-		dealt_damage.emit(parent, damage)
+	if target.has_method("take_damage"):
+		hits_this_slam.append(target)
+		target.take_damage(damage, global_position, 600.0, 0.3, player_ref)
+		dealt_damage.emit(target, damage)
 
 func _on_hit_box_body_entered(body: Node2D):
 	if body in hits_this_slam:

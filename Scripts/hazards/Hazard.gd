@@ -44,6 +44,8 @@ enum ActivationType {
 
 @export_group("Timing")
 @export var warning_duration: float = 1.5
+@export var active_duration: float = 8.0  # How long the hazard stays active before fading
+@export var fade_duration: float = 1.0    # How long the fade-out takes
 
 @export_group("Visual")
 @export var hazard_size: Vector2 = Vector2(64, 64)
@@ -61,6 +63,7 @@ enum ActivationType {
 # ============================================
 var is_active: bool = false
 var is_warning: bool = false
+var is_fading: bool = false
 var bodies_in_hazard: Array[Node2D] = []
 
 # ============================================
@@ -173,6 +176,10 @@ func activate() -> void:
 		if is_instance_valid(body):
 			_handle_body_contact(body)
 
+	# Start lifetime countdown if active_duration > 0
+	if active_duration > 0:
+		_start_lifetime()
+
 func deactivate() -> void:
 	is_active = false
 	is_warning = false
@@ -181,6 +188,31 @@ func deactivate() -> void:
 		active_sprite.visible = false
 
 	hazard_deactivated.emit()
+
+func _start_lifetime() -> void:
+	# Wait for active duration
+	await get_tree().create_timer(active_duration).timeout
+
+	# Guard: hazard may have been freed during await
+	if not is_instance_valid(self):
+		return
+
+	# Start fade out
+	_fade_out()
+
+func _fade_out() -> void:
+	is_fading = true
+	is_active = false  # Stop dealing damage during fade
+
+	hazard_deactivated.emit()
+
+	# Fade out the entire hazard
+	var tween = create_tween()
+	tween.tween_property(self, "modulate:a", 0.0, fade_duration)
+	tween.tween_callback(_on_fade_complete)
+
+func _on_fade_complete() -> void:
+	queue_free()
 
 # ============================================
 # DAMAGE SYSTEM

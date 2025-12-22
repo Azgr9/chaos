@@ -19,6 +19,9 @@ func _ready():
 	hit_box.area_entered.connect(_on_hit_box_area_entered)
 	hit_box.body_entered.connect(_on_hit_box_body_entered)
 
+	# Setup collision mask - ensure we can hit portal (layer 4) and enemies (layer 16)
+	hit_box.collision_mask = 20  # 4 (portal) + 16 (enemies)
+
 	# Start the spin animation
 	_perform_spin()
 
@@ -52,16 +55,17 @@ func initialize(player_position: Vector2, slash_damage: float, weapon_owner: Nod
 	owner_ref = weapon_owner
 
 func _on_hit_box_area_entered(area: Area2D):
-	var parent = area.get_parent()
+	# Check if the area itself has take_damage (like Portal)
+	var target = area if area.has_method("take_damage") else area.get_parent()
 
 	# Don't hit the same enemy twice
-	if parent in hits_this_spin:
+	if target in hits_this_spin:
 		return
 
-	if parent.has_method("take_damage"):
-		hits_this_spin.append(parent)
-		parent.take_damage(damage, global_position, 400.0, 0.2, owner_ref)
-		dealt_damage.emit(parent, damage)
+	if target.has_method("take_damage"):
+		hits_this_spin.append(target)
+		target.take_damage(damage, global_position, 400.0, 0.2, owner_ref)
+		dealt_damage.emit(target, damage)
 
 func _on_hit_box_body_entered(body: Node2D):
 	if body in hits_this_spin:

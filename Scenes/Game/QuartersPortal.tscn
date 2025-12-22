@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://b5qm8portal1"]
+
+[ext_resource type="Script" path="res://Scripts/Game/QuartersPortal.gd" id="1_portal"]
+
+[node name="QuartersPortal" type="Area2D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_portal")

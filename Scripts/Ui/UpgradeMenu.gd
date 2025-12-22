@@ -21,6 +21,14 @@ extends CanvasLayer
 @onready var frost_staff_button: Button = $Control/FrostStaffButton
 @onready var void_staff_button: Button = $Control/VoidStaffButton
 @onready var skip_button: Button = $Control/SkipButton
+@onready var healer_container: VBoxContainer = $Control/HealerContainer
+
+# HEALER PRICES
+const FREE_HEAL_PERCENT := 0.30  # 30% free heal
+const FULL_HEAL_PRICE := 50
+
+# Healer state
+var free_heal_used: bool = false
 
 # MELEE WEAPONS
 const KATANA_SCENE = preload("res://Scenes/Weapons/Katana.tscn")
@@ -105,6 +113,9 @@ func _ready():
 	if void_staff_button:
 		void_staff_button.pressed.connect(_on_void_staff_pressed)
 
+	# Setup healer section
+	_setup_healer_section()
+
 func show_upgrades(player: Node2D):
 	player_reference = player
 
@@ -120,6 +131,9 @@ func show_upgrades(player: Node2D):
 	_update_inferno_staff_button()
 	_update_frost_staff_button()
 	_update_void_staff_button()
+
+	# Update healer section
+	_update_healer_section()
 
 	# Get random upgrades
 	card_data = upgrade_system.get_random_upgrades(3)
@@ -754,3 +768,238 @@ func _cleanup_scene_effects():
 		# Remove any nodes with "effect" or "projectile" in name
 		elif "effect" in node.name.to_lower() or "projectile" in node.name.to_lower():
 			node.queue_free()
+
+# ============================================
+# HEALER SECTION
+# ============================================
+var free_heal_button: Button = null
+var full_heal_button: Button = null
+var healer_title_label: Label = null
+var health_display_label: Label = null
+
+func _setup_healer_section():
+	if not healer_container:
+		# Create healer container if it doesn't exist
+		healer_container = VBoxContainer.new()
+		healer_container.name = "HealerContainer"
+		control.add_child(healer_container)
+		healer_container.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+		healer_container.position = Vector2(20, -200)
+
+	# Clear existing children
+	for child in healer_container.get_children():
+		child.queue_free()
+
+	# Create title
+	healer_title_label = Label.new()
+	healer_title_label.text = "⚕ HEALER"
+	healer_title_label.add_theme_font_size_override("font_size", 24)
+	healer_title_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4))
+	healer_container.add_child(healer_title_label)
+
+	# Create health display
+	health_display_label = Label.new()
+	health_display_label.text = "HP: ???"
+	health_display_label.add_theme_font_size_override("font_size", 18)
+	health_display_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.8))
+	healer_container.add_child(health_display_label)
+
+	# Create free heal button (30% heal, once per visit)
+	free_heal_button = Button.new()
+	free_heal_button.text = "Free Heal (30%)"
+	free_heal_button.custom_minimum_size = Vector2(180, 40)
+	free_heal_button.pressed.connect(_on_free_heal_pressed)
+	healer_container.add_child(free_heal_button)
+
+	# Create full heal button (costs gold)
+	full_heal_button = Button.new()
+	full_heal_button.text = "Full Heal (%d Gold)" % FULL_HEAL_PRICE
+	full_heal_button.custom_minimum_size = Vector2(180, 40)
+	full_heal_button.pressed.connect(_on_full_heal_pressed)
+	healer_container.add_child(full_heal_button)
+
+	# Style the buttons
+	_style_healer_button(free_heal_button, Color(0.2, 0.6, 0.2))
+	_style_healer_button(full_heal_button, Color(0.6, 0.5, 0.2))
+
+func _style_healer_button(button: Button, color: Color):
+	var style = StyleBoxFlat.new()
+	style.bg_color = color
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_left = 6
+	style.corner_radius_bottom_right = 6
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.border_color = color * 1.3
+	button.add_theme_stylebox_override("normal", style)
+
+	var hover_style = style.duplicate()
+	hover_style.bg_color = color * 1.2
+	button.add_theme_stylebox_override("hover", hover_style)
+
+	var pressed_style = style.duplicate()
+	pressed_style.bg_color = color * 0.8
+	button.add_theme_stylebox_override("pressed", pressed_style)
+
+	var disabled_style = style.duplicate()
+	disabled_style.bg_color = Color(0.3, 0.3, 0.3, 0.5)
+	disabled_style.border_color = Color(0.4, 0.4, 0.4)
+	button.add_theme_stylebox_override("disabled", disabled_style)
+
+func _update_healer_section():
+	if not player_reference:
+		return
+
+	# Update health display
+	var current_hp = player_reference.current_health if "current_health" in player_reference else 0
+	var max_hp = player_reference.max_health if "max_health" in player_reference else 100
+
+	if health_display_label:
+		health_display_label.text = "HP: %d / %d" % [int(current_hp), int(max_hp)]
+
+		# Color based on health percentage
+		var health_percent = current_hp / max_hp if max_hp > 0 else 0
+		if health_percent > 0.6:
+			health_display_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4))
+		elif health_percent > 0.3:
+			health_display_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.4))
+		else:
+			health_display_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
+
+	# Update free heal button
+	if free_heal_button:
+		if free_heal_used:
+			free_heal_button.disabled = true
+			free_heal_button.text = "Free Heal (Used)"
+		elif current_hp >= max_hp:
+			free_heal_button.disabled = true
+			free_heal_button.text = "Free Heal (Full HP)"
+		else:
+			free_heal_button.disabled = false
+			free_heal_button.text = "Free Heal (30%)"
+
+	# Update full heal button
+	if full_heal_button:
+		var game_manager = get_tree().get_first_node_in_group("game_manager")
+		var current_gold = 0
+		if game_manager:
+			current_gold = game_manager.get_gold()
+
+		if current_hp >= max_hp:
+			full_heal_button.disabled = true
+			full_heal_button.text = "Full Heal (Full HP)"
+		elif current_gold < FULL_HEAL_PRICE:
+			full_heal_button.disabled = true
+			full_heal_button.text = "Full Heal - Need %d" % FULL_HEAL_PRICE
+		else:
+			full_heal_button.disabled = false
+			full_heal_button.text = "Full Heal (%d Gold)" % FULL_HEAL_PRICE
+
+func _on_free_heal_pressed():
+	if not player_reference or free_heal_used:
+		return
+
+	# Get player health stats
+	var max_hp = player_reference.max_health if "max_health" in player_reference else 100
+	var current_hp = player_reference.current_health if "current_health" in player_reference else 0
+
+	# Already at full health
+	if current_hp >= max_hp:
+		return
+
+	# Calculate heal amount (30% of max health)
+	var heal_amount = max_hp * FREE_HEAL_PERCENT
+
+	# Apply heal
+	if player_reference.has_method("heal"):
+		player_reference.heal(heal_amount)
+	else:
+		player_reference.current_health = min(current_hp + heal_amount, max_hp)
+
+	# Mark as used
+	free_heal_used = true
+
+	# Visual feedback
+	_show_heal_effect(heal_amount)
+
+	# Update display
+	_update_healer_section()
+
+func _on_full_heal_pressed():
+	if not player_reference:
+		return
+
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	# Check gold
+	if game_manager.get_gold() < FULL_HEAL_PRICE:
+		return
+
+	# Get player health stats
+	var max_hp = player_reference.max_health if "max_health" in player_reference else 100
+	var current_hp = player_reference.current_health if "current_health" in player_reference else 0
+
+	# Already at full health
+	if current_hp >= max_hp:
+		return
+
+	# Spend gold
+	if not game_manager.spend_gold(FULL_HEAL_PRICE):
+		return
+
+	# Calculate heal amount (full heal)
+	var heal_amount = max_hp - current_hp
+
+	# Apply heal
+	if player_reference.has_method("heal"):
+		player_reference.heal(heal_amount)
+	else:
+		player_reference.current_health = max_hp
+
+	# Visual feedback
+	_show_heal_effect(heal_amount)
+
+	# Update display
+	_update_healer_section()
+
+	# Also update weapon shop buttons (gold changed)
+	_update_weapon_shop_button()
+	_update_axe_shop_button()
+	_update_rapier_shop_button()
+	_update_warhammer_shop_button()
+	_update_staff_shop_button()
+	_update_inferno_staff_button()
+	_update_frost_staff_button()
+	_update_void_staff_button()
+
+func _show_heal_effect(heal_amount: float):
+	# Create floating heal text
+	var heal_label = Label.new()
+	heal_label.text = "+%d HP" % int(heal_amount)
+	heal_label.add_theme_font_size_override("font_size", 28)
+	heal_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4))
+	heal_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+	control.add_child(heal_label)
+
+	# Position near health display
+	if healer_container:
+		heal_label.global_position = healer_container.global_position + Vector2(50, -30)
+	else:
+		heal_label.position = Vector2(100, 400)
+
+	# Animate float up and fade
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(heal_label, "position:y", heal_label.position.y - 50, 1.0)
+	tween.tween_property(heal_label, "modulate:a", 0.0, 1.0)
+	tween.tween_callback(heal_label.queue_free)
+
+func reset_healer_for_new_wave():
+	# Called when entering Quarters - reset free heal availability
+	free_heal_used = false
