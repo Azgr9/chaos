@@ -54,9 +54,11 @@ func _perform_skill() -> bool:
 	spin_slash.initialize(player.global_position, slash_damage, player)
 
 	if spin_slash.has_signal("dealt_damage"):
+		var sword_ref = weakref(self)
 		spin_slash.dealt_damage.connect(func(target, dmg):
-			if is_instance_valid(self):
-				dealt_damage.emit(target, dmg)
+			var sword = sword_ref.get_ref()
+			if sword:
+				sword.dealt_damage.emit(target, dmg)
 		)
 
 	return true

@@ -96,6 +96,7 @@ var combo_timer: float = 0.0
 # Skill state
 var skill_ready: bool = true
 var skill_timer: float = 0.0
+var is_using_skill: bool = false
 
 # Attack speed scaling
 var base_attack_cooldown: float = 0.35
@@ -229,7 +230,7 @@ func _update_skill_cooldown(delta):
 			skill_ready_changed.emit(true)
 
 func use_skill() -> bool:
-	if not skill_ready or is_attacking:
+	if not skill_ready or is_attacking or is_using_skill:
 		return false
 
 	# Check animation system for interruptibility
@@ -238,14 +239,49 @@ func use_skill() -> bool:
 
 	skill_ready = false
 	skill_timer = skill_cooldown
+	is_using_skill = true
 	skill_used.emit(skill_cooldown)
 	skill_ready_changed.emit(false)
+
+	# Make player invulnerable during skill
+	_start_skill_invulnerability()
 
 	# Update animation state
 	if CombatAnimationSystem:
 		CombatAnimationSystem.request_transition(self, CombatAnimationSystem.AnimState.SKILL_ACTIVE, true)
 
-	return _perform_skill()
+	# Perform the skill - if it's async, it should call _end_skill_invulnerability() when done
+	# For sync skills, we end invulnerability immediately after
+	var success = _perform_skill()
+
+	# For sync skills (non-async), end invulnerability immediately
+	# Async skills should override and call _end_skill_invulnerability() themselves
+	if not _is_async_skill():
+		_end_skill_invulnerability()
+
+	return success
+
+## Override this in subclasses that have async skills (skills with await)
+## Return true if the skill uses await and manages its own invulnerability timing
+func _is_async_skill() -> bool:
+	return false
+
+## Call this when skill animation/effect is complete to end invulnerability
+## For sync skills, this is called automatically
+## For async skills (with await), call this manually at the end of the skill
+func _end_skill_invulnerability():
+	is_using_skill = false
+	if player_reference and player_reference.has_method("set_invulnerable"):
+		player_reference.set_invulnerable(false)
+
+## Use this for async skills that need to manage invulnerability duration manually
+## Returns true if invulnerability was started successfully
+func _start_skill_invulnerability() -> bool:
+	is_using_skill = true
+	if player_reference and player_reference.has_method("set_invulnerable"):
+		player_reference.set_invulnerable(true)
+		return true
+	return false
 
 func get_skill_cooldown_percent() -> float:
 	if skill_ready:

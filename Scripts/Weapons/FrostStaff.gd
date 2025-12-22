@@ -57,43 +57,10 @@ func _get_beam_glow_color() -> Color:
 	return ICE_GLOW
 
 # ============================================
-# OVERRIDE PROJECTILE FIRING - Add slow effect + custom visual
+# PROJECTILE CUSTOMIZATION - Ice shard visuals and slow effect
 # ============================================
-func _fire_projectiles(direction: Vector2):
-	for i in range(multi_shot):
-		if not projectile_scene:
-			continue
-
-		var projectile = projectile_scene.instantiate()
-		get_tree().root.add_child(projectile)
-
-		# Calculate spread
-		var spread_angle = _calculate_spread_angle(i)
-		var final_direction = direction.rotated(spread_angle)
-
-		# Initialize projectile
-		projectile.initialize(
-			projectile_spawn.global_position,
-			final_direction,
-			damage_multiplier,
-			300.0,  # Lower knockback
-			0.1,
-			player_reference
-		)
-
-		# Apply custom ice shard visuals
-		_customize_projectile(projectile)
-
-		# Connect to apply slow on hit
-		if projectile.has_signal("hit_enemy"):
-			projectile.hit_enemy.connect(_on_projectile_hit_enemy)
-		if projectile.has_signal("projectile_hit"):
-			projectile.projectile_hit.connect(func(target, _dmg):
-				if is_instance_valid(self):
-					_on_projectile_hit_enemy(target)
-			)
-
-		projectile_fired.emit(projectile)
+# Note: We use the base class _fire_projectiles which correctly aims at the mouse
+# and only override _customize_projectile for visual effects
 
 func _customize_projectile(projectile: Node2D):
 	# Sharp ice shard projectile
@@ -105,11 +72,27 @@ func _customize_projectile(projectile: Node2D):
 	# Add frost trail effect
 	_add_frost_trail(projectile)
 
+	# Connect to apply slow on hit using a safer approach
+	if projectile.has_signal("hit_enemy"):
+		projectile.hit_enemy.connect(_on_projectile_hit_enemy)
+	if projectile.has_signal("projectile_hit"):
+		# Use CONNECT_ONE_SHOT to auto-disconnect after first call
+		# Also check self validity before calling
+		var staff_ref = weakref(self)
+		projectile.projectile_hit.connect(func(target, _dmg):
+			var staff = staff_ref.get_ref()
+			if staff:
+				staff._on_projectile_hit_enemy(target)
+		)
+
 func _add_frost_trail(projectile: Node2D):
 	var timer = Timer.new()
 	timer.wait_time = 0.04
 	timer.one_shot = false
 	projectile.add_child(timer)
+
+	# Use weakref to safely capture self
+	var staff_ref = weakref(self)
 
 	timer.timeout.connect(func():
 		if not is_instance_valid(projectile):
@@ -117,8 +100,9 @@ func _add_frost_trail(projectile: Node2D):
 			timer.queue_free()
 			return
 
-		# Check if self (FrostStaff) is still valid
-		if not is_instance_valid(self):
+		# Check if staff is still valid using weakref
+		var staff = staff_ref.get_ref()
+		if not staff:
 			timer.stop()
 			timer.queue_free()
 			return
@@ -128,7 +112,7 @@ func _add_frost_trail(projectile: Node2D):
 		crystal.size = Vector2(6, 10)
 		crystal.color = ICE_CRYSTAL if randf() > 0.6 else ICE_GLOW
 		crystal.pivot_offset = Vector2(3, 5)
-		get_tree().current_scene.add_child(crystal)
+		staff.get_tree().current_scene.add_child(crystal)
 		crystal.global_position = projectile.global_position
 		crystal.rotation = randf_range(-PI/4, PI/4)
 
@@ -143,7 +127,7 @@ func _add_frost_trail(projectile: Node2D):
 
 		# Occasional snowflake
 		if randf() > 0.7:
-			_spawn_trail_snowflake(projectile.global_position)
+			staff._spawn_trail_snowflake(projectile.global_position)
 	)
 	timer.start()
 
@@ -260,7 +244,11 @@ func _run_blizzard(blizzard: Node2D, visual: ColorRect, center: Vector2):
 	var elapsed = 0.0
 	var tick_timer = 0.0
 
+	# Store weakref for safe access after await
+	var staff_ref = weakref(self)
+
 	while elapsed < blizzard_duration:
+		# Check blizzard validity first
 		if not is_instance_valid(blizzard):
 			break
 
@@ -268,27 +256,33 @@ func _run_blizzard(blizzard: Node2D, visual: ColorRect, center: Vector2):
 		elapsed += delta
 		tick_timer += delta
 
-		# Spawn snowflake particles
-		if randf() < 0.3:
-			_spawn_snowflake(center)
+		# Spawn snowflake particles (only if staff valid)
+		var staff = staff_ref.get_ref()
+		if staff and randf() < 0.3:
+			staff._spawn_snowflake(center)
 
 		# Damage tick
 		if tick_timer >= blizzard_tick_rate:
 			tick_timer = 0.0
-			_blizzard_damage_tick(center)
+			if staff:
+				staff._blizzard_damage_tick(center)
 
 		# Fade out near end
-		if elapsed > blizzard_duration - 1.0:
+		if elapsed > blizzard_duration - 1.0 and is_instance_valid(visual):
 			var fade = (blizzard_duration - elapsed) / 1.0
 			visual.modulate.a = 0.3 * fade
 
 		await get_tree().process_frame
 
-		# Check validity after await
-		if not is_instance_valid(self):
+		# Check validity after await - both staff and blizzard
+		if not staff_ref.get_ref():
 			if is_instance_valid(blizzard):
 				blizzard.queue_free()
 			return
+
+		# Also check blizzard after await
+		if not is_instance_valid(blizzard):
+			break
 
 	# Cleanup
 	if is_instance_valid(blizzard):

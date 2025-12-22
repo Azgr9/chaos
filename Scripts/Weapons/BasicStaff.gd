@@ -46,14 +46,18 @@ func _add_arcane_trail(projectile: Node2D):
 	timer.one_shot = false
 	projectile.add_child(timer)
 
+	# Use weakref to safely capture self
+	var staff_ref = weakref(self)
+
 	timer.timeout.connect(func():
 		if not is_instance_valid(projectile):
 			timer.stop()
 			timer.queue_free()
 			return
 
-		# Check if self (BasicStaff) is still valid
-		if not is_instance_valid(self):
+		# Check if staff is still valid using weakref
+		var staff = staff_ref.get_ref()
+		if not staff:
 			timer.stop()
 			timer.queue_free()
 			return
@@ -62,7 +66,7 @@ func _add_arcane_trail(projectile: Node2D):
 		sparkle.size = Vector2(8, 8)
 		sparkle.color = ARCANE_GLOW
 		sparkle.pivot_offset = Vector2(4, 4)
-		get_tree().current_scene.add_child(sparkle)
+		staff.get_tree().current_scene.add_child(sparkle)
 		sparkle.global_position = projectile.global_position + Vector2(randf_range(-5, 5), randf_range(-5, 5))
 
 		var tween = TweenHelper.new_tween()

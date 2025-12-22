@@ -357,14 +357,18 @@ func _add_flame_trail(projectile: Node2D):
 	timer.one_shot = false
 	projectile.add_child(timer)
 
+	# Use weakref to safely capture self
+	var staff_ref = weakref(self)
+
 	timer.timeout.connect(func():
 		if not is_instance_valid(projectile):
 			timer.stop()
 			timer.queue_free()
 			return
 
-		# Check if self (InfernoStaff) is still valid
-		if not is_instance_valid(self):
+		# Check if staff is still valid using weakref
+		var staff = staff_ref.get_ref()
+		if not staff:
 			timer.stop()
 			timer.queue_free()
 			return
@@ -381,7 +385,7 @@ func _add_flame_trail(projectile: Node2D):
 		else:
 			flame.color = FIRE_OUTER
 		flame.pivot_offset = flame.size / 2
-		get_tree().current_scene.add_child(flame)
+		staff.get_tree().current_scene.add_child(flame)
 		flame.global_position = projectile.global_position + Vector2(randf_range(-6, 6), randf_range(-6, 6))
 
 		# Flames rise and fade
@@ -394,7 +398,7 @@ func _add_flame_trail(projectile: Node2D):
 
 		# Smoke particle occasionally
 		if randf() > 0.8:
-			_spawn_smoke_particle(projectile.global_position)
+			staff._spawn_smoke_particle(projectile.global_position)
 	)
 	timer.start()
 

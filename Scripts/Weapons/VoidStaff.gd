@@ -53,38 +53,20 @@ func _get_beam_glow_color() -> Color:
 	return VOID_OUTER
 
 # ============================================
-# OVERRIDE PROJECTILE - Dark void bolts
+# PROJECTILE CUSTOMIZATION - Dark void bolts
 # ============================================
-func _fire_projectiles(direction: Vector2):
-	for i in range(multi_shot):
-		if not projectile_scene:
-			continue
+# Note: We use the base class _fire_projectiles which correctly aims at the mouse
+# and only override _customize_projectile for visual effects
 
-		var projectile = projectile_scene.instantiate()
-		get_tree().root.add_child(projectile)
+func _customize_projectile(projectile: Node2D):
+	# Dark void orb
+	if projectile.has_node("Sprite"):
+		var sprite_node = projectile.get_node("Sprite")
+		sprite_node.color = VOID_CORE
+		sprite_node.size = Vector2(16, 16)
 
-		var spread_angle = _calculate_spread_angle(i)
-		var final_direction = direction.rotated(spread_angle)
-
-		projectile.initialize(
-			projectile_spawn.global_position,
-			final_direction,
-			damage_multiplier,
-			200.0,  # Low knockback - void pulls, doesn't push
-			0.15,
-			player_reference
-		)
-
-		# Override projectile color and size - dark void orb
-		if projectile.has_node("Sprite"):
-			var sprite_node = projectile.get_node("Sprite")
-			sprite_node.color = VOID_CORE
-			sprite_node.size = Vector2(16, 16)
-
-		# Add void trail effect
-		_add_void_trail(projectile)
-
-		projectile_fired.emit(projectile)
+	# Add void trail effect
+	_add_void_trail(projectile)
 
 func _add_void_trail(projectile: Node2D):
 	# Create trailing void particles with distortion effect
@@ -93,14 +75,18 @@ func _add_void_trail(projectile: Node2D):
 	timer.one_shot = false
 	projectile.add_child(timer)
 
+	# Use weakref to safely capture self
+	var staff_ref = weakref(self)
+
 	timer.timeout.connect(func():
 		if not is_instance_valid(projectile):
 			timer.stop()
 			timer.queue_free()
 			return
 
-		# Check if self (VoidStaff) is still valid before calling methods
-		if not is_instance_valid(self):
+		# Check if staff is still valid using weakref
+		var staff = staff_ref.get_ref()
+		if not staff:
 			timer.stop()
 			timer.queue_free()
 			return
@@ -110,7 +96,7 @@ func _add_void_trail(projectile: Node2D):
 		trail.size = Vector2(14, 14)
 		trail.color = VOID_OUTER
 		trail.pivot_offset = Vector2(7, 7)
-		get_tree().current_scene.add_child(trail)
+		staff.get_tree().current_scene.add_child(trail)
 		trail.global_position = projectile.global_position
 
 		var tween = TweenHelper.new_tween()
@@ -121,11 +107,11 @@ func _add_void_trail(projectile: Node2D):
 
 		# Swirling void particles being pulled in
 		if randf() > 0.6:
-			_spawn_void_swirl_particle(projectile.global_position)
+			staff._spawn_void_swirl_particle(projectile.global_position)
 
 		# Occasional bright spark
 		if randf() > 0.85:
-			_spawn_void_spark(projectile.global_position)
+			staff._spawn_void_spark(projectile.global_position)
 	)
 	timer.start()
 

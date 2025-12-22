@@ -501,16 +501,22 @@ func _spawn_minion():
 	if minion.has_method("set_player_reference") and player_reference:
 		minion.set_player_reference(player_reference)
 
-	# Track minion
+	# Track minion with safe callback
 	summoned_minions.append(minion)
 	if minion.has_signal("enemy_died"):
-		minion.enemy_died.connect(_on_minion_died.bind(minion))
+		var boss_ref = weakref(self)
+		minion.enemy_died.connect(func(_enemy):
+			var boss = boss_ref.get_ref()
+			if boss:
+				boss._on_minion_died(minion)
+		)
 
 	# Spawn effect
 	_create_summon_effect(minion.global_position)
 
-func _on_minion_died(_enemy, minion):
-	summoned_minions.erase(minion)
+func _on_minion_died(minion):
+	if minion in summoned_minions:
+		summoned_minions.erase(minion)
 
 func _create_summon_effect(pos: Vector2):
 	for i in range(6):
@@ -578,10 +584,11 @@ func _on_death():
 	current_phase = Phase.DYING
 	boss_defeated.emit()
 
-	# Kill all summoned minions
-	for minion in summoned_minions:
+	# Kill all summoned minions and clear array
+	for minion in summoned_minions.duplicate():  # Duplicate to avoid modifying during iteration
 		if is_instance_valid(minion):
 			minion.die()
+	summoned_minions.clear()
 
 	# Epic death sequence
 	_add_screen_shake(0.8)

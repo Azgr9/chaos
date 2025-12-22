@@ -9,6 +9,7 @@ extends MeleeWeapon
 # KATANA-SPECIFIC STATE
 # ============================================
 var is_dash_slashing: bool = false
+var _dash_tween: Tween = null
 
 # Dash slash settings
 const DASH_DISTANCE: float = 600.0
@@ -100,6 +101,11 @@ func _on_combo_finisher_hit(_target: Node2D):
 # ============================================
 # KATANA DASH SLASH SKILL
 # ============================================
+
+## Dash slash is async - manages its own invulnerability
+func _is_async_skill() -> bool:
+	return true
+
 func _perform_skill() -> bool:
 	if not player_reference:
 		return false
@@ -112,6 +118,7 @@ func _execute_dash_slash():
 	var player = player_reference
 	if not is_instance_valid(player):
 		is_dash_slashing = false
+		_end_skill_invulnerability()
 		return
 
 	# IMMEDIATELY make player invulnerable - before anything else
@@ -130,12 +137,24 @@ func _execute_dash_slash():
 	# Visual feedback - slight transparency during dash
 	player.modulate = Color(1, 1, 1, 0.5)
 
-	# Perform dash movement
-	var tween = TweenHelper.new_tween()
-	tween.tween_property(player, "global_position", target_position, DASH_TIME)\
+	# Kill any existing dash tween
+	if _dash_tween and _dash_tween.is_valid():
+		_dash_tween.kill()
+
+	# Perform dash movement - store reference for cleanup
+	_dash_tween = TweenHelper.new_tween()
+	_dash_tween.tween_property(player, "global_position", target_position, DASH_TIME)\
 		.set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_OUT)
 
-	tween.finished.connect(_on_dash_slash_finished.bind(player))
+	# Use weakref for safe callback
+	var katana_ref = weakref(self)
+	var player_ref = weakref(player)
+	_dash_tween.finished.connect(func():
+		var katana = katana_ref.get_ref()
+		var p = player_ref.get_ref()
+		if katana:
+			katana._on_dash_slash_finished(p)
+	)
 
 	# Visual effects
 	_create_slash_effect(player.global_position)
@@ -149,6 +168,8 @@ func _on_dash_slash_finished(player: Node2D):
 		player.is_invulnerable = false
 		player.modulate = Color.WHITE
 	is_dash_slashing = false
+	_dash_tween = null
+	_end_skill_invulnerability()
 
 func _calculate_safe_dash_position(player: Node2D, desired: Vector2, direction: Vector2) -> Vector2:
 	var space_state = get_world_2d().direct_space_state

@@ -89,14 +89,18 @@ func _add_electric_trail(projectile: Node2D):
 	timer.one_shot = false
 	projectile.add_child(timer)
 
+	# Use weakref to safely capture self
+	var staff_ref = weakref(self)
+
 	timer.timeout.connect(func():
 		if not is_instance_valid(projectile):
 			timer.stop()
 			timer.queue_free()
 			return
 
-		# Check if self (LightningStaff) is still valid
-		if not is_instance_valid(self):
+		# Check if staff is still valid using weakref
+		var staff = staff_ref.get_ref()
+		if not staff:
 			timer.stop()
 			timer.queue_free()
 			return
@@ -106,7 +110,7 @@ func _add_electric_trail(projectile: Node2D):
 		spark.size = Vector2(4, 8)
 		spark.color = ELECTRIC_SPARK if randf() > 0.5 else ELECTRIC_GLOW
 		spark.pivot_offset = Vector2(2, 4)
-		get_tree().current_scene.add_child(spark)
+		staff.get_tree().current_scene.add_child(spark)
 		spark.global_position = projectile.global_position
 		spark.rotation = randf() * TAU
 
@@ -122,7 +126,7 @@ func _add_electric_trail(projectile: Node2D):
 
 		# Occasional mini-bolt branching off
 		if randf() > 0.7:
-			_create_mini_bolt(projectile.global_position)
+			staff._create_mini_bolt(projectile.global_position)
 	)
 	timer.start()
 

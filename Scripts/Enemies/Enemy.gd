@@ -79,6 +79,9 @@ var status_effects: StatusEffects = null
 # Hit flash state
 var _flash_tween: Tween = null
 
+# Health bar optimization - track last shown health to avoid recalculating every frame
+var _last_health_shown: float = -1.0
+
 # ============================================
 # SIGNALS
 # ============================================
@@ -186,7 +189,9 @@ func _update_health_bar():
 	if not health_bar or not health_fill:
 		return
 
-	if health_bar.visible:
+	# Only update if health bar is visible AND health has changed
+	if health_bar.visible and current_health != _last_health_shown:
+		_last_health_shown = current_health
 		var health_percentage = current_health / max_health
 		health_fill.size.x = health_bar_width * health_percentage
 

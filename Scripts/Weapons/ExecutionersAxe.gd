@@ -350,6 +350,11 @@ func _create_chop_sparks():
 # ============================================
 # SKILL - GUILLOTINE DROP
 # ============================================
+
+## GuillotineDrop manages its own invulnerability during the leap
+func _is_async_skill() -> bool:
+	return true
+
 func _perform_skill() -> bool:
 	# Guillotine Drop skill - leap forward, deal 3x damage in small AoE
 	var player = get_tree().get_first_node_in_group("player")
@@ -364,9 +369,11 @@ func _perform_skill() -> bool:
 	guillotine.initialize(player, direction, skill_damage)
 
 	if guillotine.has_signal("dealt_damage"):
+		var axe_ref = weakref(self)
 		guillotine.dealt_damage.connect(func(target, dmg):
-			if is_instance_valid(self):
-				dealt_damage.emit(target, dmg)
+			var axe = axe_ref.get_ref()
+			if axe:
+				axe.dealt_damage.emit(target, dmg)
 		)
 
 	return true

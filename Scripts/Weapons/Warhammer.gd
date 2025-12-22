@@ -192,8 +192,13 @@ func _create_ground_crack():
 		dtween.tween_callback(debris.queue_free)
 
 # ============================================
-# EARTHQUAKE SKILL - AoE ground pound
+# EARTHQUAKE SKILL - AoE ground pound (stays in place)
 # ============================================
+
+## This is an async skill - it uses await and manages its own invulnerability
+func _is_async_skill() -> bool:
+	return true
+
 func _perform_skill() -> bool:
 	if not player_reference or is_earthquaking:
 		return false
@@ -205,54 +210,63 @@ func _perform_skill() -> bool:
 func _execute_earthquake():
 	if not is_instance_valid(player_reference):
 		is_earthquaking = false
+		_end_skill_invulnerability()
 		return
 
-	# Jump up animation
-	var original_pos = player_reference.global_position
-
-	# Make player invulnerable during leap
-	if player_reference.has_method("set_invulnerable"):
-		player_reference.set_invulnerable(true)
-
-	# Visual: hammer glows
+	# Visual: hammer glows and raises
 	sprite.color = Color(1.0, 0.5, 0.0)
 	sprite.scale = Vector2(1.5, 1.5)
 
-	# Leap up
-	var leap_tween = TweenHelper.new_tween()
-	leap_tween.tween_property(player_reference, "global_position:y", original_pos.y - 100, 0.3)\
+	# Raise hammer high animation
+	var raise_tween = TweenHelper.new_tween()
+	raise_tween.tween_property(pivot, "rotation", deg_to_rad(-120), 0.25)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	raise_tween.parallel().tween_property(pivot, "position:y", -30, 0.25)
 
-	await leap_tween.finished
+	await raise_tween.finished
 
 	# Check validity after await
 	if not is_instance_valid(self) or not is_instance_valid(player_reference):
 		is_earthquaking = false
+		_end_skill_invulnerability()
 		return
 
-	# Slam down
+	# Brief pause at top
+	await get_tree().create_timer(0.1).timeout
+
+	if not is_instance_valid(self) or not is_instance_valid(player_reference):
+		is_earthquaking = false
+		_end_skill_invulnerability()
+		return
+
+	# Slam down animation
 	var slam_tween = TweenHelper.new_tween()
-	slam_tween.tween_property(player_reference, "global_position:y", original_pos.y, 0.15)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	slam_tween.tween_property(pivot, "rotation", deg_to_rad(45), 0.12)\
+		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	slam_tween.parallel().tween_property(pivot, "position:y", 0, 0.12)
 
 	await slam_tween.finished
 
 	# Check validity after await
 	if not is_instance_valid(self) or not is_instance_valid(player_reference):
 		is_earthquaking = false
+		_end_skill_invulnerability()
 		return
-
-	# End invulnerability
-	if player_reference.has_method("set_invulnerable"):
-		player_reference.set_invulnerable(false)
 
 	# Earthquake impact!
 	_earthquake_impact()
 
-	# Reset
-	sprite.color = weapon_color
-	sprite.scale = idle_scale
+	# Reset hammer to idle
+	var reset_tween = TweenHelper.new_tween()
+	reset_tween.tween_property(sprite, "color", weapon_color, 0.2)
+	reset_tween.parallel().tween_property(sprite, "scale", idle_scale, 0.2)
+	reset_tween.parallel().tween_property(pivot, "rotation", deg_to_rad(idle_rotation), 0.2)
+
+	await reset_tween.finished
+
 	is_earthquaking = false
+	# End invulnerability when skill is complete
+	_end_skill_invulnerability()
 
 func _earthquake_impact():
 	if not player_reference:

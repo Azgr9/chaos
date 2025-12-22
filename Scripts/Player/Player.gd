@@ -194,11 +194,11 @@ func handle_input():
 		perform_dash()
 
 	# Weapon skill inputs
-	if Input.is_action_just_pressed("sword_skill") and current_weapon:
+	if Input.is_action_just_pressed("sword_skill") and current_weapon and is_instance_valid(current_weapon):
 		if current_weapon.has_method("use_skill"):
 			current_weapon.use_skill()
 
-	if Input.is_action_just_pressed("staff_skill") and current_staff:
+	if Input.is_action_just_pressed("staff_skill") and current_staff and is_instance_valid(current_staff):
 		if current_staff.has_method("use_skill"):
 			current_staff.use_skill()
 
@@ -303,7 +303,7 @@ func update_animation():
 
 func perform_melee_attack():
 	# Make sure we're using current_weapon, NOT current_staff
-	if current_weapon and current_weapon.has_method("attack") and not is_attacking:
+	if current_weapon and is_instance_valid(current_weapon) and current_weapon.has_method("attack") and not is_attacking:
 		# Get attack direction from mouse
 		var mouse_pos = get_global_mouse_position()
 		var attack_direction = (mouse_pos - global_position).normalized()
@@ -363,7 +363,7 @@ func _on_attack_finished():
 
 func perform_magic_attack():
 	# Make sure we're using current_staff, NOT current_weapon
-	if current_staff and current_staff.has_method("attack") and not is_attacking:
+	if current_staff and is_instance_valid(current_staff) and current_staff.has_method("attack") and not is_attacking:
 		# Get attack direction from mouse
 		var mouse_pos = get_global_mouse_position()
 		var attack_direction = (mouse_pos - global_position).normalized()
@@ -492,14 +492,14 @@ func switch_to_staff(index: int):
 
 func _weapon_switch_effect():
 	# Quick flash effect when switching weapons
-	if current_weapon:
+	if current_weapon and is_instance_valid(current_weapon):
 		var tween = TweenHelper.new_tween()
 		tween.tween_property(current_weapon, "modulate", Color(1.5, 1.5, 1.5), 0.1)
 		tween.tween_property(current_weapon, "modulate", Color.WHITE, 0.1)
 
 func _staff_switch_effect():
 	# Quick flash effect when switching staffs
-	if current_staff:
+	if current_staff and is_instance_valid(current_staff):
 		var tween = TweenHelper.new_tween()
 		tween.tween_property(current_staff, "modulate", Color(1.2, 1.2, 1.5), 0.1)
 		tween.tween_property(current_staff, "modulate", Color.WHITE, 0.1)
@@ -509,12 +509,21 @@ func switch_weapon():
 	_cycle_weapon(1)
 
 func _on_weapon_broke():
-	weapon_inventory.erase(current_weapon)
+	# Safely remove broken weapon from inventory
+	if current_weapon and current_weapon in weapon_inventory:
+		weapon_inventory.erase(current_weapon)
 	current_weapon = null
 
+	# Switch to another weapon if available
 	if weapon_inventory.size() > 0:
-		current_weapon = weapon_inventory[0]
-		current_weapon_index = 0
+		# Filter out invalid weapons
+		weapon_inventory = weapon_inventory.filter(func(w): return is_instance_valid(w))
+		if weapon_inventory.size() > 0:
+			current_weapon = weapon_inventory[0]
+			current_weapon_index = 0
+			weapon_switched.emit(current_weapon)
+		else:
+			current_weapon_index = -1
 
 func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO) -> bool:
 	# Ignore damage if invulnerable (dash, i-frames, etc) - return false to indicate no damage applied
