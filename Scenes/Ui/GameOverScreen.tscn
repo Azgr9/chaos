@@ -1,0 +1,207 @@
+[gd_scene load_steps=2 format=3 uid="uid://d4e5f6g7h8jaj"]
+
+[ext_resource type="Script" path="res://Scripts/Ui/GameOverScreen.gd" id="1_gameover"]
+
+[node name="GameOverScreen" type="CanvasLayer"]
+script = ExtResource("1_gameover")
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Background" type="ColorRect" parent="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.9)
+
+[node name="Container" type="VBoxContainer" parent="Control"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -220.0
+offset_right = 250.0
+offset_bottom = 220.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="Control/Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.2, 0.2, 1)
+theme_override_font_sizes/font_size = 36
+text = "RUN COMPLETE"
+horizontal_alignment = 1
+
+[node name="Divider" type="HSeparator" parent="Control/Container"]
+layout_mode = 2
+
+[node name="StatsContainer" type="VBoxContainer" parent="Control/Container"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="WaveStat" type="HBoxContainer" parent="Control/Container/StatsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Control/Container/StatsContainer/WaveStat"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Wave Reached:"
+
+[node name="Value" type="Label" parent="Control/Container/StatsContainer/WaveStat"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 18
+text = "0"
+
+[node name="EnemiesStat" type="HBoxContainer" parent="Control/Container/StatsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Control/Container/StatsContainer/EnemiesStat"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Enemies Slain:"
+
+[node name="Value" type="Label" parent="Control/Container/StatsContainer/EnemiesStat"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.4, 0.3, 1)
+theme_override_font_sizes/font_size = 18
+text = "0"
+
+[node name="ScoreStat" type="HBoxContainer" parent="Control/Container/StatsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Control/Container/StatsContainer/ScoreStat"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Final Score:"
+
+[node name="Value" type="Label" parent="Control/Container/StatsContainer/ScoreStat"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.8, 0.4, 1)
+theme_override_font_sizes/font_size = 18
+text = "0"
+
+[node name="Divider2" type="HSeparator" parent="Control/Container"]
+layout_mode = 2
+
+[node name="GoldSection" type="VBoxContainer" parent="Control/Container"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="GoldTitle" type="Label" parent="Control/Container/GoldSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 20
+text = "GOLD EARNED"
+horizontal_alignment = 1
+
+[node name="KeptGold" type="HBoxContainer" parent="Control/Container/GoldSection"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Control/Container/GoldSection/KeptGold"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Unspent Gold:"
+
+[node name="Value" type="Label" parent="Control/Container/GoldSection/KeptGold"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 16
+text = "+0"
+
+[node name="WaveBonus" type="HBoxContainer" parent="Control/Container/GoldSection"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Control/Container/GoldSection/WaveBonus"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Wave Bonus (x5):"
+
+[node name="Value" type="Label" parent="Control/Container/GoldSection/WaveBonus"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 16
+text = "+0"
+
+[node name="GoldDivider" type="HSeparator" parent="Control/Container/GoldSection"]
+layout_mode = 2
+modulate = Color(1, 0.85, 0.4, 1)
+
+[node name="TotalGold" type="HBoxContainer" parent="Control/Container/GoldSection"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Label" type="Label" parent="Control/Container/GoldSection/TotalGold"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.5, 1)
+theme_override_font_sizes/font_size = 22
+text = "Total:"
+
+[node name="Value" type="Label" parent="Control/Container/GoldSection/TotalGold"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.6, 1)
+theme_override_font_sizes/font_size = 22
+text = "+0"
+
+[node name="Divider3" type="HSeparator" parent="Control/Container"]
+layout_mode = 2
+
+[node name="ButtonContainer" type="HBoxContainer" parent="Control/Container"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="ReturnToBaseButton" type="Button" parent="Control/Container/ButtonContainer"]
+custom_minimum_size = Vector2(180, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "RETURN TO BASE"
+
+[node name="RestartButton" type="Button" parent="Control/Container/ButtonContainer"]
+custom_minimum_size = Vector2(120, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "RESTART"
+
+[node name="TipLabel" type="Label" parent="Control/Container"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
+theme_override_font_sizes/font_size = 14
+text = "Tip: Keep moving!"
+horizontal_alignment = 1
+
+[node name="DeathEffect" type="ColorRect" parent="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 0, 0, 0)

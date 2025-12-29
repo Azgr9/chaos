@@ -1,0 +1,548 @@
+[gd_scene load_steps=2 format=3 uid="uid://bwx8h5j2k3n4p"]
+
+[ext_resource type="Script" uid="uid://ctomxb7p5at6e" path="res://Scripts/Ui/HUD.gd" id="1_hud"]
+
+[node name="HUD" type="CanvasLayer"]
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_hud")
+
+[node name="PlayerStatus" type="Control" parent="Control"]
+anchors_preset = 0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 320.0
+offset_bottom = 100.0
+
+[node name="HealthSection" type="Control" parent="Control/PlayerStatus"]
+anchors_preset = 0
+offset_right = 276.0
+offset_bottom = 36.0
+
+[node name="HealthIcon" type="ColorRect" parent="Control/PlayerStatus/HealthSection"]
+layout_mode = 0
+offset_right = 28.0
+offset_bottom = 28.0
+color = Color(0.9, 0.2, 0.2, 1)
+
+[node name="HealthBar" type="Control" parent="Control/PlayerStatus/HealthSection"]
+anchors_preset = 0
+offset_left = 36.0
+offset_right = 276.0
+offset_bottom = 28.0
+
+[node name="Background" type="ColorRect" parent="Control/PlayerStatus/HealthSection/HealthBar"]
+layout_mode = 0
+offset_right = 240.0
+offset_bottom = 28.0
+color = Color(0.2, 0.05, 0.05, 1)
+
+[node name="Fill" type="ColorRect" parent="Control/PlayerStatus/HealthSection/HealthBar"]
+layout_mode = 0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = 238.0
+offset_bottom = 26.0
+color = Color(0.9, 0.15, 0.15, 1)
+
+[node name="Shine" type="ColorRect" parent="Control/PlayerStatus/HealthSection/HealthBar"]
+layout_mode = 0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = 238.0
+offset_bottom = 10.0
+color = Color(1, 1, 1, 0.2)
+
+[node name="Label" type="Label" parent="Control/PlayerStatus/HealthSection/HealthBar"]
+layout_mode = 0
+offset_right = 240.0
+offset_bottom = 28.0
+theme_override_font_sizes/font_size = 14
+text = "100/100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="GoldSection" type="Control" parent="Control/PlayerStatus"]
+anchors_preset = 0
+offset_top = 36.0
+offset_right = 130.0
+offset_bottom = 56.0
+
+[node name="GoldIcon" type="ColorRect" parent="Control/PlayerStatus/GoldSection"]
+layout_mode = 0
+offset_right = 16.0
+offset_bottom = 16.0
+color = Color(1, 0.85, 0.4, 1)
+
+[node name="GoldLabel" type="Label" parent="Control/PlayerStatus/GoldSection"]
+layout_mode = 0
+offset_left = 22.0
+offset_right = 130.0
+offset_bottom = 18.0
+theme_override_font_sizes/font_size = 14
+text = "0"
+vertical_alignment = 1
+
+[node name="WaveInfo" type="Control" parent="Control"]
+anchors_preset = 0
+offset_left = 1060.0
+offset_top = 20.0
+offset_right = 1260.0
+offset_bottom = 80.0
+
+[node name="WaveLabel" type="Label" parent="Control/WaveInfo"]
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 28.0
+theme_override_font_sizes/font_size = 20
+text = "WAVE 1/5"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="EnemiesLabel" type="Label" parent="Control/WaveInfo"]
+layout_mode = 0
+offset_top = 32.0
+offset_right = 200.0
+offset_bottom = 52.0
+theme_override_font_sizes/font_size = 14
+text = "Enemies: 0"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="RelicSection" type="Control" parent="Control"]
+anchors_preset = 0
+offset_left = 1060.0
+offset_top = 58.0
+offset_right = 1260.0
+offset_bottom = 100.0
+
+[node name="RelicLabel" type="Label" parent="Control/RelicSection"]
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 14.0
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+text = "Relics:"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="RelicContainer" type="HBoxContainer" parent="Control/RelicSection"]
+layout_mode = 0
+offset_top = 16.0
+offset_right = 200.0
+offset_bottom = 42.0
+theme_override_constants/separation = 6
+alignment = 2
+
+[node name="RelicTooltip" type="PanelContainer" parent="Control/RelicSection"]
+visible = false
+layout_mode = 0
+offset_top = 44.0
+offset_right = 200.0
+offset_bottom = 140.0
+mouse_filter = 2
+
+[node name="VBox" type="VBoxContainer" parent="Control/RelicSection/RelicTooltip"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="RelicName" type="Label" parent="Control/RelicSection/RelicTooltip/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Relic Name"
+
+[node name="RelicDesc" type="Label" parent="Control/RelicSection/RelicTooltip/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_font_sizes/font_size = 11
+text = "Effect description"
+autowrap_mode = 2
+
+[node name="FlavorText" type="Label" parent="Control/RelicSection/RelicTooltip/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 10
+text = "Flavor text..."
+autowrap_mode = 2
+
+[node name="SwordSkillContainer" type="Control" parent="Control"]
+anchors_preset = 0
+offset_left = 20.0
+offset_top = 640.0
+offset_right = 90.0
+offset_bottom = 710.0
+
+[node name="SwordSkill" type="Control" parent="Control/SwordSkillContainer"]
+anchors_preset = 0
+offset_right = 64.0
+offset_bottom = 64.0
+
+[node name="Border" type="ColorRect" parent="Control/SwordSkillContainer/SwordSkill"]
+layout_mode = 0
+offset_left = -3.0
+offset_top = -3.0
+offset_right = 67.0
+offset_bottom = 67.0
+color = Color(0.7, 0.6, 0.3, 1)
+
+[node name="Background" type="ColorRect" parent="Control/SwordSkillContainer/SwordSkill"]
+layout_mode = 0
+offset_right = 64.0
+offset_bottom = 64.0
+color = Color(0.15, 0.12, 0.08, 1)
+
+[node name="Cooldown" type="ColorRect" parent="Control/SwordSkillContainer/SwordSkill"]
+layout_mode = 0
+offset_right = 64.0
+offset_bottom = 64.0
+color = Color(0.1, 0.1, 0.1, 0.7)
+
+[node name="Icon" type="ColorRect" parent="Control/SwordSkillContainer/SwordSkill"]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 52.0
+offset_bottom = 52.0
+color = Color(0.85, 0.75, 0.5, 1)
+
+[node name="Keybind" type="Label" parent="Control/SwordSkillContainer/SwordSkill"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 2.0
+offset_right = 24.0
+offset_bottom = 20.0
+theme_override_font_sizes/font_size = 12
+text = "Q"
+
+[node name="StaffSkillContainer" type="Control" parent="Control"]
+anchors_preset = 0
+offset_left = 1190.0
+offset_top = 640.0
+offset_right = 1260.0
+offset_bottom = 710.0
+
+[node name="StaffSkill" type="Control" parent="Control/StaffSkillContainer"]
+anchors_preset = 0
+offset_right = 64.0
+offset_bottom = 64.0
+
+[node name="Border" type="ColorRect" parent="Control/StaffSkillContainer/StaffSkill"]
+layout_mode = 0
+offset_left = -3.0
+offset_top = -3.0
+offset_right = 67.0
+offset_bottom = 67.0
+color = Color(0.5, 0.3, 0.7, 1)
+
+[node name="Background" type="ColorRect" parent="Control/StaffSkillContainer/StaffSkill"]
+layout_mode = 0
+offset_right = 64.0
+offset_bottom = 64.0
+color = Color(0.1, 0.08, 0.15, 1)
+
+[node name="Cooldown" type="ColorRect" parent="Control/StaffSkillContainer/StaffSkill"]
+layout_mode = 0
+offset_right = 64.0
+offset_bottom = 64.0
+color = Color(0.1, 0.1, 0.1, 0.7)
+
+[node name="Icon" type="ColorRect" parent="Control/StaffSkillContainer/StaffSkill"]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 52.0
+offset_bottom = 52.0
+color = Color(0.7, 0.5, 0.9, 1)
+
+[node name="Keybind" type="Label" parent="Control/StaffSkillContainer/StaffSkill"]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 2.0
+offset_right = 24.0
+offset_bottom = 20.0
+theme_override_font_sizes/font_size = 12
+text = "E"
+
+[node name="StatsPanel" type="Control" parent="Control"]
+anchors_preset = 0
+offset_left = 1060.0
+offset_top = 480.0
+offset_right = 1260.0
+offset_bottom = 630.0
+
+[node name="StatsTitle" type="Label" parent="Control/StatsPanel"]
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 20.0
+theme_override_font_sizes/font_size = 12
+text = "STATS"
+horizontal_alignment = 2
+
+[node name="Divider" type="ColorRect" parent="Control/StatsPanel"]
+layout_mode = 0
+offset_left = 100.0
+offset_top = 22.0
+offset_right = 200.0
+offset_bottom = 23.0
+color = Color(0.5, 0.5, 0.6, 0.5)
+
+[node name="MovementSpeed" type="Control" parent="Control/StatsPanel"]
+anchors_preset = 0
+offset_top = 28.0
+offset_right = 200.0
+offset_bottom = 48.0
+
+[node name="Icon" type="ColorRect" parent="Control/StatsPanel/MovementSpeed"]
+layout_mode = 0
+offset_left = 100.0
+offset_right = 112.0
+offset_bottom = 12.0
+color = Color(0.3, 0.8, 0.4, 1)
+
+[node name="Label" type="Label" parent="Control/StatsPanel/MovementSpeed"]
+layout_mode = 0
+offset_left = 118.0
+offset_right = 168.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 10
+text = "SPD"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Control/StatsPanel/MovementSpeed"]
+layout_mode = 0
+offset_left = 168.0
+offset_right = 200.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 10
+text = "450"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="AttackPower" type="Control" parent="Control/StatsPanel"]
+anchors_preset = 0
+offset_top = 48.0
+offset_right = 200.0
+offset_bottom = 68.0
+
+[node name="Icon" type="ColorRect" parent="Control/StatsPanel/AttackPower"]
+layout_mode = 0
+offset_left = 100.0
+offset_right = 112.0
+offset_bottom = 12.0
+color = Color(0.9, 0.4, 0.3, 1)
+
+[node name="Label" type="Label" parent="Control/StatsPanel/AttackPower"]
+layout_mode = 0
+offset_left = 118.0
+offset_right = 168.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 10
+text = "ATK"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Control/StatsPanel/AttackPower"]
+layout_mode = 0
+offset_left = 168.0
+offset_right = 200.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 10
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="MagicPower" type="Control" parent="Control/StatsPanel"]
+anchors_preset = 0
+offset_top = 68.0
+offset_right = 200.0
+offset_bottom = 88.0
+
+[node name="Icon" type="ColorRect" parent="Control/StatsPanel/MagicPower"]
+layout_mode = 0
+offset_left = 100.0
+offset_right = 112.0
+offset_bottom = 12.0
+color = Color(0.5, 0.4, 0.9, 1)
+
+[node name="Label" type="Label" parent="Control/StatsPanel/MagicPower"]
+layout_mode = 0
+offset_left = 118.0
+offset_right = 168.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 10
+text = "MAG"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Control/StatsPanel/MagicPower"]
+layout_mode = 0
+offset_left = 168.0
+offset_right = 200.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 10
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="AttackSpeed" type="Control" parent="Control/StatsPanel"]
+anchors_preset = 0
+offset_top = 88.0
+offset_right = 200.0
+offset_bottom = 108.0
+
+[node name="Icon" type="ColorRect" parent="Control/StatsPanel/AttackSpeed"]
+layout_mode = 0
+offset_left = 100.0
+offset_right = 112.0
+offset_bottom = 12.0
+color = Color(0.9, 0.8, 0.3, 1)
+
+[node name="Label" type="Label" parent="Control/StatsPanel/AttackSpeed"]
+layout_mode = 0
+offset_left = 118.0
+offset_right = 168.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 10
+text = "ASPD"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Control/StatsPanel/AttackSpeed"]
+layout_mode = 0
+offset_left = 168.0
+offset_right = 200.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 10
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="CritChance" type="Control" parent="Control/StatsPanel"]
+anchors_preset = 0
+offset_top = 108.0
+offset_right = 200.0
+offset_bottom = 128.0
+
+[node name="Icon" type="ColorRect" parent="Control/StatsPanel/CritChance"]
+layout_mode = 0
+offset_left = 100.0
+offset_right = 112.0
+offset_bottom = 12.0
+color = Color(1, 0.5, 0.2, 1)
+
+[node name="Label" type="Label" parent="Control/StatsPanel/CritChance"]
+layout_mode = 0
+offset_left = 118.0
+offset_right = 168.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 10
+text = "CRIT"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Control/StatsPanel/CritChance"]
+layout_mode = 0
+offset_left = 168.0
+offset_right = 200.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 10
+text = "0%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Lifesteal" type="Control" parent="Control/StatsPanel"]
+anchors_preset = 0
+offset_top = 128.0
+offset_right = 200.0
+offset_bottom = 148.0
+
+[node name="Icon" type="ColorRect" parent="Control/StatsPanel/Lifesteal"]
+layout_mode = 0
+offset_left = 100.0
+offset_right = 112.0
+offset_bottom = 12.0
+color = Color(0.2, 0.9, 0.5, 1)
+
+[node name="Label" type="Label" parent="Control/StatsPanel/Lifesteal"]
+layout_mode = 0
+offset_left = 118.0
+offset_right = 168.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 10
+text = "STEAL"
+vertical_alignment = 1
+
+[node name="Value" type="Label" parent="Control/StatsPanel/Lifesteal"]
+layout_mode = 0
+offset_left = 168.0
+offset_right = 200.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 10
+text = "0"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="PlayerBars" type="Control" parent="Control"]
+visible = false
+anchors_preset = 0
+
+[node name="HealthBar" type="Control" parent="Control/PlayerBars"]
+anchors_preset = 0
+
+[node name="Background" type="ColorRect" parent="Control/PlayerBars/HealthBar"]
+layout_mode = 0
+
+[node name="Fill" type="ColorRect" parent="Control/PlayerBars/HealthBar"]
+layout_mode = 0
+
+[node name="Label" type="Label" parent="Control/PlayerBars/HealthBar"]
+layout_mode = 0
+
+[node name="WeaponInfo" type="Control" parent="Control"]
+visible = false
+anchors_preset = 0
+
+[node name="WeaponIcon" type="ColorRect" parent="Control/WeaponInfo"]
+layout_mode = 0
+
+[node name="GameInfo" type="Control" parent="Control"]
+visible = false
+anchors_preset = 0
+
+[node name="WaveLabel" type="Label" parent="Control/GameInfo"]
+layout_mode = 0
+
+[node name="EnemiesLabel" type="Label" parent="Control/GameInfo"]
+layout_mode = 0
+
+[node name="ScoreLabel" type="Label" parent="Control/GameInfo"]
+layout_mode = 0
+
+[node name="CrystalDisplay" type="Control" parent="Control"]
+visible = false
+anchors_preset = 0
+
+[node name="CrystalIcon" type="ColorRect" parent="Control/CrystalDisplay"]
+layout_mode = 0
+
+[node name="CrystalLabel" type="Label" parent="Control/CrystalDisplay"]
+layout_mode = 0
+
+[node name="Skills" type="Control" parent="Control"]
+visible = false
+anchors_preset = 0
+
+[node name="SwordSkill" type="Control" parent="Control/Skills"]
+anchors_preset = 0
+
+[node name="Cooldown" type="ColorRect" parent="Control/Skills/SwordSkill"]
+layout_mode = 0
+
+[node name="StaffSkill" type="Control" parent="Control/Skills"]
+anchors_preset = 0
+
+[node name="Cooldown" type="ColorRect" parent="Control/Skills/StaffSkill"]
+layout_mode = 0
