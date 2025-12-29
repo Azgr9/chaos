@@ -15,13 +15,13 @@ signal portal_destroyed  # Player attacked portal -> Bloodlust mode
 # ============================================
 # SETTINGS
 # ============================================
-@export var max_health: float = 50.0
+@export var hits_to_destroy: int = 2  # Always dies in exactly 2 hits
 @export var spawn_duration: float = 0.5  # Time to fully appear
 
 # ============================================
 # STATE
 # ============================================
-var current_health: float
+var current_hits: int = 0
 var is_active: bool = false
 var is_destroyed: bool = false
 
@@ -39,7 +39,7 @@ const PORTAL_CORE := Color(0.8, 0.9, 1.0, 1.0)  # Bright white-blue core
 const BLOODLUST_COLOR := Color(1.0, 0.2, 0.1, 0.9)  # Red when damaged
 
 func _ready():
-	current_health = max_health
+	current_hits = 0
 	add_to_group("portal")
 	# Add to enemies group so weapons can hit it
 	add_to_group("enemies")
@@ -185,24 +185,24 @@ func _enter_portal():
 	if DamageNumberManager:
 		DamageNumberManager.shake(0.3)
 
-func take_damage(amount: float, _from_position: Vector2 = Vector2.ZERO, _knockback: float = 0.0, _stun: float = 0.0, _attacker: Node2D = null, _damage_type: int = 0):
+func take_damage(_amount: float, _from_position: Vector2 = Vector2.ZERO, _knockback: float = 0.0, _stun: float = 0.0, _attacker: Node2D = null, _damage_type: int = 0):
 	if not is_active or is_destroyed:
 		return
 
-	current_health -= amount
+	current_hits += 1
 
-	# Update health bar
-	var health_percent = current_health / max_health
-	health_bar_fill.size.x = 80 * health_percent
+	# Update health bar based on hits
+	var health_percent = 1.0 - (float(current_hits) / float(hits_to_destroy))
+	health_bar_fill.size.x = 80 * max(health_percent, 0.0)
 
 	# Flash red on damage
 	_flash_damage()
 
-	# Spawn damage number
+	# Spawn damage number showing hits remaining
 	if DamageNumberManager:
-		DamageNumberManager.spawn(global_position, amount)
+		DamageNumberManager.spawn(global_position, hits_to_destroy - current_hits)
 
-	if current_health <= 0:
+	if current_hits >= hits_to_destroy:
 		_destroy_portal()
 
 func _flash_damage():

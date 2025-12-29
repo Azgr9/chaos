@@ -24,8 +24,9 @@ func _ready():
 	_animate()
 
 func setup(damage_amount: float, damage_type: DamageTypes.Type = DamageTypes.Type.PHYSICAL):
-	# Set the damage text
-	label.text = str(int(damage_amount))
+	# Set the damage text (minimum 1 for display)
+	var display_amount = maxi(ceili(damage_amount), 1)
+	label.text = str(display_amount)
 
 	# Get base color from damage type
 	var base_color = DamageTypes.COLORS.get(damage_type, Color.WHITE)
@@ -43,7 +44,7 @@ func setup(damage_amount: float, damage_type: DamageTypes.Type = DamageTypes.Typ
 
 	# For heals, show + prefix
 	if damage_type == DamageTypes.Type.HEAL:
-		label.text = "+" + str(int(damage_amount))
+		label.text = "+" + str(display_amount)
 
 	label.add_theme_color_override("font_color", base_color)
 

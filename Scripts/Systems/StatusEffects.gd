@@ -123,6 +123,7 @@ func _trigger_effect_tick(effect: StatusEffect):
 	match effect.type:
 		EffectType.BURN:
 			var burn_damage = BURN_DAMAGE_PER_STACK * effect.stacks
+			burn_damage = maxf(burn_damage, 1.0)  # Minimum 1 damage
 			_deal_effect_damage(burn_damage, EffectType.BURN)
 			effect_triggered.emit(EffectType.BURN, burn_damage)
 
