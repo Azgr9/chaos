@@ -142,12 +142,16 @@ func _play_spawn_animation():
 	_spawn_appear_particles()
 
 func _spawn_appear_particles():
+	var parent = get_parent()
+	if not parent:
+		return
+
 	for i in range(12):
 		var particle = ColorRect.new()
 		particle.size = Vector2(10, 10)
 		particle.color = PORTAL_COLOR
 		particle.pivot_offset = Vector2(5, 5)
-		get_parent().add_child(particle)
+		parent.add_child(particle)
 		particle.global_position = global_position
 
 		var angle = (TAU / 12) * i
@@ -251,13 +255,17 @@ func _destroy_portal():
 	)
 
 func _spawn_destruction_particles():
+	var parent = get_parent()
+	if not parent:
+		return
+
 	# Red/orange particles exploding outward
 	for i in range(16):
 		var particle = ColorRect.new()
 		particle.size = Vector2(15, 15)
 		particle.color = BLOODLUST_COLOR if randf() > 0.3 else Color(1.0, 0.5, 0.1)
 		particle.pivot_offset = Vector2(7.5, 7.5)
-		get_parent().add_child(particle)
+		parent.add_child(particle)
 		particle.global_position = global_position
 
 		var angle = (TAU / 16) * i + randf_range(-0.2, 0.2)

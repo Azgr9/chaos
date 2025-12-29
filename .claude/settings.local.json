@@ -11,7 +11,8 @@
       "Bash(dir \"C:\\Users\\alizg\\OneDrive\\Desktop\\chaos\\Scenes\\Player\"\")",
       "Bash(git commit -m \"$(cat <<''EOF''\nAdd crash/bug guards for null access and freed instances\n\n- WaveHUD: Use get_node_or_null for WaveManager/GameManager lookup\n- UpgradeMenu: Add null checks before accessing WeaponHolder/StaffHolder (8 functions)\n- Hazard: Add is_instance_valid check after await in show_warning\n- StatusEffectManager: Guard against duplicate signal connections and improve null handling in _process\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git commit -m \"$(cat <<''EOF''\nPerformance: Add frame-based enemy cache to Healer\n\nHealer was calling get_nodes_in_group(\"enemies\") twice per frame:\nonce in _find_most_damaged_ally() and once in _heal_nearby_enemies().\n\nNow uses a frame-based cache that refreshes only once per frame,\nreducing redundant scene tree queries.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

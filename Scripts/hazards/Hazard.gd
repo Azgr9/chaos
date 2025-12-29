@@ -208,6 +208,9 @@ func _fade_out() -> void:
 
 	# Fade out the entire hazard
 	var tween = create_tween()
+	if not tween:
+		queue_free()
+		return
 	tween.tween_property(self, "modulate:a", 0.0, fade_duration)
 	tween.tween_callback(_on_fade_complete)
 

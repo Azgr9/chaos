@@ -96,42 +96,44 @@ func _physics_process(delta):
 	super._physics_process(delta)
 
 func _update_movement(_delta):
-	if not player_reference:
-		return
-
 	if knockback_velocity.length() > 0:
 		return
 
-	# If dashing, use dash velocity but stop before reaching player
+	# Get best target (player or nearest minion)
+	var target = get_best_target()
+	if not target:
+		return
+
+	# If dashing, use dash velocity but stop before reaching target
 	if is_dashing:
-		var dist_to_player = global_position.distance_to(player_reference.global_position)
-		if dist_to_player <= DASH_STOP_DISTANCE:
+		var dist_to_target = global_position.distance_to(target.global_position)
+		if dist_to_target <= DASH_STOP_DISTANCE:
 			# Close enough, end dash early
 			_end_dash()
 		else:
 			velocity = dash_direction * DASH_SPEED
 		return
 
-	var distance_to_player = global_position.distance_to(player_reference.global_position)
-	var direction_to_player = (player_reference.global_position - global_position).normalized()
+	var distance_to_target = global_position.distance_to(target.global_position)
+	var direction_to_target = (target.global_position - global_position).normalized()
 
 	# Update facing direction based on movement
-	_update_direction(direction_to_player)
+	_update_direction(direction_to_target)
 
 	# Try to dash if within sweet spot range and can dash
-	if can_dash and distance_to_player >= DASH_MIN_RANGE and distance_to_player <= DASH_MAX_RANGE and not is_attacking_anim:
-		_start_dash(direction_to_player)
+	if can_dash and distance_to_target >= DASH_MIN_RANGE and distance_to_target <= DASH_MAX_RANGE and not is_attacking_anim:
+		_start_dash(direction_to_target)
 		return
 
-	# If close enough, stop and attack - otherwise move toward player
-	if distance_to_player <= ATTACK_RANGE:
+	# If close enough, stop and attack - otherwise move toward target
+	if distance_to_target <= ATTACK_RANGE:
 		# In attack range - stop moving
 		velocity = Vector2.ZERO
 		if not is_attacking_anim:
 			_play_directional_animation("idle")
 	else:
-		# Not in range - move toward player
-		velocity = direction_to_player * move_speed
+		# Not in range - move toward target
+		velocity = direction_to_target * move_speed
 		if not is_attacking_anim:
 			_play_directional_animation("move")
 

@@ -86,6 +86,8 @@ func _ready():
 
 	# Get player reference
 	await get_tree().process_frame
+	if not is_instance_valid(self):
+		return
 	player_reference = get_tree().get_first_node_in_group("player")
 
 	# Register with animation system
@@ -249,11 +251,13 @@ func _fire_projectiles(_direction: Vector2):
 			continue
 
 		var projectile = projectile_scene.instantiate()
+		if not projectile:
+			continue
 		get_tree().root.add_child(projectile)
 
 		# Calculate direction from projectile spawn point to mouse for accurate aiming
 		# This fixes the offset issue where projectiles would miss the mouse target
-		var mouse_pos = player_reference.get_global_mouse_position() if player_reference else get_global_mouse_position()
+		var mouse_pos = player_reference.get_global_mouse_position() if player_reference and is_instance_valid(player_reference) else get_global_mouse_position()
 		var aim_direction = (mouse_pos - projectile_spawn.global_position).normalized()
 
 		# Calculate spread
@@ -402,6 +406,10 @@ func _damage_enemies_in_beam(origin: Vector2, direction: Vector2, final_damage: 
 
 	for enemy in enemies:
 		if not is_instance_valid(enemy):
+			continue
+
+		# Skip converted minions (NecroStaff allies)
+		if enemy.is_in_group("converted_minion") or enemy.is_in_group("player_minions"):
 			continue
 
 		var to_enemy = enemy.global_position - origin

@@ -64,6 +64,7 @@ var is_dead: bool = false
 var knockback_velocity: Vector2 = Vector2.ZERO
 var hitstun_timer: float = 0.0
 var is_stunned: bool = false
+var last_attacker: Node2D = null  # Track who killed this enemy
 
 # Health bar nodes (auto-detected or set by subclass)
 var health_bar: Node2D = null
@@ -133,6 +134,38 @@ func _setup_enemy():
 func _update_movement(_delta):
 	# Override in child classes for specific movement patterns
 	pass
+
+# ============================================
+# TARGET SELECTION - Includes player minions
+# ============================================
+## Returns the best target (player or nearest minion)
+func get_best_target() -> Node2D:
+	var best_target: Node2D = null
+	var best_distance: float = INF
+
+	# Check player
+	if player_reference and is_instance_valid(player_reference):
+		best_target = player_reference
+		best_distance = global_position.distance_to(player_reference.global_position)
+
+	# Check player minions (NecroStaff converted enemies)
+	var minions = get_tree().get_nodes_in_group("player_minions")
+	for minion in minions:
+		if not is_instance_valid(minion):
+			continue
+		var dist = global_position.distance_to(minion.global_position)
+		if dist < best_distance:
+			best_distance = dist
+			best_target = minion
+
+	return best_target
+
+## Returns direction to best target
+func get_direction_to_target() -> Vector2:
+	var target = get_best_target()
+	if target:
+		return (target.global_position - global_position).normalized()
+	return Vector2.ZERO
 
 func _on_damage_taken():
 	# Base hit flash effect - called automatically, subclasses can override for additional effects
@@ -240,6 +273,8 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback
 
 	# Check for death first - don't apply hitstun to dead enemies
 	if current_health <= 0:
+		# Store who killed us
+		last_attacker = attacker
 		# Show health bar and damage number before death
 		show_health_bar()
 		_spawn_damage_number(final_damage, damage_type)
@@ -288,6 +323,10 @@ func _apply_status_from_damage_type(damage_type: DamageTypes.Type, attacker: Nod
 func die():
 	is_dead = true
 	enemy_died.emit(self)
+
+	# Notify CombatEventBus (for NecroStaff minion spawning, etc.)
+	if CombatEventBus:
+		CombatEventBus.emit_kill(last_attacker, self)
 
 	# Track kill in bestiary
 	if RunManager:
@@ -347,7 +386,11 @@ func _spawn_crystals():
 		var crystal = ChaosCrystal.instantiate()
 		var offset = Vector2(randf_range(-60, 60), randf_range(-60, 60))
 		crystal.global_position = global_position + offset
-		get_tree().current_scene.call_deferred("add_child", crystal)
+		var scene = get_tree().current_scene
+		if scene:
+			scene.call_deferred("add_child", crystal)
+		else:
+			crystal.queue_free()
 
 func _add_screen_shake(trauma_amount: float):
 	DamageNumberManager.shake(trauma_amount)

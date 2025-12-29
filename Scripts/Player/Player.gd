@@ -62,6 +62,9 @@ var _iframes_flash_tween: Tween = null
 # Fire immunity (for Inferno Staff ability)
 var is_fire_immune: bool = false
 
+# Movement lock (for spinning skills like Scythe's Death Spiral)
+var is_movement_locked: bool = false
+
 # Debug mode (DEPRECATED - now handled by DebugMenu)
 
 # Phoenix Feather revive tracking
@@ -88,7 +91,13 @@ func check_is_dead() -> bool:
 
 ## Returns true if player is busy with an action (attacking or dashing)
 func is_busy() -> bool:
-	return is_attacking or is_dashing
+	return is_attacking or is_dashing or is_movement_locked
+
+## Lock/unlock movement (for skills like Scythe's Death Spiral)
+func set_movement_locked(locked: bool) -> void:
+	is_movement_locked = locked
+	if locked:
+		velocity = Vector2.ZERO
 
 ## Returns current attack state as string for debugging/UI
 func get_attack_state() -> String:
@@ -145,7 +154,7 @@ func _physics_process(delta):
 
 	if is_dashing:
 		_handle_dash(delta)
-	elif not is_attacking:  # Don't move while attacking
+	elif not is_attacking and not is_movement_locked:  # Don't move while attacking or locked
 		move_player_pixel_perfect(delta)
 
 	update_facing_direction()
@@ -154,8 +163,8 @@ func _physics_process(delta):
 func handle_input():
 	# Movement input
 	input_vector = Vector2.ZERO
-	
-	if not is_attacking:  # Can't change movement during attack
+
+	if not is_attacking and not is_movement_locked:  # Can't change movement during attack or locked
 		input_vector.x = Input.get_axis("move_left", "move_right")
 		input_vector.y = Input.get_axis("move_up", "move_down")
 		
@@ -425,7 +434,9 @@ func _input(event):
 				_cycle_staff(1)
 
 func _cycle_weapon(direction: int):
-	if weapon_inventory.size() <= 1:
+	if weapon_inventory.size() == 0:
+		return
+	if weapon_inventory.size() == 1:
 		return
 
 	var new_index = (current_weapon_index + direction) % weapon_inventory.size()
@@ -434,7 +445,9 @@ func _cycle_weapon(direction: int):
 	switch_to_weapon(new_index)
 
 func _cycle_staff(direction: int):
-	if staff_inventory.size() <= 1:
+	if staff_inventory.size() == 0:
+		return
+	if staff_inventory.size() == 1:
 		return
 
 	var new_index = (current_staff_index + direction) % staff_inventory.size()
@@ -541,7 +554,7 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO) -> bool:
 	_start_iframes()
 
 	# Screen shake on player damage - scale with percentage of health lost
-	if camera and camera.has_method("add_trauma"):
+	if camera and camera.has_method("add_trauma") and stats.max_health > 0:
 		# Calculate damage as percentage of max health
 		var damage_percent = amount / stats.max_health
 		# Use square root curve for better low-damage visibility

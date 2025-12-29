@@ -118,6 +118,11 @@ signal skill_ready_changed(ready: bool)
 # LIFECYCLE
 # ============================================
 func _ready():
+	# Validate required nodes exist
+	if not hit_box or not hit_box_collision or not attack_timer:
+		push_error("MeleeWeapon: Missing required nodes (HitBox, CollisionShape2D, or AttackTimer)")
+		return
+
 	hit_box.area_entered.connect(_on_hit_box_area_entered)
 	hit_box.body_entered.connect(_on_hit_box_body_entered)
 	attack_timer.timeout.connect(_on_attack_cooldown_finished)
@@ -134,6 +139,8 @@ func _ready():
 
 	# Get player reference
 	await get_tree().process_frame
+	if not is_instance_valid(self):
+		return
 	player_reference = get_tree().get_first_node_in_group("player")
 
 	# Register with animation system
@@ -166,15 +173,18 @@ func _weapon_process(_delta):
 
 func _setup_visuals():
 	# Override for custom visual setup
-	sprite.color = weapon_color
+	if sprite:
+		sprite.color = weapon_color
 	visible = true
 	modulate.a = 1.0
 
 func _setup_idle_state():
 	# Override for custom idle positioning
-	pivot.position = Vector2.ZERO
-	pivot.rotation = deg_to_rad(idle_rotation)
-	sprite.scale = idle_scale
+	if pivot:
+		pivot.position = Vector2.ZERO
+		pivot.rotation = deg_to_rad(idle_rotation)
+	if sprite:
+		sprite.scale = idle_scale
 
 func _get_attack_pattern(attack_index: int) -> String:
 	# Override to define combo attack sequence
@@ -335,7 +345,7 @@ func attack(direction: Vector2, player_damage_multiplier: float = 1.0) -> bool:
 	modified_cooldown = maxf(modified_cooldown, min_cooldown)
 
 	# Check for dash attack
-	var is_dash_attack = player_reference and player_reference.is_dashing
+	var is_dash_attack = player_reference and is_instance_valid(player_reference) and player_reference.is_dashing
 
 	# Get attack pattern and perform
 	var attack_index = get_attack_in_combo()
@@ -592,6 +602,10 @@ func _process_hit(target: Node2D):
 	if not target.has_method("take_damage"):
 		return
 
+	# Don't hit converted minions (NecroStaff allies)
+	if target.is_in_group("converted_minion") or target.is_in_group("player_minions"):
+		return
+
 	hits_this_swing.append(target)
 	var final_damage = _calculate_damage(target)
 
@@ -601,7 +615,7 @@ func _process_hit(target: Node2D):
 	# Calculate knockback
 	var is_finisher = is_combo_finisher()
 	var knockback_power = finisher_knockback if is_finisher else base_knockback
-	var knockback_origin = player_reference.global_position if player_reference else global_position
+	var knockback_origin = player_reference.global_position if player_reference and is_instance_valid(player_reference) else global_position
 
 	# Apply damage
 	target.take_damage(final_damage, knockback_origin, knockback_power, knockback_stun, player_reference, damage_type)
@@ -609,7 +623,7 @@ func _process_hit(target: Node2D):
 
 	# Emit combat events via CombatEventBus
 	var is_crit = _was_last_hit_crit
-	var is_dash = player_reference and player_reference.is_dashing
+	var is_dash = player_reference and is_instance_valid(player_reference) and player_reference.is_dashing
 	if CombatEventBus:
 		CombatEventBus.emit_damage(player_reference, target, final_damage, 0, is_crit, is_finisher, is_dash, knockback_power, self)
 
@@ -635,7 +649,7 @@ func _get_hit_stop_type(is_finisher: bool, is_crit: bool) -> String:
 		return "critical"
 	elif is_finisher:
 		return "finisher"
-	elif player_reference and player_reference.is_dashing:
+	elif player_reference and is_instance_valid(player_reference) and player_reference.is_dashing:
 		return "heavy"
 	else:
 		return "medium"
@@ -651,11 +665,11 @@ func _calculate_damage(target: Node2D) -> float:
 		final_damage *= combo_finisher_multiplier
 
 	# Dash attack bonus
-	if player_reference and player_reference.is_dashing:
+	if player_reference and is_instance_valid(player_reference) and player_reference.is_dashing:
 		final_damage *= DEFAULT_DASH_ATTACK_MULTIPLIER
 
 	# Critical hit
-	if player_reference and player_reference.stats:
+	if player_reference and is_instance_valid(player_reference) and player_reference.stats:
 		var crit_chance = player_reference.stats.crit_chance
 		var crit_mult = player_reference.stats.crit_damage if player_reference.stats.crit_damage > 0 else DEFAULT_CRIT_MULTIPLIER
 
@@ -691,11 +705,15 @@ func _create_impact_particles(hit_position: Vector2, is_finisher: bool, is_crit:
 	TweenHelper.create_particle_burst(hit_position, particle_count, particle_color, Vector2(size, size), distance, 0.3)
 
 func _spawn_crit_text(spawn_position: Vector2):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
 	var label = Label.new()
 	label.text = "CRIT!"
 	label.add_theme_font_size_override("font_size", 24)
 	label.modulate = Color.RED
-	get_tree().current_scene.add_child(label)
+	scene.add_child(label)
 	label.global_position = spawn_position + Vector2(-80, -120)
 
 	var tween = TweenHelper.new_tween()
@@ -729,6 +747,10 @@ func _create_swing_trail(is_finisher: bool, is_dash: bool):
 		if not is_instance_valid(self):
 			return
 
+		var scene = get_tree().current_scene
+		if not scene:
+			return
+
 		var trail = ColorRect.new()
 		trail.size = sprite.size
 
@@ -739,7 +761,7 @@ func _create_swing_trail(is_finisher: bool, is_dash: bool):
 		else:
 			trail.color = Color(0.8, 0.8, 1.0, 0.4)
 
-		get_tree().current_scene.add_child(trail)
+		scene.add_child(trail)
 		trail.global_position = sprite.global_position
 		trail.rotation = pivot.rotation
 		trail.scale = sprite.scale

@@ -74,25 +74,27 @@ func _physics_process(delta):
 	super._physics_process(delta)
 
 func _update_movement(_delta):
-	if not player_reference:
-		return
-
 	if knockback_velocity.length() > 0:
 		return
 
-	var direction_to_player = (player_reference.global_position - global_position).normalized()
+	# Get best target (player or nearest minion)
+	var target = get_best_target()
+	if not target:
+		return
+
+	var direction_to_target = (target.global_position - global_position).normalized()
 
 	# Update facing direction based on movement
-	_update_direction(direction_to_player)
+	_update_direction(direction_to_target)
 
-	# Hop toward player
+	# Hop toward target
 	if hop_cooldown <= 0:
 		_perform_hop_visual()
 		hop_cooldown = hop_interval
 
 	# Move during hop
 	if is_hopping:
-		velocity = direction_to_player * move_speed * 1.5
+		velocity = direction_to_target * move_speed * 1.5
 	else:
 		velocity = Vector2.ZERO
 

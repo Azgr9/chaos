@@ -84,6 +84,10 @@ func _on_area_entered(area: Area2D):
 	# Check if the area itself has take_damage (like Portal)
 	var target = area if area.has_method("take_damage") else area.get_parent()
 
+	# Skip converted minions (NecroStaff allies)
+	if target.is_in_group("converted_minion") or target.is_in_group("player_minions"):
+		return
+
 	# Check if it's a valid target with take_damage
 	if not target in hit_enemies and target.has_method("take_damage"):
 		hit_enemies.append(target)

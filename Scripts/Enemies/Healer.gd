@@ -74,7 +74,9 @@ func _physics_process(delta):
 	super._physics_process(delta)
 
 func _update_movement(_delta):
-	if not player_reference:
+	# Get best target (player or nearest minion)
+	var target = get_best_target()
+	if not target:
 		return
 
 	# Priority 1: Find damaged allies that need healing
@@ -96,23 +98,23 @@ func _update_movement(_delta):
 			velocity = direction_to_ally * move_speed * 0.2
 		return
 
-	# Priority 2: No damaged allies, stay away from player
-	var direction_to_player = (player_reference.global_position - global_position).normalized()
-	var distance_to_player = global_position.distance_to(player_reference.global_position)
+	# Priority 2: No damaged allies, stay away from target (player or minion)
+	var direction_to_target = (target.global_position - global_position).normalized()
+	var distance_to_target = global_position.distance_to(target.global_position)
 
-	# Face player
-	visuals_pivot.scale.x = -1 if direction_to_player.x < 0 else 1
+	# Face target
+	visuals_pivot.scale.x = -1 if direction_to_target.x < 0 else 1
 
-	# Try to stay at preferred distance from player
-	if distance_to_player < preferred_distance * 0.7:
+	# Try to stay at preferred distance from target
+	if distance_to_target < preferred_distance * 0.7:
 		# Too close, retreat
-		velocity = -direction_to_player * move_speed
-	elif distance_to_player > preferred_distance * 1.3:
+		velocity = -direction_to_target * move_speed
+	elif distance_to_target > preferred_distance * 1.3:
 		# Too far, approach slowly
-		velocity = direction_to_player * move_speed * 0.5
+		velocity = direction_to_target * move_speed * 0.5
 	else:
 		# Good distance, strafe
-		var perpendicular = Vector2(-direction_to_player.y, direction_to_player.x)
+		var perpendicular = Vector2(-direction_to_target.y, direction_to_target.x)
 		var strafe = sin(time_alive * 1.5) * 0.6
 		velocity = perpendicular * move_speed * strafe
 

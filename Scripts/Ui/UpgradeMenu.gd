@@ -20,6 +20,9 @@ extends CanvasLayer
 @onready var inferno_staff_button: Button = $Control/InfernoStaffButton
 @onready var frost_staff_button: Button = $Control/FrostStaffButton
 @onready var void_staff_button: Button = $Control/VoidStaffButton
+@onready var necro_staff_button: Button = $Control/NecroStaffButton
+@onready var scythe_shop_button: Button = $Control/ScytheShopButton
+@onready var spear_shop_button: Button = $Control/SpearShopButton
 @onready var skip_button: Button = $Control/SkipButton
 @onready var healer_container: VBoxContainer = $Control/HealerContainer
 
@@ -39,6 +42,10 @@ const RAPIER_SCENE = preload("res://Scenes/Weapons/Rapier.tscn")
 const RAPIER_PRICE = 12
 const WARHAMMER_SCENE = preload("res://Scenes/Weapons/Warhammer.tscn")
 const WARHAMMER_PRICE = 18
+const SCYTHE_SCENE = preload("res://Scenes/Weapons/Scythe.tscn")
+const SCYTHE_PRICE = 20
+const SPEAR_SCENE = preload("res://Scenes/Weapons/Spear.tscn")
+const SPEAR_PRICE = 16
 
 # STAFFS
 const LIGHTNING_STAFF_SCENE = preload("res://Scenes/Weapons/LightningStaff.tscn")
@@ -49,6 +56,8 @@ const FROST_STAFF_SCENE = preload("res://Scenes/Weapons/FrostStaff.tscn")
 const FROST_STAFF_PRICE = 11
 const VOID_STAFF_SCENE = preload("res://Scenes/Weapons/VoidStaff.tscn")
 const VOID_STAFF_PRICE = 16
+const NECRO_STAFF_SCENE = preload("res://Scenes/Weapons/NecroStaff.tscn")
+const NECRO_STAFF_PRICE = 22
 
 # Card references
 var card_panels: Array = []
@@ -63,6 +72,9 @@ var staff_purchased: bool = false
 var inferno_staff_purchased: bool = false
 var frost_staff_purchased: bool = false
 var void_staff_purchased: bool = false
+var necro_staff_purchased: bool = false
+var scythe_purchased: bool = false
+var spear_purchased: bool = false
 
 # Signals
 signal upgrade_selected(upgrade: Dictionary)
@@ -112,6 +124,14 @@ func _ready():
 		frost_staff_button.pressed.connect(_on_frost_staff_pressed)
 	if void_staff_button:
 		void_staff_button.pressed.connect(_on_void_staff_pressed)
+	if necro_staff_button:
+		necro_staff_button.pressed.connect(_on_necro_staff_pressed)
+
+	# Connect new melee weapon shop buttons
+	if scythe_shop_button:
+		scythe_shop_button.pressed.connect(_on_scythe_shop_pressed)
+	if spear_shop_button:
+		spear_shop_button.pressed.connect(_on_spear_shop_pressed)
 
 	# Setup healer section
 	_setup_healer_section()
@@ -127,10 +147,13 @@ func show_upgrades(player: Node2D):
 	_update_axe_shop_button()
 	_update_rapier_shop_button()
 	_update_warhammer_shop_button()
+	_update_scythe_shop_button()
+	_update_spear_shop_button()
 	_update_staff_shop_button()
 	_update_inferno_staff_button()
 	_update_frost_staff_button()
 	_update_void_staff_button()
+	_update_necro_staff_button()
 
 	# Update healer section
 	_update_healer_section()
@@ -1003,3 +1026,170 @@ func _show_heal_effect(heal_amount: float):
 func reset_healer_for_new_wave():
 	# Called when entering Quarters - reset free heal availability
 	free_heal_used = false
+
+# ============================================
+# NEW WEAPONS - SCYTHE
+# ============================================
+func _on_scythe_shop_pressed():
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	if game_manager.get_gold() >= SCYTHE_PRICE:
+		if game_manager.spend_gold(SCYTHE_PRICE):
+			_swap_weapon_to_scythe()
+			_update_scythe_shop_button()
+
+func _update_scythe_shop_button():
+	if not scythe_shop_button:
+		return
+
+	if scythe_purchased:
+		scythe_shop_button.visible = false
+		return
+
+	scythe_shop_button.visible = true
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	var current_gold = game_manager.get_gold()
+	if current_gold >= SCYTHE_PRICE:
+		scythe_shop_button.disabled = false
+		scythe_shop_button.text = "Scythe (%d Gold)" % SCYTHE_PRICE
+	else:
+		scythe_shop_button.disabled = true
+		scythe_shop_button.text = "Scythe - Need %d" % SCYTHE_PRICE
+
+func _swap_weapon_to_scythe():
+	if not player_reference:
+		return
+
+	var weapon_holder = player_reference.get_node_or_null("WeaponPivot/WeaponHolder")
+	if not weapon_holder:
+		push_warning("UpgradeMenu: WeaponHolder not found on player")
+		return
+
+	scythe_purchased = true
+
+	var new_weapon = SCYTHE_SCENE.instantiate()
+	weapon_holder.add_child(new_weapon)
+	new_weapon.position = Vector2.ZERO
+
+	player_reference.weapon_inventory.append(new_weapon)
+
+	if new_weapon.has_signal("attack_finished"):
+		new_weapon.attack_finished.connect(player_reference._on_attack_finished)
+
+	new_weapon.visible = false
+	player_reference.switch_to_weapon(player_reference.weapon_inventory.size() - 1)
+
+# ============================================
+# NEW WEAPONS - SPEAR
+# ============================================
+func _on_spear_shop_pressed():
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	if game_manager.get_gold() >= SPEAR_PRICE:
+		if game_manager.spend_gold(SPEAR_PRICE):
+			_swap_weapon_to_spear()
+			_update_spear_shop_button()
+
+func _update_spear_shop_button():
+	if not spear_shop_button:
+		return
+
+	if spear_purchased:
+		spear_shop_button.visible = false
+		return
+
+	spear_shop_button.visible = true
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	var current_gold = game_manager.get_gold()
+	if current_gold >= SPEAR_PRICE:
+		spear_shop_button.disabled = false
+		spear_shop_button.text = "Spear (%d Gold)" % SPEAR_PRICE
+	else:
+		spear_shop_button.disabled = true
+		spear_shop_button.text = "Spear - Need %d" % SPEAR_PRICE
+
+func _swap_weapon_to_spear():
+	if not player_reference:
+		return
+
+	var weapon_holder = player_reference.get_node_or_null("WeaponPivot/WeaponHolder")
+	if not weapon_holder:
+		push_warning("UpgradeMenu: WeaponHolder not found on player")
+		return
+
+	spear_purchased = true
+
+	var new_weapon = SPEAR_SCENE.instantiate()
+	weapon_holder.add_child(new_weapon)
+	new_weapon.position = Vector2.ZERO
+
+	player_reference.weapon_inventory.append(new_weapon)
+
+	if new_weapon.has_signal("attack_finished"):
+		new_weapon.attack_finished.connect(player_reference._on_attack_finished)
+
+	new_weapon.visible = false
+	player_reference.switch_to_weapon(player_reference.weapon_inventory.size() - 1)
+
+# ============================================
+# NEW STAFFS - NECRO STAFF
+# ============================================
+func _on_necro_staff_pressed():
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	if game_manager.get_gold() >= NECRO_STAFF_PRICE:
+		if game_manager.spend_gold(NECRO_STAFF_PRICE):
+			_swap_weapon_to_necro_staff()
+			_update_necro_staff_button()
+
+func _update_necro_staff_button():
+	if not necro_staff_button:
+		return
+
+	if necro_staff_purchased:
+		necro_staff_button.visible = false
+		return
+
+	necro_staff_button.visible = true
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	var current_gold = game_manager.get_gold()
+	if current_gold >= NECRO_STAFF_PRICE:
+		necro_staff_button.disabled = false
+		necro_staff_button.text = "Necro Staff (%d Gold)" % NECRO_STAFF_PRICE
+	else:
+		necro_staff_button.disabled = true
+		necro_staff_button.text = "Necro Staff - Need %d" % NECRO_STAFF_PRICE
+
+func _swap_weapon_to_necro_staff():
+	if not player_reference:
+		return
+
+	var staff_holder = player_reference.get_node_or_null("StaffPivot/StaffHolder")
+	if not staff_holder:
+		push_warning("UpgradeMenu: StaffHolder not found on player")
+		return
+
+	necro_staff_purchased = true
+
+	var new_staff = NECRO_STAFF_SCENE.instantiate()
+	staff_holder.add_child(new_staff)
+	new_staff.position = Vector2.ZERO
+
+	player_reference.staff_inventory.append(new_staff)
+	new_staff.visible = false
+	player_reference.switch_to_staff(player_reference.staff_inventory.size() - 1)

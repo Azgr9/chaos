@@ -61,30 +61,39 @@ func _physics_process(delta):
 	super._physics_process(delta)
 
 func _update_movement(delta):
-	if not player_reference:
+	# Get best target (player or nearest minion)
+	var target = get_best_target()
+	if not target:
 		return
 
-	var distance_to_player = global_position.distance_to(player_reference.global_position)
-	var direction_to_player = (player_reference.global_position - global_position).normalized()
+	var distance_to_target = global_position.distance_to(target.global_position)
+	var direction_to_target = (target.global_position - global_position).normalized()
 
-	# Face player
-	visuals_pivot.scale.x = -1 if direction_to_player.x < 0 else 1
+	# Face target
+	visuals_pivot.scale.x = -1 if direction_to_target.x < 0 else 1
 
 	# Movement AI
-	if distance_to_player < retreat_range:
+	if distance_to_target < retreat_range:
 		# Too close - retreat
-		velocity = -direction_to_player * move_speed * RETREAT_SPEED_MULTIPLIER
-	elif distance_to_player > shoot_range:
+		velocity = -direction_to_target * move_speed * RETREAT_SPEED_MULTIPLIER
+	elif distance_to_target > shoot_range:
 		# Too far - approach
-		velocity = direction_to_player * move_speed
+		velocity = direction_to_target * move_speed
 	else:
 		# Good distance - stand and shoot
 		velocity = velocity.lerp(Vector2.ZERO, 5 * delta)
 		if can_shoot:
-			_shoot_arrow()
+			_shoot_arrow(target)
 
-func _shoot_arrow():
-	if is_dead or not player_reference or is_shooting:
+var _current_arrow_target: Node2D = null
+
+func _shoot_arrow(target: Node2D = null):
+	if is_dead or is_shooting:
+		return
+
+	# Store target for arrow spawn
+	_current_arrow_target = target if target else get_best_target()
+	if not _current_arrow_target:
 		return
 
 	is_shooting = true
@@ -113,14 +122,14 @@ func _shoot_arrow():
 	)
 
 func _spawn_arrow():
-	if is_dead or not arrow_scene or not player_reference:
+	if is_dead or not arrow_scene or not _current_arrow_target:
 		return
 
 	var arrow = arrow_scene.instantiate()
 	get_tree().current_scene.add_child(arrow)
 
 	# Target with spread for fairness
-	var target_pos = player_reference.global_position
+	var target_pos = _current_arrow_target.global_position
 	target_pos.x += randf_range(-ARROW_SPREAD, ARROW_SPREAD)
 	target_pos.y += randf_range(-ARROW_SPREAD, ARROW_SPREAD)
 
