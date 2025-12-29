@@ -21,7 +21,7 @@ enum SpikeState {
 # ============================================
 @export_group("Spike Settings")
 @export var trigger_delay: float = 1.0
-@export var active_duration: float = 0.5
+@export var spike_active_time: float = 0.5  # How long spikes stay up
 @export var retract_duration: float = 0.3
 @export var cooldown: float = 2.0
 @export var spike_damage: float = 25.0
@@ -48,6 +48,9 @@ func _setup_hazard() -> void:
 	activation_type = ActivationType.DELAYED
 	damage = spike_damage
 	is_instant_kill = false
+
+	# Disable base class lifetime system - spikes manage their own cycle
+	active_duration = 0.0
 
 	# Hide spikes initially
 	if spikes_sprite:
@@ -77,7 +80,7 @@ func _process(delta: float) -> void:
 				pop_spikes()
 
 		SpikeState.ACTIVE:
-			if state_timer >= active_duration:
+			if state_timer >= spike_active_time:
 				retract_spikes()
 
 		SpikeState.RETRACTING:
