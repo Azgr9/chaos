@@ -26,6 +26,11 @@ var hits_count: int = 0
 var hit_enemies: Array = []
 var shooter: Node2D = null  # Reference to who fired the projectile (for thorns)
 
+# Pool state
+var _is_pooled: bool = false
+var _pool_name: String = "projectile_basic"
+var _original_color: Color = Color.WHITE
+
 # Signals
 signal projectile_hit(target: Node2D, damage: float)
 
@@ -40,13 +45,56 @@ func _ready():
 	# Mask 24 = 8 (walls) + 16 (enemies) OR use 28 = 4 + 8 + 16 to include portal
 	collision_mask = 28  # 4 (portal) + 8 (walls) + 16 (enemies)
 
-	# Connect collision signals
-	area_entered.connect(_on_area_entered)
-	body_entered.connect(_on_body_entered)
-	lifetime_timer.timeout.connect(_on_lifetime_timeout)
+	# Connect collision signals (only if not already connected)
+	if not area_entered.is_connected(_on_area_entered):
+		area_entered.connect(_on_area_entered)
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
+	if not lifetime_timer.timeout.is_connected(_on_lifetime_timeout):
+		lifetime_timer.timeout.connect(_on_lifetime_timeout)
+
+	# Store original color for pooling reset
+	if sprite:
+		_original_color = sprite.color
 
 	# Visual setup
 	_create_spawn_effect()
+
+# ============================================
+# POOL INTERFACE
+# ============================================
+func on_pool_acquire():
+	"""Called when acquired from pool"""
+	_is_pooled = true
+	_reset_state()
+	visible = true
+	set_process(true)
+	set_physics_process(true)
+	collision.disabled = false
+
+func on_pool_release():
+	"""Called when returned to pool"""
+	_reset_state()
+	visible = false
+	set_process(false)
+	set_physics_process(false)
+	collision.disabled = true
+	lifetime_timer.stop()
+
+func _reset_state():
+	"""Reset all state for reuse"""
+	velocity = Vector2.ZERO
+	direction = Vector2.ZERO
+	damage_multiplier = 1.0
+	hits_count = 0
+	hit_enemies.clear()
+	shooter = null
+	damage_type = DamageTypes.Type.PHYSICAL
+	modulate = Color.WHITE
+	rotation = 0.0
+	if sprite:
+		sprite.scale = Vector2.ONE
+		sprite.color = _original_color
 
 func initialize(start_position: Vector2, dir: Vector2, magic_damage_multiplier: float = 1.0, kb_power: float = 400.0, stun_dur: float = 0.1, attacker: Node2D = null, dmg_type: DamageTypes.Type = DamageTypes.Type.PHYSICAL):
 	global_position = start_position
@@ -126,7 +174,16 @@ func _create_wall_hit_effect():
 	tween.tween_property(sprite, "scale", Vector2.ZERO, 0.1)
 
 func _destroy_projectile():
-	# Cleanup effect
-	var tween = create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, 0.2)
-	tween.tween_callback(queue_free)
+	# If pooled, return to pool instead of destroying
+	if _is_pooled and ObjectPool and ObjectPool.has_pool(_pool_name):
+		# Quick fade out then return to pool
+		var tween = create_tween()
+		tween.tween_property(self, "modulate:a", 0.0, 0.1)
+		tween.tween_callback(func():
+			ObjectPool.release(_pool_name, self)
+		)
+	else:
+		# Cleanup effect for non-pooled projectiles
+		var tween = create_tween()
+		tween.tween_property(self, "modulate:a", 0.0, 0.2)
+		tween.tween_callback(queue_free)

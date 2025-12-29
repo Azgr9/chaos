@@ -247,16 +247,7 @@ func attack(direction: Vector2, magic_damage_multiplier: float = 1.0) -> bool:
 
 func _fire_projectiles(_direction: Vector2):
 	for i in range(multi_shot):
-		if not projectile_scene:
-			continue
-
-		var projectile = projectile_scene.instantiate()
-		if not projectile:
-			continue
-		get_tree().root.add_child(projectile)
-
 		# Calculate direction from projectile spawn point to mouse for accurate aiming
-		# This fixes the offset issue where projectiles would miss the mouse target
 		var mouse_pos = player_reference.get_global_mouse_position() if player_reference and is_instance_valid(player_reference) else get_global_mouse_position()
 		var aim_direction = (mouse_pos - projectile_spawn.global_position).normalized()
 
@@ -264,21 +255,57 @@ func _fire_projectiles(_direction: Vector2):
 		var spread_angle = _calculate_spread_angle(i)
 		var final_direction = aim_direction.rotated(spread_angle)
 
-		# Initialize projectile (pass player for thorns reflection)
-		projectile.initialize(
-			projectile_spawn.global_position,
-			final_direction,
-			damage_multiplier,
-			400.0,  # knockback_power
-			0.1,    # hitstun_duration
-			player_reference,  # attacker for thorns
-			damage_type  # elemental damage type
-		)
+		var projectile: Node2D = null
+
+		# Try to use ProjectilePool if available
+		if ProjectilePool:
+			var pool_name = _get_projectile_pool_name()
+			projectile = ProjectilePool.spawn(
+				pool_name,
+				projectile_spawn.global_position,
+				final_direction,
+				damage_multiplier,
+				400.0,  # knockback_power
+				0.1,    # hitstun_duration
+				player_reference,
+				damage_type
+			)
+
+		# Fallback to direct instantiation
+		if not projectile and projectile_scene:
+			projectile = projectile_scene.instantiate()
+			if projectile:
+				get_tree().root.add_child(projectile)
+				projectile.initialize(
+					projectile_spawn.global_position,
+					final_direction,
+					damage_multiplier,
+					400.0,
+					0.1,
+					player_reference,
+					damage_type
+				)
+
+		if not projectile:
+			continue
 
 		# Apply custom projectile visuals
 		_customize_projectile(projectile)
 
 		projectile_fired.emit(projectile)
+
+## Override in subclasses to specify which pool to use
+func _get_projectile_pool_name() -> String:
+	# Map damage type to pool name
+	match damage_type:
+		DamageTypes.Type.FIRE:
+			return "projectile_fire"
+		DamageTypes.Type.ICE:
+			return "projectile_ice"
+		DamageTypes.Type.ELECTRIC:
+			return "projectile_lightning"
+		_:
+			return "projectile_basic"
 
 func _customize_projectile(projectile: Node2D):
 	# Override in subclasses for unique projectile visuals

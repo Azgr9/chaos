@@ -368,7 +368,14 @@ func _add_flame_trail(projectile: Node2D):
 
 		# Check if staff is still valid using weakref
 		var staff = staff_ref.get_ref()
-		if not staff:
+		if not staff or not is_instance_valid(staff):
+			timer.stop()
+			timer.queue_free()
+			return
+
+		# Ensure staff is in tree
+		var tree = staff.get_tree()
+		if not tree or not tree.current_scene:
 			timer.stop()
 			timer.queue_free()
 			return
@@ -385,7 +392,7 @@ func _add_flame_trail(projectile: Node2D):
 		else:
 			flame.color = FIRE_OUTER
 		flame.pivot_offset = flame.size / 2
-		staff.get_tree().current_scene.add_child(flame)
+		tree.current_scene.add_child(flame)
 		flame.global_position = projectile.global_position + Vector2(randf_range(-6, 6), randf_range(-6, 6))
 
 		# Flames rise and fade

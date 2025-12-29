@@ -23,6 +23,11 @@ extends Control
 @onready var tooltip_desc: Label = $RelicSection/RelicTooltip/VBox/RelicDesc
 @onready var tooltip_flavor: Label = $RelicSection/RelicTooltip/VBox/FlavorText
 
+# Synergy Display (left side, below health)
+@onready var synergy_section: Control = $SynergySection
+@onready var synergy_label: Label = $SynergySection/SynergyLabel
+@onready var synergy_container: VBoxContainer = $SynergySection/SynergyContainer
+
 # Wave Info (new paths)
 @onready var wave_label: Label = $WaveInfo/WaveLabel
 @onready var enemies_label: Label = $WaveInfo/EnemiesLabel
@@ -131,6 +136,12 @@ func _connect_signals():
 	if RunManager:
 		RunManager.relic_collected.connect(_on_relic_collected)
 
+	# SynergyManager signals
+	if SynergyManager:
+		SynergyManager.synergy_activated.connect(_on_synergy_activated)
+		SynergyManager.synergy_deactivated.connect(_on_synergy_deactivated)
+		SynergyManager.synergies_changed.connect(_on_synergies_changed)
+
 func _initialize_ui():
 	# Set initial values
 	wave_label.text = "WAVE 0/5"
@@ -150,6 +161,9 @@ func _initialize_ui():
 
 	# Load existing relics from RunManager
 	_refresh_relic_display()
+
+	# Initialize synergy display
+	_refresh_synergy_display()
 
 	# Create skill fill rects for bottom-to-top cooldown display
 	_setup_skill_fills()
@@ -631,3 +645,126 @@ func _animate_name_change(label: Label, color: Color):
 	tween.set_parallel(true)
 	tween.tween_property(label, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK)
 	tween.tween_property(label, "modulate", color, 0.3)
+
+# ============================================
+# SYNERGY DISPLAY
+# ============================================
+
+func _on_synergy_activated(synergy_id: String, description: String):
+	_refresh_synergy_display()
+	# Show notification
+	_show_synergy_notification(synergy_id, description, true)
+
+func _on_synergy_deactivated(_synergy_id: String):
+	_refresh_synergy_display()
+
+func _on_synergies_changed():
+	_refresh_synergy_display()
+
+func _refresh_synergy_display():
+	if not synergy_container or not SynergyManager:
+		if synergy_section:
+			synergy_section.visible = false
+		return
+
+	# Clear existing synergy labels
+	for child in synergy_container.get_children():
+		child.queue_free()
+
+	# Get active synergies
+	var synergies = SynergyManager.get_all_active_synergy_info()
+
+	# Hide section if no synergies
+	if synergies.size() == 0:
+		synergy_section.visible = false
+		return
+
+	synergy_section.visible = true
+	synergy_label.text = "Synergies (%d):" % synergies.size()
+
+	# Add synergy entries
+	for synergy in synergies:
+		var entry = _create_synergy_entry(synergy)
+		synergy_container.add_child(entry)
+
+func _create_synergy_entry(synergy: Dictionary) -> Control:
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 4)
+
+	# Color indicator
+	var color_rect = ColorRect.new()
+	color_rect.custom_minimum_size = Vector2(8, 8)
+	color_rect.size = Vector2(8, 8)
+	var synergy_color = synergy.get("icon_color", Color.WHITE)
+	color_rect.color = synergy_color
+	hbox.add_child(color_rect)
+
+	# Name label
+	var name_label = Label.new()
+	name_label.text = synergy.get("name", "Unknown")
+	name_label.add_theme_font_size_override("font_size", 11)
+	name_label.add_theme_color_override("font_color", synergy_color.lightened(0.2))
+	name_label.mouse_filter = Control.MOUSE_FILTER_STOP
+
+	# Store synergy data for tooltip
+	name_label.set_meta("synergy", synergy)
+	name_label.mouse_entered.connect(_on_synergy_hover.bind(name_label))
+	name_label.mouse_exited.connect(_on_synergy_unhover)
+
+	hbox.add_child(name_label)
+
+	return hbox
+
+func _on_synergy_hover(label: Label):
+	var synergy = label.get_meta("synergy")
+	if not synergy or not relic_tooltip:
+		return
+
+	# Reuse relic tooltip for synergy info
+	var synergy_color = synergy.get("icon_color", Color.WHITE)
+	tooltip_name.text = synergy.get("name", "Unknown Synergy")
+	tooltip_name.modulate = synergy_color
+	tooltip_desc.text = synergy.get("description", "")
+	tooltip_flavor.text = ""  # Synergies don't have flavor text
+
+	# Position tooltip near synergy section
+	relic_tooltip.position = Vector2(0, 44)
+	relic_tooltip.visible = true
+
+	# Animate in
+	relic_tooltip.modulate = Color(1, 1, 1, 0)
+	var tween = create_tween()
+	tween.tween_property(relic_tooltip, "modulate", Color.WHITE, 0.15)
+
+func _on_synergy_unhover():
+	if relic_tooltip:
+		relic_tooltip.visible = false
+
+func _show_synergy_notification(synergy_id: String, description: String, is_activation: bool):
+	# Get synergy info for color
+	var synergy_info = SynergyManager.get_synergy_info(synergy_id) if SynergyManager else {}
+	var synergy_color = synergy_info.get("icon_color", Color.GOLD)
+	var synergy_name = synergy_info.get("name", synergy_id)
+
+	# Create floating notification
+	var notification = Label.new()
+	notification.text = ("+ " if is_activation else "- ") + synergy_name
+	notification.add_theme_font_size_override("font_size", 16)
+	notification.add_theme_color_override("font_color", synergy_color)
+	notification.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	notification.position = Vector2(size.x / 2 - 100, size.y / 2 - 50)
+	notification.size = Vector2(200, 30)
+	add_child(notification)
+
+	# Animate
+	notification.modulate = Color(1, 1, 1, 0)
+	notification.scale = Vector2(0.5, 0.5)
+
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(notification, "modulate:a", 1.0, 0.2)
+	tween.tween_property(notification, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(notification, "position:y", notification.position.y - 30, 0.5)
+
+	tween.chain().tween_property(notification, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(notification.queue_free)

@@ -26,6 +26,9 @@ CombatEventBus="*res://Scripts/Systems/CombatEventBus.gd"
 ObjectPool="*res://Scripts/Systems/ObjectPool.gd"
 StatusEffectManager="*res://Scripts/Systems/StatusEffectManager.gd"
 WeaponAbilitySystem="*res://Scripts/Systems/WeaponAbilitySystem.gd"
+SynergyManager="*res://Scripts/Systems/SynergyManager.gd"
+AudioManager="*res://Scripts/Systems/AudioManager.gd"
+ProjectilePool="*res://Scripts/Systems/ProjectilePool.gd"
 
 [display]
 
