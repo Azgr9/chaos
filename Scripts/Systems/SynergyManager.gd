@@ -534,8 +534,12 @@ func _check_synergy_requirements(synergy: Dictionary, relics: Array, weapon: Nod
 	# Check weapon names
 	if reqs.has("weapon_names"):
 		var has_weapon = false
-		var weapon_name = weapon.name if weapon else ""
-		var staff_name = staff.name if staff else ""
+		var weapon_name: String = ""
+		var staff_name: String = ""
+		if weapon:
+			weapon_name = weapon.name
+		if staff:
+			staff_name = staff.name
 		for wname in reqs.weapon_names:
 			if weapon_name == wname or staff_name == wname:
 				has_weapon = true

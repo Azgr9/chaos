@@ -7,6 +7,8 @@ size = Vector2(20, 140)
 
 [node name="Spear" type="Node2D"]
 script = ExtResource("1_spear")
+attack_range = 220.0
+attack_cone_angle = 45.0
 
 [node name="Pivot" type="Node2D" parent="."]
 

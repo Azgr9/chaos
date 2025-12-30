@@ -25,6 +25,10 @@ func _weapon_ready():
 	weapon_color = SWORD_BLADE_COLOR
 	skill_cooldown = 8.0
 
+	# Cone Hitbox - Now configured via @export in scene inspector
+	# attack_range = 120.0  # Medium range
+	# attack_cone_angle = 100.0  # 50 degrees each side - balanced arc
+
 	# Attack Speed Limits (balanced)
 	max_attacks_per_second = 3.0  # ~3 attacks per second base
 	min_cooldown = 0.18  # Cannot go below 180ms between attacks

@@ -700,14 +700,15 @@ func _on_clear_hazards_pressed():
 	print("[DEBUG] Cleared %d hazards" % count)
 
 # ============================================
-# HITBOX VISUALIZATION
+# HITBOX VISUALIZATION (CONE HITBOX)
 # ============================================
 func _on_hitbox_toggle_pressed():
 	show_hitboxes = not show_hitboxes
 	_update_hitbox_button()
 
 	if show_hitboxes:
-		print("[DEBUG] Showing weapon hitboxes")
+		_create_cone_visualizer()
+		print("[DEBUG] Showing weapon cone hitboxes")
 	else:
 		_clear_hitbox_visualizers()
 		print("[DEBUG] Hiding weapon hitboxes")
@@ -725,8 +726,7 @@ func _clear_hitbox_visualizers():
 			viz.queue_free()
 	hitbox_visualizers.clear()
 
-func _update_hitbox_visualizers():
-	# Clear old visualizers
+func _create_cone_visualizer():
 	_clear_hitbox_visualizers()
 
 	if not player_reference:
@@ -734,122 +734,157 @@ func _update_hitbox_visualizers():
 		if not player_reference:
 			return
 
-	# Find all weapons the player has
-	var weapons = []
-
-	# Check current weapon
-	if player_reference.has_method("get") and player_reference.get("current_weapon"):
-		var current = player_reference.current_weapon
-		if is_instance_valid(current):
-			weapons.append(current)
-
-	# Check weapon inventory
-	if player_reference.has_method("get") and player_reference.get("weapon_inventory"):
-		for weapon in player_reference.weapon_inventory:
-			if is_instance_valid(weapon) and weapon not in weapons:
-				weapons.append(weapon)
-
-	# Also check for staff
-	if player_reference.has_method("get") and player_reference.get("current_staff"):
-		var staff = player_reference.current_staff
-		if is_instance_valid(staff):
-			weapons.append(staff)
-
-	# Create visualizers for each weapon's hitbox
-	for weapon in weapons:
-		_create_hitbox_visualizer(weapon)
-
-func _create_hitbox_visualizer(weapon: Node2D):
-	if not is_instance_valid(weapon):
-		return
-
-	# Find HitBox Area2D in the weapon
-	var hitbox = weapon.get_node_or_null("Pivot/HitBox")
-	if not hitbox:
-		hitbox = weapon.get_node_or_null("HitBox")
-	if not hitbox:
-		# Try to find any Area2D
-		for child in weapon.get_children():
-			if child is Node2D:
-				for subchild in child.get_children():
-					if subchild is Area2D:
-						hitbox = subchild
-						break
-
-	if not hitbox:
-		return
-
-	# Find CollisionShape2D
-	var collision_shape: CollisionShape2D = null
-	for child in hitbox.get_children():
-		if child is CollisionShape2D:
-			collision_shape = child
-			break
-
-	if not collision_shape or not collision_shape.shape:
-		return
-
-	# Create visual representation
-	var viz = ColorRect.new()
-
-	# Determine size based on shape type
-	var shape = collision_shape.shape
-	if shape is RectangleShape2D:
-		viz.size = shape.size
-		viz.pivot_offset = shape.size / 2
-	elif shape is CircleShape2D:
-		var diameter = shape.radius * 2
-		viz.size = Vector2(diameter, diameter)
-		viz.pivot_offset = Vector2(diameter / 2, diameter / 2)
-	elif shape is CapsuleShape2D:
-		viz.size = Vector2(shape.radius * 2, shape.height)
-		viz.pivot_offset = viz.size / 2
-	else:
-		# Default
-		viz.size = Vector2(50, 50)
-		viz.pivot_offset = Vector2(25, 25)
-
-	# Color based on whether hitbox is active
-	if collision_shape.disabled:
-		viz.color = Color(0.5, 0.5, 1.0, 0.3)  # Blue = inactive
-	else:
-		viz.color = Color(1.0, 0.2, 0.2, 0.5)  # Red = active
-
-	# Add to scene
-	get_tree().current_scene.add_child(viz)
-	hitbox_visualizers.append(viz)
-
-	# Position at collision shape's global position
-	viz.global_position = collision_shape.global_position - viz.pivot_offset
-	viz.rotation = hitbox.global_rotation
-
-	# Store reference to update position
-	viz.set_meta("collision_shape", collision_shape)
-	viz.set_meta("hitbox", hitbox)
+	# Create a Node2D to draw the cone
+	var cone_drawer = ConeHitboxDrawer.new()
+	cone_drawer.player_ref = player_reference
+	get_tree().current_scene.add_child(cone_drawer)
+	hitbox_visualizers.append(cone_drawer)
 
 func _physics_process(_delta):
-	# Update visualizer positions to follow weapons
+	# Cone visualizer updates itself via _draw()
 	if show_hitboxes:
-		# Recreate visualizers if empty (weapon changed, etc)
+		# Recreate if needed
 		if hitbox_visualizers.is_empty():
-			_update_hitbox_visualizers()
+			_create_cone_visualizer()
 
+		# Force redraw on all visualizers
 		for viz in hitbox_visualizers:
-			if not is_instance_valid(viz):
-				continue
+			if is_instance_valid(viz) and viz.has_method("queue_redraw"):
+				viz.queue_redraw()
 
-			var collision_shape = viz.get_meta("collision_shape", null)
-			var hitbox = viz.get_meta("hitbox", null)
+# ============================================
+# CONE HITBOX DRAWER CLASS
+# Shows the ACTUAL hitbox - follows weapon rotation during swing
+# ============================================
+class ConeHitboxDrawer extends Node2D:
+	var player_ref: Node2D = null
 
-			if not is_instance_valid(collision_shape) or not is_instance_valid(hitbox):
-				continue
+	func _ready():
+		z_index = 100  # Draw on top
 
-			# Update position and rotation
-			viz.global_position = collision_shape.global_position - viz.pivot_offset
-			viz.rotation = hitbox.global_rotation
+	func _draw():
+		if not is_instance_valid(player_ref):
+			return
 
-			# Update color based on active state
-			if collision_shape.disabled:
-				viz.color = Color(0.5, 0.5, 1.0, 0.3)  # Blue = inactive
-			else:
-				viz.color = Color(1.0, 0.2, 0.2, 0.5)  # Red = active
+		var origin = player_ref.global_position
+
+		# Get current weapon
+		var weapon = null
+		if player_ref.get("current_weapon"):
+			weapon = player_ref.current_weapon
+
+		if not is_instance_valid(weapon):
+			return
+
+		# Get cone parameters from weapon
+		var attack_range: float = weapon.get("attack_range") if weapon.get("attack_range") else 100.0
+		var cone_angle: float = weapon.get("attack_cone_angle") if weapon.get("attack_cone_angle") else 90.0
+		var inner_radius: float = weapon.get("attack_inner_radius") if weapon.get("attack_inner_radius") else 0.0
+
+		# Check if weapon is in active frames
+		var is_active = weapon.get("_is_in_active_frames") if weapon.get("_is_in_active_frames") != null else false
+
+		# Get the attack direction based on state:
+		# - When ACTIVE: use the stored attack direction (cone is FIXED when attack starts)
+		# - When IDLE: show where attack WOULD go (mouse direction preview)
+		var attack_angle: float
+		var attack_direction: Vector2
+
+		if is_active:
+			# Cone is ALWAYS fixed to attack direction (set when attack started)
+			# Animation is purely visual - hitbox stays locked
+			var stored_direction = weapon.get("current_attack_direction")
+			attack_direction = stored_direction if stored_direction else Vector2.RIGHT
+			attack_angle = attack_direction.angle()
+		else:
+			# When not attacking, show mouse direction (preview)
+			var mouse_pos = get_global_mouse_position()
+			attack_direction = (mouse_pos - origin).normalized()
+			if attack_direction == Vector2.ZERO:
+				attack_direction = Vector2.RIGHT
+			attack_angle = attack_direction.angle()
+
+		var half_cone = deg_to_rad(cone_angle / 2.0)
+
+		# Draw cone
+		var cone_color: Color
+		if is_active:
+			cone_color = Color(1.0, 0.2, 0.2, 0.5)  # Bright red when active (actual hitbox)
+		else:
+			cone_color = Color(0.2, 0.6, 1.0, 0.2)  # Faint blue when inactive (preview)
+
+		# Draw filled cone using triangles
+		var segments = 32
+		var points: PackedVector2Array = []
+
+		# If there's an inner radius, we draw a ring-cone
+		if inner_radius > 0:
+			# Outer arc points
+			for i in range(segments + 1):
+				var angle = attack_angle - half_cone + (half_cone * 2.0 * i / segments)
+				var point = origin + Vector2.from_angle(angle) * attack_range
+				points.append(point)
+
+			# Inner arc points (reverse order)
+			for i in range(segments, -1, -1):
+				var angle = attack_angle - half_cone + (half_cone * 2.0 * i / segments)
+				var point = origin + Vector2.from_angle(angle) * inner_radius
+				points.append(point)
+		else:
+			# Normal cone from center
+			points.append(origin)
+			for i in range(segments + 1):
+				var angle = attack_angle - half_cone + (half_cone * 2.0 * i / segments)
+				var point = origin + Vector2.from_angle(angle) * attack_range
+				points.append(point)
+
+		# Draw the filled polygon
+		if points.size() >= 3:
+			draw_colored_polygon(points, cone_color)
+
+		# Draw outline
+		var outline_color = Color(1.0, 0.3, 0.3, 0.9) if is_active else Color(0.5, 0.8, 1.0, 0.4)
+		var line_width = 3.0 if is_active else 1.0
+
+		# Draw outer arc
+		var prev_point = origin + Vector2.from_angle(attack_angle - half_cone) * attack_range
+		for i in range(1, segments + 1):
+			var angle = attack_angle - half_cone + (half_cone * 2.0 * i / segments)
+			var point = origin + Vector2.from_angle(angle) * attack_range
+			draw_line(prev_point, point, outline_color, line_width)
+			prev_point = point
+
+		# Draw side lines
+		var left_end = origin + Vector2.from_angle(attack_angle - half_cone) * attack_range
+		var right_end = origin + Vector2.from_angle(attack_angle + half_cone) * attack_range
+
+		if inner_radius > 0:
+			var left_inner = origin + Vector2.from_angle(attack_angle - half_cone) * inner_radius
+			var right_inner = origin + Vector2.from_angle(attack_angle + half_cone) * inner_radius
+			draw_line(left_inner, left_end, outline_color, line_width)
+			draw_line(right_inner, right_end, outline_color, line_width)
+
+			# Draw inner arc
+			prev_point = origin + Vector2.from_angle(attack_angle - half_cone) * inner_radius
+			for i in range(1, segments + 1):
+				var angle = attack_angle - half_cone + (half_cone * 2.0 * i / segments)
+				var point = origin + Vector2.from_angle(angle) * inner_radius
+				draw_line(prev_point, point, outline_color, line_width)
+				prev_point = point
+		else:
+			draw_line(origin, left_end, outline_color, line_width)
+			draw_line(origin, right_end, outline_color, line_width)
+
+		# Draw center direction line
+		var center_end = origin + attack_direction * attack_range
+		var center_color = Color(1.0, 0.5, 0.0, 0.8) if is_active else Color(1.0, 1.0, 0.0, 0.5)
+		draw_line(origin, center_end, center_color, 2.0 if is_active else 1.5)
+
+		# Draw range circle (faint)
+		draw_arc(origin, attack_range, 0, TAU, 64, Color(1.0, 1.0, 1.0, 0.15), 1.0)
+
+		# Draw weapon info text
+		var weapon_name = weapon.name if weapon else "Unknown"
+		var status = "ACTIVE" if is_active else "Preview"
+		var info_text = "%s | %s | Range: %.0f | Angle: %.0f°" % [weapon_name, status, attack_range, cone_angle]
+		draw_string(ThemeDB.fallback_font, origin + Vector2(-100, -attack_range - 20), info_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color.WHITE)

@@ -7,6 +7,8 @@ size = Vector2(100, 80)
 
 [node name="Scythe" type="Node2D"]
 script = ExtResource("1_scythe")
+attack_range = 140.0
+attack_cone_angle = 160.0
 
 [node name="Pivot" type="Node2D" parent="."]
 

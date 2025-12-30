@@ -740,31 +740,31 @@ func _on_synergy_unhover():
 	if relic_tooltip:
 		relic_tooltip.visible = false
 
-func _show_synergy_notification(synergy_id: String, description: String, is_activation: bool):
+func _show_synergy_notification(synergy_id: String, _description: String, is_activation: bool):
 	# Get synergy info for color
 	var synergy_info = SynergyManager.get_synergy_info(synergy_id) if SynergyManager else {}
 	var synergy_color = synergy_info.get("icon_color", Color.GOLD)
 	var synergy_name = synergy_info.get("name", synergy_id)
 
-	# Create floating notification
-	var notification = Label.new()
-	notification.text = ("+ " if is_activation else "- ") + synergy_name
-	notification.add_theme_font_size_override("font_size", 16)
-	notification.add_theme_color_override("font_color", synergy_color)
-	notification.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	notification.position = Vector2(size.x / 2 - 100, size.y / 2 - 50)
-	notification.size = Vector2(200, 30)
-	add_child(notification)
+	# Create floating notification label
+	var notif_label = Label.new()
+	notif_label.text = ("+ " if is_activation else "- ") + synergy_name
+	notif_label.add_theme_font_size_override("font_size", 16)
+	notif_label.add_theme_color_override("font_color", synergy_color)
+	notif_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	notif_label.position = Vector2(size.x / 2 - 100, size.y / 2 - 50)
+	notif_label.size = Vector2(200, 30)
+	add_child(notif_label)
 
 	# Animate
-	notification.modulate = Color(1, 1, 1, 0)
-	notification.scale = Vector2(0.5, 0.5)
+	notif_label.modulate = Color(1, 1, 1, 0)
+	notif_label.scale = Vector2(0.5, 0.5)
 
 	var tween = create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(notification, "modulate:a", 1.0, 0.2)
-	tween.tween_property(notification, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
-	tween.tween_property(notification, "position:y", notification.position.y - 30, 0.5)
+	tween.tween_property(notif_label, "modulate:a", 1.0, 0.2)
+	tween.tween_property(notif_label, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(notif_label, "position:y", notif_label.position.y - 30, 0.5)
 
-	tween.chain().tween_property(notification, "modulate:a", 0.0, 0.5)
-	tween.tween_callback(notification.queue_free)
+	tween.chain().tween_property(notif_label, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(notif_label.queue_free)

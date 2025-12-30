@@ -31,6 +31,10 @@ func _weapon_ready():
 	weapon_color = AXE_BLADE_COLOR
 	skill_cooldown = 12.0
 
+	# Cone Hitbox - Now configured via @export in scene inspector
+	# attack_range = 125.0  # Good reach for cleave
+	# attack_cone_angle = 110.0  # Wide cleaving arc
+
 	# Attack Speed Limits (slow heavy weapon)
 	max_attacks_per_second = 2.0  # Slow but powerful
 	min_cooldown = 0.35  # Cannot swing faster than this

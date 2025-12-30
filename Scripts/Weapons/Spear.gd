@@ -41,6 +41,10 @@ func _weapon_ready():
 	weapon_color = SPEAR_TIP_COLOR
 	skill_cooldown = 8.0
 
+	# Cone Hitbox - Now configured via @export in scene inspector
+	# attack_range = 220.0  # Longest range in game
+	# attack_cone_angle = 45.0  # Narrow but usable thrust cone
+
 	# Attack Speed Limits
 	max_attacks_per_second = 3.5
 	min_cooldown = 0.2
@@ -97,7 +101,8 @@ func _perform_attack_animation(pattern: String, duration: float, is_dash_attack:
 func _animate_thrust(duration: float, _is_dash_attack: bool, angle_offset: float):
 	active_attack_tween = TweenHelper.new_tween()
 
-	var base_angle = rad_to_deg(current_attack_direction.angle())
+	# Add 90 degrees because sprite points UP, but we want it to point in attack direction
+	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
 	var thrust_angle = base_angle + angle_offset
 
 	# Start pulled back
@@ -137,7 +142,8 @@ func _animate_impale(duration: float, _is_dash_attack: bool):
 	# Finisher - Powerful piercing thrust
 	active_attack_tween = TweenHelper.new_tween()
 
-	var base_angle = rad_to_deg(current_attack_direction.angle())
+	# Add 90 degrees because sprite points UP, but we want it to point in attack direction
+	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
 
 	if pivot:
 		pivot.rotation = deg_to_rad(base_angle)

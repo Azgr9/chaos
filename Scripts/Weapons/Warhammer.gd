@@ -25,6 +25,10 @@ func _weapon_ready():
 	idle_rotation = 60.0
 	idle_scale = Vector2(0.7, 0.7)
 
+	# Cone Hitbox - Now configured via @export in scene inspector
+	# attack_range = 110.0  # Medium range for smash
+	# attack_cone_angle = 120.0  # Very wide crushing arc
+
 	# Attack Speed Limits (slowest weapon)
 	max_attacks_per_second = 1.5  # Very slow but powerful
 	min_cooldown = 0.5  # Cannot swing faster than this

@@ -35,6 +35,10 @@ func _weapon_ready():
 	weapon_color = SCYTHE_BLADE_COLOR
 	skill_cooldown = 10.0
 
+	# Cone Hitbox - Now configured via @export in scene inspector
+	# attack_range = 140.0  # Very long reach
+	# attack_cone_angle = 160.0  # Massive sweeping arc - nearly 180 degree
+
 	# Attack Speed Limits
 	max_attacks_per_second = 2.5
 	min_cooldown = 0.28

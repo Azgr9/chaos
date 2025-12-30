@@ -7,6 +7,8 @@ size = Vector2(120, 20)
 
 [node name="Rapier" type="Node2D"]
 script = ExtResource("1_rapier")
+attack_range = 160.0
+attack_cone_angle = 40.0
 
 [node name="Pivot" type="Node2D" parent="."]
 

@@ -38,6 +38,14 @@ const DEFAULT_RECOVERY_RATIO: float = 0.35 # 35% of duration for recovery
 ## Minimum cooldown this weapon can have (hard floor, cannot be reduced below this)
 @export var min_cooldown: float = 0.15
 
+@export_group("Hitbox Settings")
+## Range of the cone hitbox (how far the attack reaches)
+@export var attack_range: float = 100.0
+## Angle of the cone hitbox in degrees (full width, e.g., 90 = 45 degrees each side)
+@export var attack_cone_angle: float = 90.0
+## Inner radius - attacks won't hit enemies closer than this (for some weapons)
+@export var attack_inner_radius: float = 0.0
+
 @export_group("Visual Settings")
 @export var weapon_length: float = 80.0
 @export var idle_rotation: float = 45.0  # Degrees
@@ -158,6 +166,7 @@ func _exit_tree():
 func _process(delta):
 	_update_combo_timer(delta)
 	_update_skill_cooldown(delta)
+	_scan_cone_hitbox()  # Active cone scanning each frame when attacking
 	_weapon_process(delta)
 
 # ============================================
@@ -582,20 +591,106 @@ func _on_attack_cooldown_finished():
 	can_attack = true
 
 # ============================================
-# HIT DETECTION
+# HIT DETECTION - CONE BASED (ACTIVE SCANNING)
 # ============================================
+
+## Active cone scanning - called every frame during attack
+func _scan_cone_hitbox():
+	# Only scan when hitbox is active (during attack active frames)
+	if not _is_in_active_frames:
+		return
+
+	if not player_reference or not is_instance_valid(player_reference):
+		return
+
+	# Scan all enemies in range
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+		if enemy in hits_this_swing:
+			continue
+		if not enemy.has_method("take_damage"):
+			continue
+
+		# Check if enemy is in attack cone
+		if _is_in_attack_cone(enemy.global_position):
+			_process_hit(enemy)
+
+	# Also scan for portals and other damageable areas
+	var portals = get_tree().get_nodes_in_group("portal")
+	for portal in portals:
+		if not is_instance_valid(portal):
+			continue
+		if portal in hits_this_swing:
+			continue
+		if not portal.has_method("take_damage"):
+			continue
+
+		if _is_in_attack_cone(portal.global_position):
+			_process_hit(portal)
+
+## Check if a position is within the attack cone
+## Cone is ALWAYS fixed to the attack direction (where mouse was when attack started)
+## Animation is purely visual - hitbox stays locked to attack direction
+## Also accounts for enemy radius to detect edge hits
+func _is_in_attack_cone(target_pos: Vector2) -> bool:
+	if not player_reference or not is_instance_valid(player_reference):
+		return false
+
+	var origin = player_reference.global_position
+	var to_target = target_pos - origin
+	var distance = to_target.length()
+
+	# Enemy hitbox radius - enemies aren't points, they have size
+	# This allows hits when the cone edge touches the enemy's edge
+	const ENEMY_RADIUS: float = 25.0
+
+	# Check distance bounds - account for enemy radius
+	# Enemy can be hit if their edge is within range
+	if distance > attack_range + ENEMY_RADIUS:
+		return false
+
+	# Inner radius check only if explicitly set (for special weapons)
+	if attack_inner_radius > 0.0 and distance < attack_inner_radius - ENEMY_RADIUS:
+		return false
+
+	# Attack angle is ALWAYS based on current_attack_direction
+	# This is set when the attack starts (mouse direction at click time)
+	# Animation is purely visual - the hitbox cone stays fixed
+	var attack_angle: float = current_attack_direction.angle()
+
+	# Check angle - is target within cone?
+	# Add extra angle margin based on enemy radius at this distance
+	var half_cone = deg_to_rad(attack_cone_angle / 2.0)
+	var angle_to_target = to_target.angle()
+
+	# Calculate angular margin from enemy radius
+	# At closer distances, the same radius covers more angle
+	var angle_margin: float = 0.0
+	if distance > 0:
+		angle_margin = atan2(ENEMY_RADIUS, distance)
+
+	# Calculate angle difference (handle wrap-around)
+	var angle_diff = abs(angle_difference(attack_angle, angle_to_target))
+
+	# Target is in cone if angle difference is within half_cone + margin
+	return angle_diff <= half_cone + angle_margin
+
 func _on_hit_box_area_entered(area: Area2D):
-	# Check if the area itself has take_damage (like Portal)
+	# Backup collision detection (in addition to active scanning)
 	if area.has_method("take_damage"):
 		_process_hit(area)
 	else:
-		# Otherwise try parent (like enemy hitboxes)
 		_process_hit(area.get_parent())
 
 func _on_hit_box_body_entered(body: Node2D):
 	_process_hit(body)
 
 func _process_hit(target: Node2D):
+	if not is_instance_valid(target):
+		return
+
 	if target in hits_this_swing:
 		return
 
@@ -604,6 +699,10 @@ func _process_hit(target: Node2D):
 
 	# Don't hit converted minions (NecroStaff allies)
 	if target.is_in_group("converted_minion") or target.is_in_group("player_minions"):
+		return
+
+	# Cone hitbox check - verify target is within attack cone
+	if not _is_in_attack_cone(target.global_position):
 		return
 
 	hits_this_swing.append(target)
