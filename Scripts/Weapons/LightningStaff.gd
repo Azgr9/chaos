@@ -73,6 +73,22 @@ func _get_beam_glow_color() -> Color:
 func _get_projectile_color() -> Color:
 	return ELECTRIC_CORE
 
+# Trail colors - Electric crackling
+func _get_trail_color() -> Color:
+	return Color(0.3, 0.9, 1.0, 0.9)  # Electric cyan
+
+func _get_trail_glow_color() -> Color:
+	return Color(1.0, 1.0, 0.7, 1.0)  # Yellow-white spark
+
+func _get_trail_glow_intensity() -> float:
+	return 2.5  # Bright electric
+
+func _get_trail_pulse_speed() -> float:
+	return 12.0  # Very fast, electric crackle
+
+func _get_trail_sparkle_amount() -> float:
+	return 0.6  # Lots of sparks
+
 func _customize_projectile(projectile: Node2D):
 	# Crackling electric bolt
 	if projectile.has_node("Sprite"):
@@ -89,20 +105,28 @@ func _add_electric_trail(projectile: Node2D):
 	timer.one_shot = false
 	projectile.add_child(timer)
 
-	# Use weakref to safely capture self
+	# Use weakref to safely capture references
 	var staff_ref = weakref(self)
+	var projectile_ref = weakref(projectile)
+	var timer_ref = weakref(timer)
 
 	timer.timeout.connect(func():
-		if not is_instance_valid(projectile):
-			timer.stop()
-			timer.queue_free()
+		var t = timer_ref.get_ref()
+		var p = projectile_ref.get_ref()
+		var staff = staff_ref.get_ref()
+
+		if not t or not p or not is_instance_valid(p):
+			if t and is_instance_valid(t):
+				t.stop()
 			return
 
-		# Check if staff is still valid using weakref
-		var staff = staff_ref.get_ref()
-		if not staff:
-			timer.stop()
-			timer.queue_free()
+		if not staff or not is_instance_valid(staff):
+			if t and is_instance_valid(t):
+				t.stop()
+			return
+
+		var tree = staff.get_tree()
+		if not tree or not tree.current_scene:
 			return
 
 		# Electric spark particle
@@ -110,8 +134,8 @@ func _add_electric_trail(projectile: Node2D):
 		spark.size = Vector2(4, 8)
 		spark.color = ELECTRIC_SPARK if randf() > 0.5 else ELECTRIC_GLOW
 		spark.pivot_offset = Vector2(2, 4)
-		staff.get_tree().current_scene.add_child(spark)
-		spark.global_position = projectile.global_position
+		tree.current_scene.add_child(spark)
+		spark.global_position = p.global_position
 		spark.rotation = randf() * TAU
 
 		# Small arc/zap away from projectile
@@ -119,14 +143,14 @@ func _add_electric_trail(projectile: Node2D):
 
 		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
-		tween.tween_property(spark, "global_position", projectile.global_position + offset, 0.1)
+		tween.tween_property(spark, "global_position", p.global_position + offset, 0.1)
 		tween.tween_property(spark, "modulate:a", 0.0, 0.1)
 		tween.tween_property(spark, "scale", Vector2(0.3, 0.3), 0.1)
 		tween.tween_callback(spark.queue_free)
 
 		# Occasional mini-bolt branching off
 		if randf() > 0.7:
-			staff._create_mini_bolt(projectile.global_position)
+			staff._create_mini_bolt(p.global_position)
 	)
 	timer.start()
 

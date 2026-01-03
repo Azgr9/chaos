@@ -70,11 +70,6 @@ func _weapon_process(delta: float):
 	# Clean up dead minions
 	active_minions = active_minions.filter(func(m): return is_instance_valid(m))
 
-	# Update minion AI
-	for minion in active_minions:
-		if is_instance_valid(minion):
-			_update_minion_ai(minion, delta)
-
 # ============================================
 # SKILL - DARK CONVERSION
 # ============================================
@@ -217,6 +212,10 @@ func _convert_to_minion(minion: Node2D):
 		hurt_box.monitoring = true
 		hurt_box.monitorable = true
 
+		# SPAWN IMMUNITY: Disable hurt box for 2 seconds after spawn
+		hurt_box.set_deferred("monitorable", false)
+		_apply_spawn_immunity(minion, hurt_box)
+
 	# Minion body uses layer 2 which is not in player weapon mask (20 = 4 + 16)
 
 	# If enemy has player_reference, point it to enemies instead
@@ -229,6 +228,77 @@ func _convert_to_minion(minion: Node2D):
 
 	# Add dark aura particle effect
 	_add_dark_aura_to_minion(minion)
+
+const SPAWN_IMMUNITY_DURATION: float = 2.0  # 2 seconds of immunity after spawn
+
+func _apply_spawn_immunity(minion: Node2D, hurt_box: Area2D):
+	# Mark as immune
+	minion.set_meta("spawn_immune", true)
+
+	# Visual effect - bright glow during immunity
+	minion.modulate = Color(0.7, 0.4, 1.0, 1.0)  # Bright purple glow
+
+	# Add immunity shield visual
+	_create_immunity_shield(minion)
+
+	# Wait for immunity duration
+	var staff_ref = weakref(self)
+	var minion_ref = weakref(minion)
+	var hurt_box_ref = weakref(hurt_box)
+
+	await get_tree().create_timer(SPAWN_IMMUNITY_DURATION).timeout
+
+	var staff = staff_ref.get_ref()
+	var m = minion_ref.get_ref()
+	var hb = hurt_box_ref.get_ref()
+
+	if not staff or not is_instance_valid(staff):
+		return
+
+	# Remove immunity
+	if m and is_instance_valid(m):
+		m.set_meta("spawn_immune", false)
+		m.modulate = Color(0.4, 0.2, 0.6, 1.0)  # Back to normal dark purple
+
+		# Re-enable hurt box
+		if hb and is_instance_valid(hb):
+			hb.monitorable = true
+
+func _create_immunity_shield(minion: Node2D):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	var minion_ref = weakref(minion)
+	var staff_ref = weakref(self)
+
+	# Create pulsing shield effect during immunity
+	var elapsed = 0.0
+	while elapsed < SPAWN_IMMUNITY_DURATION:
+		var m = minion_ref.get_ref()
+		var staff = staff_ref.get_ref()
+
+		if not staff or not is_instance_valid(staff):
+			return
+		if not m or not is_instance_valid(m):
+			return
+
+		# Create shield pulse particle
+		var shield = ColorRect.new()
+		shield.size = Vector2(50, 50)
+		shield.color = Color(0.6, 0.3, 1.0, 0.4)
+		shield.pivot_offset = Vector2(25, 25)
+		scene.add_child(shield)
+		shield.global_position = m.global_position - Vector2(25, 25)
+
+		var tween = TweenHelper.new_tween()
+		tween.set_parallel(true)
+		tween.tween_property(shield, "scale", Vector2(1.5, 1.5), 0.3)
+		tween.tween_property(shield, "modulate:a", 0.0, 0.3)
+		tween.tween_callback(shield.queue_free)
+
+		await get_tree().create_timer(0.2).timeout
+		elapsed += 0.2
 
 func _add_dark_aura_to_minion(minion: Node2D):
 	# Create a timer for continuous dark particles
@@ -267,49 +337,6 @@ func _add_dark_aura_to_minion(minion: Node2D):
 		tween.tween_callback(wisp.queue_free)
 	)
 	aura_timer.start()
-
-# ============================================
-# MINION AI OVERRIDE - Make converted enemies attack other enemies
-# ============================================
-func _update_minion_ai(minion: Node2D, _delta: float):
-	if not is_instance_valid(minion):
-		return
-
-	# Find nearest REAL enemy (not other converted minions)
-	var target = _find_nearest_real_enemy(minion.global_position)
-
-	if target and is_instance_valid(target):
-		# Override enemy's target to chase this enemy
-		if "player_reference" in minion:
-			# Temporarily set player_reference to the target so enemy AI chases it
-			minion.player_reference = target
-	else:
-		# No enemies nearby, follow player
-		if "player_reference" in minion and player_reference:
-			var to_player = player_reference.global_position - minion.global_position
-			if to_player.length() > 150:
-				# Point toward player to make AI follow
-				minion.player_reference = player_reference
-			else:
-				minion.player_reference = null  # Stay idle near player
-
-func _find_nearest_real_enemy(from_pos: Vector2) -> Node2D:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	var nearest: Node2D = null
-	var nearest_dist = 400.0
-
-	for enemy in enemies:
-		if not is_instance_valid(enemy):
-			continue
-		# Skip other converted minions
-		if enemy.is_in_group("converted_minion"):
-			continue
-		var dist = from_pos.distance_to(enemy.global_position)
-		if dist < nearest_dist:
-			nearest_dist = dist
-			nearest = enemy
-
-	return nearest
 
 func _start_minion_lifetime(minion: Node2D):
 	var lifetime = MINION_DURATION
@@ -436,26 +463,6 @@ func _create_dark_conversion_effect(pos: Vector2):
 	if DamageNumberManager:
 		DamageNumberManager.shake(0.15)
 
-func _create_minion_attack_effect(pos: Vector2):
-	var scene = get_tree().current_scene
-	if not scene:
-		return
-
-	for i in range(3):
-		var slash = ColorRect.new()
-		slash.size = Vector2(4, 18)
-		slash.color = NECRO_SOUL
-		slash.pivot_offset = Vector2(2, 9)
-		scene.add_child(slash)
-		slash.global_position = pos
-		slash.rotation = (PI / 4) * (i - 1)
-
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(slash, "scale", Vector2(1.5, 1.5), 0.1)
-		tween.tween_property(slash, "modulate:a", 0.0, 0.15)
-		tween.tween_callback(slash.queue_free)
-
 func _create_minion_death_effect(pos: Vector2):
 	var scene = get_tree().current_scene
 	if not scene:
@@ -495,30 +502,36 @@ func _add_dark_trail(projectile: Node2D):
 	timer.one_shot = false
 	projectile.add_child(timer)
 
+	# Use weakref to safely capture references
 	var staff_ref = weakref(self)
+	var projectile_ref = weakref(projectile)
+	var timer_ref = weakref(timer)
 
 	timer.timeout.connect(func():
-		if not is_instance_valid(projectile):
-			timer.stop()
-			timer.queue_free()
-			return
-
+		var t = timer_ref.get_ref()
+		var p = projectile_ref.get_ref()
 		var staff = staff_ref.get_ref()
-		if not staff:
-			timer.stop()
-			timer.queue_free()
+
+		if not t or not p or not is_instance_valid(p):
+			if t and is_instance_valid(t):
+				t.stop()
 			return
 
-		var scene = staff.get_tree().current_scene
-		if not scene:
+		if not staff or not is_instance_valid(staff):
+			if t and is_instance_valid(t):
+				t.stop()
+			return
+
+		var tree = staff.get_tree()
+		if not tree or not tree.current_scene:
 			return
 
 		var trail = ColorRect.new()
 		trail.size = Vector2(10, 10)
 		trail.color = NECRO_GLOW
 		trail.pivot_offset = Vector2(5, 5)
-		scene.add_child(trail)
-		trail.global_position = projectile.global_position
+		tree.current_scene.add_child(trail)
+		trail.global_position = p.global_position
 
 		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
@@ -553,3 +566,19 @@ func _get_beam_color() -> Color:
 
 func _get_beam_glow_color() -> Color:
 	return NECRO_SOUL
+
+# Trail colors - Dark necromantic soul energy
+func _get_trail_color() -> Color:
+	return Color(0.3, 0.1, 0.4, 0.9)  # Dark purple-black
+
+func _get_trail_glow_color() -> Color:
+	return Color(0.6, 0.2, 0.8, 1.0)  # Soul purple
+
+func _get_trail_glow_intensity() -> float:
+	return 1.6
+
+func _get_trail_pulse_speed() -> float:
+	return 2.5  # Slow, ghostly
+
+func _get_trail_sparkle_amount() -> float:
+	return 0.25  # Some soul wisps

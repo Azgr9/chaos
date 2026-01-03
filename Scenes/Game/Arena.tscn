@@ -63,7 +63,6 @@ offset_bottom = 680.0
 color = Color(0.5, 0.3, 0.2, 1)
 
 [node name="RightWall" type="CollisionShape2D" parent="Walls"]
-visible = false
 position = Vector2(2500, 720)
 shape = SubResource("RectangleShape2D_right")
 

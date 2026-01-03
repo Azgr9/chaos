@@ -77,13 +77,19 @@ const DEFAULT_RECOVERY_RATIO: float = 0.35 # 35% of duration for recovery
 ## Enable animation canceling during recovery
 @export var allow_recovery_cancel: bool = true
 
+# Trail system
+var _active_trail: Line2D = null
+var _trail_points: Array[Vector2] = []
+var _trail_shader_material: ShaderMaterial = null
+const TRAIL_MAX_POINTS: int = 20
+const TRAIL_FADE_SPEED: float = 6.0
+var _line_trail_shader: Shader = preload("res://Shaders/Weapons/LineTrail.gdshader")
+
 # ============================================
 # NODES - Expected in scene tree
 # ============================================
 @onready var pivot: Node2D = $Pivot
 @onready var sprite: ColorRect = $Pivot/Sprite
-@onready var hit_box: Area2D = $Pivot/HitBox
-@onready var hit_box_collision: CollisionShape2D = $Pivot/HitBox/CollisionShape2D
 @onready var attack_timer: Timer = $AttackTimer
 
 # ============================================
@@ -127,19 +133,11 @@ signal skill_ready_changed(ready: bool)
 # ============================================
 func _ready():
 	# Validate required nodes exist
-	if not hit_box or not hit_box_collision or not attack_timer:
-		push_error("MeleeWeapon: Missing required nodes (HitBox, CollisionShape2D, or AttackTimer)")
+	if not attack_timer:
+		push_error("MeleeWeapon: Missing required node (AttackTimer)")
 		return
 
-	hit_box.area_entered.connect(_on_hit_box_area_entered)
-	hit_box.body_entered.connect(_on_hit_box_body_entered)
 	attack_timer.timeout.connect(_on_attack_cooldown_finished)
-
-	# Setup collision layers - ensure we can hit portal (layer 4) and enemies (layer 16)
-	# Mask 20 = 4 (portal) + 16 (enemies)
-	hit_box.collision_mask = 20
-
-	hit_box_collision.disabled = true
 	base_attack_cooldown = attack_cooldown
 
 	_setup_visuals()
@@ -167,6 +165,7 @@ func _process(delta):
 	_update_combo_timer(delta)
 	_update_skill_cooldown(delta)
 	_scan_cone_hitbox()  # Active cone scanning each frame when attacking
+	_update_swing_trail()  # Update weapon trail
 	_weapon_process(delta)
 
 # ============================================
@@ -297,6 +296,10 @@ func _end_skill_invulnerability():
 	if player_reference and player_reference.has_method("set_invulnerable"):
 		player_reference.set_invulnerable(false)
 
+	# Reset animation state to IDLE so next skill can be used
+	if CombatAnimationSystem:
+		CombatAnimationSystem.request_transition(self, CombatAnimationSystem.AnimState.IDLE, true)
+
 ## Use this for async skills that need to manage invulnerability duration manually
 ## Returns true if invulnerability was started successfully
 func _start_skill_invulnerability() -> bool:
@@ -372,8 +375,6 @@ func _perform_attack_animation(pattern: String, duration: float, is_dash_attack:
 	if active_attack_tween:
 		active_attack_tween.kill()
 		active_attack_tween = null
-		# Ensure hitbox is disabled if previous attack was interrupted
-		hit_box_collision.set_deferred("disabled", true)
 		_is_in_active_frames = false
 
 	var is_finisher = is_combo_finisher()
@@ -540,7 +541,6 @@ func _finish_attack_callback():
 		finish_attack()
 
 func _enable_hitbox(is_finisher: bool, is_dash: bool):
-	hit_box_collision.disabled = false
 	_is_in_active_frames = true
 	_create_swing_trail(is_finisher, is_dash)
 
@@ -549,7 +549,6 @@ func _enable_hitbox(is_finisher: bool, is_dash: bool):
 		CombatAnimationSystem.request_transition(self, CombatAnimationSystem.AnimState.ACTIVE, true)
 
 func _disable_hitbox():
-	hit_box_collision.disabled = true
 	_is_in_active_frames = false
 
 	# Transition to RECOVERY state
@@ -561,7 +560,6 @@ func finish_attack():
 		active_attack_tween.kill()
 		active_attack_tween = null
 
-	hit_box_collision.set_deferred("disabled", true)
 	is_attacking = false
 	_is_in_active_frames = false
 	_current_attack_data.clear()
@@ -676,16 +674,6 @@ func _is_in_attack_cone(target_pos: Vector2) -> bool:
 
 	# Target is in cone if angle difference is within half_cone + margin
 	return angle_diff <= half_cone + angle_margin
-
-func _on_hit_box_area_entered(area: Area2D):
-	# Backup collision detection (in addition to active scanning)
-	if area.has_method("take_damage"):
-		_process_hit(area)
-	else:
-		_process_hit(area.get_parent())
-
-func _on_hit_box_body_entered(body: Node2D):
-	_process_hit(body)
 
 func _process_hit(target: Node2D):
 	if not is_instance_valid(target):
@@ -837,32 +825,97 @@ func _do_weapon_shake():
 	tween.tween_property(pivot, "position", original_pos, 0.02)
 
 func _create_swing_trail(is_finisher: bool, is_dash: bool):
-	var trail_count = 5 if (is_finisher or is_dash) else 3
+	# Create Line2D trail that follows weapon tip with shader
+	_trail_points.clear()
 
-	for i in range(trail_count):
-		await get_tree().create_timer(0.02).timeout
+	if _active_trail and is_instance_valid(_active_trail):
+		_active_trail.queue_free()
 
-		# Check if self is still valid after await
-		if not is_instance_valid(self):
-			return
+	var scene = get_tree().current_scene
+	if not scene:
+		return
 
-		var scene = get_tree().current_scene
-		if not scene:
-			return
+	_active_trail = Line2D.new()
+	_active_trail.width = 40.0 if (is_finisher or is_dash) else 28.0
+	_active_trail.default_color = Color.WHITE  # Shader handles color
+	_active_trail.joint_mode = Line2D.LINE_JOINT_ROUND
+	_active_trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_active_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_active_trail.texture_mode = Line2D.LINE_TEXTURE_STRETCH
 
-		var trail = ColorRect.new()
-		trail.size = sprite.size
+	# Width curve - thick at newest point, thin at oldest
+	var width_curve = Curve.new()
+	width_curve.add_point(Vector2(0.0, 0.0))  # Old end - thin
+	width_curve.add_point(Vector2(0.3, 0.4))
+	width_curve.add_point(Vector2(0.7, 0.8))
+	width_curve.add_point(Vector2(1.0, 1.0))  # New end - thick
+	_active_trail.width_curve = width_curve
 
-		if is_finisher:
-			trail.color = Color.GOLD.darkened(0.2)
-		elif is_dash:
-			trail.color = Color.CYAN.darkened(0.2)
-		else:
-			trail.color = Color(0.8, 0.8, 1.0, 0.4)
+	# Apply shader material
+	_trail_shader_material = ShaderMaterial.new()
+	_trail_shader_material.shader = _line_trail_shader
 
-		scene.add_child(trail)
-		trail.global_position = sprite.global_position
-		trail.rotation = pivot.rotation
-		trail.scale = sprite.scale
+	var trail_color = _get_trail_color(is_finisher, is_dash)
+	var glow_color = _get_glow_color(is_finisher, is_dash)
+	var glow_intensity = 3.0 if is_finisher else (2.5 if is_dash else 2.0)
 
-		TweenHelper.scale_fade_free(trail, trail.scale * 1.3, 0.2)
+	_trail_shader_material.set_shader_parameter("trail_color", trail_color)
+	_trail_shader_material.set_shader_parameter("glow_color", glow_color)
+	_trail_shader_material.set_shader_parameter("glow_intensity", glow_intensity)
+	_trail_shader_material.set_shader_parameter("core_sharpness", 0.6)
+	_trail_shader_material.set_shader_parameter("shimmer_speed", 5.0 if is_finisher else 3.0)
+	_trail_shader_material.set_shader_parameter("shimmer_amount", 0.4 if is_finisher else 0.2)
+
+	_active_trail.material = _trail_shader_material
+
+	scene.add_child(_active_trail)
+
+func _get_trail_color(is_finisher: bool, is_dash: bool) -> Color:
+	if is_finisher:
+		return Color(1.0, 0.85, 0.2, 0.95)  # Gold
+	elif is_dash:
+		return Color(0.2, 0.8, 1.0, 0.95)  # Cyan
+	else:
+		return Color(weapon_color.r, weapon_color.g, weapon_color.b, 0.9)
+
+func _get_glow_color(is_finisher: bool, is_dash: bool) -> Color:
+	if is_finisher:
+		return Color(1.0, 1.0, 0.6, 1.0)  # Bright yellow
+	elif is_dash:
+		return Color(0.6, 1.0, 1.0, 1.0)  # Bright cyan
+	else:
+		return Color(1.0, 1.0, 1.0, 1.0)  # White
+
+func _get_weapon_tip_position() -> Vector2:
+	if not pivot or not sprite:
+		return global_position
+	# Calculate weapon tip based on pivot rotation and weapon length
+	var tip_offset = Vector2(0, -weapon_length).rotated(pivot.rotation)
+	return global_position + tip_offset
+
+func _update_swing_trail():
+	if not _active_trail or not is_instance_valid(_active_trail):
+		return
+
+	if not _is_in_active_frames:
+		# Fade out trail when attack ends
+		if _active_trail.modulate.a > 0:
+			_active_trail.modulate.a -= get_process_delta_time() * TRAIL_FADE_SPEED
+			if _active_trail.modulate.a <= 0:
+				_active_trail.queue_free()
+				_active_trail = null
+				_trail_points.clear()
+		return
+
+	# Add current weapon tip position
+	var tip_pos = _get_weapon_tip_position()
+	_trail_points.append(tip_pos)
+
+	# Limit trail length
+	while _trail_points.size() > TRAIL_MAX_POINTS:
+		_trail_points.remove_at(0)
+
+	# Update Line2D points
+	_active_trail.clear_points()
+	for point in _trail_points:
+		_active_trail.add_point(point)

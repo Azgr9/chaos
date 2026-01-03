@@ -56,6 +56,22 @@ func _get_beam_color() -> Color:
 func _get_beam_glow_color() -> Color:
 	return ICE_GLOW
 
+# Trail colors - Icy cold blue-white
+func _get_trail_color() -> Color:
+	return Color(0.7, 0.9, 1.0, 0.9)  # Ice blue
+
+func _get_trail_glow_color() -> Color:
+	return Color(0.95, 0.98, 1.0, 1.0)  # Near white ice
+
+func _get_trail_glow_intensity() -> float:
+	return 1.5
+
+func _get_trail_pulse_speed() -> float:
+	return 2.0  # Slower, cold feeling
+
+func _get_trail_sparkle_amount() -> float:
+	return 0.5  # Ice crystals sparkle
+
 # ============================================
 # PROJECTILE CUSTOMIZATION - Ice shard visuals and slow effect
 # ============================================
@@ -91,20 +107,28 @@ func _add_frost_trail(projectile: Node2D):
 	timer.one_shot = false
 	projectile.add_child(timer)
 
-	# Use weakref to safely capture self
+	# Use weakref to safely capture references
 	var staff_ref = weakref(self)
+	var projectile_ref = weakref(projectile)
+	var timer_ref = weakref(timer)
 
 	timer.timeout.connect(func():
-		if not is_instance_valid(projectile):
-			timer.stop()
-			timer.queue_free()
+		var t = timer_ref.get_ref()
+		var p = projectile_ref.get_ref()
+		var staff = staff_ref.get_ref()
+
+		if not t or not p or not is_instance_valid(p):
+			if t and is_instance_valid(t):
+				t.stop()
 			return
 
-		# Check if staff is still valid using weakref
-		var staff = staff_ref.get_ref()
-		if not staff:
-			timer.stop()
-			timer.queue_free()
+		if not staff or not is_instance_valid(staff):
+			if t and is_instance_valid(t):
+				t.stop()
+			return
+
+		var tree = staff.get_tree()
+		if not tree or not tree.current_scene:
 			return
 
 		# Ice crystal particle
@@ -112,8 +136,8 @@ func _add_frost_trail(projectile: Node2D):
 		crystal.size = Vector2(6, 10)
 		crystal.color = ICE_CRYSTAL if randf() > 0.6 else ICE_GLOW
 		crystal.pivot_offset = Vector2(3, 5)
-		staff.get_tree().current_scene.add_child(crystal)
-		crystal.global_position = projectile.global_position
+		tree.current_scene.add_child(crystal)
+		crystal.global_position = p.global_position
 		crystal.rotation = randf_range(-PI/4, PI/4)
 
 		# Float and fade
@@ -127,7 +151,7 @@ func _add_frost_trail(projectile: Node2D):
 
 		# Occasional snowflake
 		if randf() > 0.7:
-			staff._spawn_trail_snowflake(projectile.global_position)
+			staff._spawn_trail_snowflake(p.global_position)
 	)
 	timer.start()
 

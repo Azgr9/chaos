@@ -1,12 +1,18 @@
 [gd_scene load_steps=3 format=3 uid="uid://guillotine_drop"]
 
-[ext_resource type="Script" path="res://Scripts/Weapons/GuillotineDrop.gd" id="1_guil"]
+[ext_resource type="Script" path="res://Scenes/Weapons/ExecutionersAxe/ExecutionersAxeSkill.gd" id="1_skill"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_impact"]
 radius = 80.0
 
-[node name="GuillotineDrop" type="Node2D"]
-script = ExtResource("1_guil")
+[node name="ExecutionersAxeSkill" type="Node2D"]
+script = ExtResource("1_skill")
+leap_distance = 250.0
+leap_duration = 0.4
+impact_radius = 100.0
+damage = 75.0
+knockback_force = 600.0
+knockback_stun = 0.3
 
 [node name="HitBox" type="Area2D" parent="."]
 collision_layer = 64

@@ -9,13 +9,20 @@ extends MeleeWeapon
 # ============================================
 # AXE-SPECIFIC SETTINGS
 # ============================================
-const GUILLOTINE_DROP_SCENE = preload("res://Scenes/Weapons/GuillotineDrop.tscn")
+const SKILL_SCENE = preload("res://Scenes/Weapons/ExecutionersAxe/ExecutionersAxeSkill.tscn")
 
 # Visual colors
 const AXE_BLADE_COLOR: Color = Color(0.7, 0.7, 0.75)  # Polished steel blade
 const AXE_HANDLE_COLOR: Color = Color(0.35, 0.2, 0.1)  # Dark wood handle
 const AXE_BLOOD_COLOR: Color = Color(0.6, 0.1, 0.1)  # Blood red accent
 const AXE_GLOW_COLOR: Color = Color(1.0, 0.3, 0.1)  # Orange glow on power attacks
+const AXE_FIRE_COLOR: Color = Color(1.0, 0.6, 0.2)  # Fire accent
+
+# Shaders
+var swing_shader: Shader = preload("res://Shaders/Weapons/SwingTrail.gdshader")
+var shockwave_shader: Shader = preload("res://Shaders/Weapons/ImpactShockwave.gdshader")
+var energy_shader: Shader = preload("res://Shaders/Weapons/EnergyGlow.gdshader")
+var crack_shader: Shader = preload("res://Shaders/Weapons/GroundCrack.gdshader")
 
 # Trail settings
 var swing_trail_enabled: bool = true
@@ -191,34 +198,55 @@ func _create_shockwave_ring(pos: Vector2, delay: float, alpha: float):
 	if not is_instance_valid(self):
 		return
 
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Shader-based shockwave
 	var ring = ColorRect.new()
-	ring.size = Vector2(40, 40)
-	ring.color = Color(AXE_GLOW_COLOR.r, AXE_GLOW_COLOR.g, AXE_GLOW_COLOR.b, alpha)
-	ring.pivot_offset = Vector2(20, 20)
-	get_tree().current_scene.add_child(ring)
-	ring.global_position = pos - Vector2(20, 20)
+	ring.size = Vector2(200, 200)
+	ring.pivot_offset = Vector2(100, 100)
+	ring.global_position = pos - Vector2(100, 100)
+
+	var mat = ShaderMaterial.new()
+	mat.shader = shockwave_shader
+	mat.set_shader_parameter("wave_color", Color(AXE_GLOW_COLOR.r, AXE_GLOW_COLOR.g, AXE_GLOW_COLOR.b, alpha))
+	mat.set_shader_parameter("ring_thickness", 0.12)
+	mat.set_shader_parameter("inner_glow", 1.5)
+	mat.set_shader_parameter("progress", 0.0)
+	ring.material = mat
+
+	scene.add_child(ring)
 
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(ring, "scale", Vector2(5, 5), 0.35)
-	tween.tween_property(ring, "modulate:a", 0.0, 0.35)
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.4)
 	tween.tween_callback(ring.queue_free)
 
 func _create_ground_cracks(pos: Vector2):
-	for i in range(8):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	for i in range(10):
 		var crack = ColorRect.new()
-		crack.size = Vector2(randf_range(60, 100), 4)
-		crack.color = Color(0.3, 0.2, 0.15, 0.9)
-		crack.pivot_offset = Vector2(0, 2)
-		crack.rotation = (TAU / 8) * i + randf_range(-0.2, 0.2)
-		get_tree().current_scene.add_child(crack)
+		crack.size = Vector2(randf_range(80, 130), 10)
+		crack.pivot_offset = Vector2(0, 5)
+		crack.rotation = (TAU / 10) * i + randf_range(-0.15, 0.15)
 		crack.global_position = pos
-		crack.scale = Vector2(0, 1)
+
+		var mat = ShaderMaterial.new()
+		mat.shader = crack_shader
+		mat.set_shader_parameter("crack_color", Color(0.25, 0.15, 0.1, 0.95))
+		mat.set_shader_parameter("glow_color", AXE_FIRE_COLOR)
+		mat.set_shader_parameter("crack_width", 0.1)
+		mat.set_shader_parameter("jagged_amount", 0.2)
+		mat.set_shader_parameter("progress", 0.0)
+		crack.material = mat
+
+		scene.add_child(crack)
 
 		var tween = TweenHelper.new_tween()
-		tween.tween_property(crack, "scale:x", 1.0, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		tween.tween_interval(0.3)
-		tween.tween_property(crack, "modulate:a", 0.0, 0.4)
+		tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.6)
 		tween.tween_callback(crack.queue_free)
 
 func _create_debris_particles(pos: Vector2, count: int):
@@ -270,16 +298,25 @@ func _create_charge_glow():
 	if not player_reference:
 		return
 
-	# Brief glow on weapon during windup
+	# Shader-based energy glow on weapon
 	var glow = ColorRect.new()
-	glow.size = Vector2(30, 60)
-	glow.color = Color(AXE_GLOW_COLOR.r, AXE_GLOW_COLOR.g, AXE_GLOW_COLOR.b, 0.4)
-	glow.pivot_offset = Vector2(15, 30)
+	glow.size = Vector2(80, 80)
+	glow.pivot_offset = Vector2(40, 40)
 	add_child(glow)
-	glow.position = Vector2(-15, -30)
+	glow.position = Vector2(-40, -60)
+
+	var mat = ShaderMaterial.new()
+	mat.shader = energy_shader
+	mat.set_shader_parameter("energy_color", AXE_GLOW_COLOR)
+	mat.set_shader_parameter("core_color", AXE_FIRE_COLOR)
+	mat.set_shader_parameter("pulse_speed", 12.0)
+	mat.set_shader_parameter("pulse_intensity", 0.4)
+	mat.set_shader_parameter("glow_size", 1.2)
+	mat.set_shader_parameter("progress", 0.0)
+	glow.material = mat
 
 	var tween = TweenHelper.new_tween()
-	tween.tween_property(glow, "modulate:a", 0.0, 0.3)
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.35)
 	tween.tween_callback(glow.queue_free)
 
 func _create_finisher_charge_effect():
@@ -314,18 +351,30 @@ func _spawn_trail_particle():
 	if not player_reference:
 		return
 
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Shader-based swing trail
 	var trail = ColorRect.new()
-	trail.size = Vector2(20, 40)
-	trail.color = Color(AXE_GLOW_COLOR.r, AXE_GLOW_COLOR.g, AXE_GLOW_COLOR.b, 0.6)
-	trail.pivot_offset = Vector2(10, 20)
-	get_tree().current_scene.add_child(trail)
+	trail.size = Vector2(weapon_length * 0.9, 35)
+	trail.pivot_offset = Vector2(0, 17.5)
 	trail.global_position = global_position
 	trail.rotation = pivot.rotation
 
+	var mat = ShaderMaterial.new()
+	mat.shader = swing_shader
+	mat.set_shader_parameter("trail_color", Color(AXE_GLOW_COLOR.r, AXE_GLOW_COLOR.g, AXE_GLOW_COLOR.b, 0.7))
+	mat.set_shader_parameter("glow_color", AXE_FIRE_COLOR)
+	mat.set_shader_parameter("glow_intensity", 2.0)
+	mat.set_shader_parameter("taper_amount", 0.6)
+	mat.set_shader_parameter("progress", 0.0)
+	trail.material = mat
+
+	scene.add_child(trail)
+
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(trail, "modulate:a", 0.0, 0.2)
-	tween.tween_property(trail, "scale", Vector2(0.5, 1.5), 0.2)
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.2)
 	tween.tween_callback(trail.queue_free)
 
 func _create_chop_sparks():
@@ -365,16 +414,16 @@ func _perform_skill() -> bool:
 	if not player:
 		return false
 
-	var guillotine = GUILLOTINE_DROP_SCENE.instantiate()
-	get_tree().current_scene.add_child(guillotine)
+	var skill_instance = SKILL_SCENE.instantiate()
+	get_tree().current_scene.add_child(skill_instance)
 
 	var skill_damage = damage * 3.0 * damage_multiplier
 	var direction = (player.get_global_mouse_position() - player.global_position).normalized()
-	guillotine.initialize(player, direction, skill_damage)
+	skill_instance.initialize(player, direction, skill_damage)
 
-	if guillotine.has_signal("dealt_damage"):
+	if skill_instance.has_signal("dealt_damage"):
 		var axe_ref = weakref(self)
-		guillotine.dealt_damage.connect(func(target, dmg):
+		skill_instance.dealt_damage.connect(func(target, dmg):
 			var axe = axe_ref.get_ref()
 			if axe:
 				axe.dealt_damage.emit(target, dmg)

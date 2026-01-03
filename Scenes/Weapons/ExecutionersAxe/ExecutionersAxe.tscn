@@ -1,9 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://executioners_axe"]
+[gd_scene load_steps=2 format=3 uid="uid://executioners_axe"]
 
 [ext_resource type="Script" path="res://Scripts/Weapons/ExecutionersAxe.gd" id="1_axe"]
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_axe"]
-size = Vector2(64, 130)
 
 [node name="ExecutionersAxe" type="Node2D"]
 script = ExtResource("1_axe")
@@ -33,15 +30,6 @@ offset_top = -100.0
 offset_right = -20.0
 offset_bottom = -65.0
 color = Color(0.7, 0.7, 0.75, 1)
-
-[node name="HitBox" type="Area2D" parent="Pivot"]
-collision_layer = 32
-collision_mask = 20
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Pivot/HitBox"]
-position = Vector2(0, -55)
-shape = SubResource("RectangleShape2D_axe")
-disabled = true
 
 [node name="AttackTimer" type="Timer" parent="."]
 wait_time = 0.6

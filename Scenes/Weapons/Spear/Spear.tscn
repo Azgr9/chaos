@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://dkowb1h8rqcvn"]
+[gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" uid="uid://dy6c2rr8ks33w" path="res://Scripts/Weapons/Spear.gd" id="1_spear"]
+[ext_resource type="Script" path="res://Scripts/Weapons/Spear.gd" id="1_spear"]
 
 [node name="Spear" type="Node2D"]
 script = ExtResource("1_spear")
@@ -13,6 +13,7 @@ attack_cone_angle = 45.0
 offset_left = -6.0
 offset_top = -140.0
 offset_right = 6.0
+offset_bottom = 0.0
 pivot_offset = Vector2(6, 140)
 color = Color(0.85, 0.7, 0.3, 1)
 

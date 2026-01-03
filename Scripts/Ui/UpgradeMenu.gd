@@ -34,17 +34,17 @@ const FULL_HEAL_PRICE := 50
 var free_heal_used: bool = false
 
 # MELEE WEAPONS
-const KATANA_SCENE = preload("res://Scenes/Weapons/Katana.tscn")
+const KATANA_SCENE = preload("res://Scenes/Weapons/Katana/Katana.tscn")
 const KATANA_PRICE = 10
-const EXECUTIONERS_AXE_SCENE = preload("res://Scenes/Weapons/ExecutionersAxe.tscn")
+const EXECUTIONERS_AXE_SCENE = preload("res://Scenes/Weapons/ExecutionersAxe/ExecutionersAxe.tscn")
 const AXE_PRICE = 15
-const RAPIER_SCENE = preload("res://Scenes/Weapons/Rapier.tscn")
+const RAPIER_SCENE = preload("res://Scenes/Weapons/Rapier/Rapier.tscn")
 const RAPIER_PRICE = 12
-const WARHAMMER_SCENE = preload("res://Scenes/Weapons/Warhammer.tscn")
+const WARHAMMER_SCENE = preload("res://Scenes/Weapons/Warhammer/Warhammer.tscn")
 const WARHAMMER_PRICE = 18
-const SCYTHE_SCENE = preload("res://Scenes/Weapons/Scythe.tscn")
+const SCYTHE_SCENE = preload("res://Scenes/Weapons/Scythe/Scythe.tscn")
 const SCYTHE_PRICE = 20
-const SPEAR_SCENE = preload("res://Scenes/Weapons/Spear.tscn")
+const SPEAR_SCENE = preload("res://Scenes/Weapons/Spear/Spear.tscn")
 const SPEAR_PRICE = 16
 
 # STAFFS

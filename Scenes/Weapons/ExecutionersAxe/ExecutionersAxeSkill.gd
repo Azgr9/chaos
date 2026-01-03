@@ -1,7 +1,7 @@
-# SCRIPT: GuillotineDrop.gd
-# ATTACH TO: GuillotineDrop (Node2D) root node in GuillotineDrop.tscn
-# LOCATION: res://Scripts/Weapons/GuillotineDrop.gd
-# Executioner's Axe skill - leap forward, deal 3x damage in small AoE
+# SCRIPT: ExecutionersAxeSkill.gd
+# ATTACH TO: ExecutionersAxeSkill (Node2D) root node in ExecutionersAxeSkill.tscn
+# LOCATION: res://Scenes/Weapons/ExecutionersAxe/ExecutionersAxeSkill.gd
+# Guillotine Drop - leap forward, deal 3x damage in small AoE
 
 extends Node2D
 
@@ -9,16 +9,18 @@ extends Node2D
 @onready var visual: Node2D = $Visual
 @onready var axe_visual: ColorRect = $Visual/Axe
 
-const LEAP_DISTANCE: float = 250.0  # How far to leap (increased)
-const LEAP_DURATION: float = 0.4
-const IMPACT_RADIUS: float = 100.0  # Bigger impact area
+@export var leap_distance: float = 250.0
+@export var leap_duration: float = 0.4
+@export var impact_radius: float = 100.0
+@export var damage: float = 75.0
+@export var knockback_force: float = 600.0
+@export var knockback_stun: float = 0.3
 
 # Visual colors
 const AXE_GLOW_COLOR: Color = Color(1.0, 0.3, 0.1)
 const BLOOD_COLOR: Color = Color(0.6, 0.1, 0.1)
 const SPARK_COLOR: Color = Color(1.0, 0.8, 0.3)
 
-var damage: float = 75.0
 var hits_this_slam: Array = []
 var player_ref: Node2D = null
 var leap_direction: Vector2 = Vector2.RIGHT
@@ -54,7 +56,7 @@ func _perform_leap():
 
 	# Start position
 	var start_pos = global_position
-	var end_pos = start_pos + leap_direction * LEAP_DISTANCE
+	var end_pos = start_pos + leap_direction * leap_distance
 
 	# Initial state - axe raised and glowing
 	visual.scale = Vector2(1.5, 1.5)
@@ -77,26 +79,26 @@ func _perform_leap():
 	var mid_pos = start_pos.lerp(end_pos, 0.5) + Vector2(0, -80)  # Peak of arc
 
 	# First half - rise up
-	tween.tween_property(self, "global_position", mid_pos, LEAP_DURATION * 0.4)\
+	tween.tween_property(self, "global_position", mid_pos, leap_duration * 0.4)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 	# Keep axe raised during rise
-	tween.parallel().tween_property(axe_visual, "rotation", deg_to_rad(-90), LEAP_DURATION * 0.4)
+	tween.parallel().tween_property(axe_visual, "rotation", deg_to_rad(-90), leap_duration * 0.4)
 
 	# Second half - slam down FAST
-	tween.tween_property(self, "global_position", end_pos, LEAP_DURATION * 0.3)\
+	tween.tween_property(self, "global_position", end_pos, leap_duration * 0.3)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 	# Axe swings down during descent
-	tween.parallel().tween_property(axe_visual, "rotation", deg_to_rad(110), LEAP_DURATION * 0.3)\
+	tween.parallel().tween_property(axe_visual, "rotation", deg_to_rad(110), leap_duration * 0.3)\
 		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
 
 	# Move player with us (smooth arc)
 	if player_ref:
 		var player_tween = TweenHelper.new_tween()
-		player_tween.tween_property(player_ref, "global_position", mid_pos, LEAP_DURATION * 0.4)\
+		player_tween.tween_property(player_ref, "global_position", mid_pos, leap_duration * 0.4)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		player_tween.tween_property(player_ref, "global_position", end_pos, LEAP_DURATION * 0.3)\
+		player_tween.tween_property(player_ref, "global_position", end_pos, leap_duration * 0.3)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 	# On impact
@@ -142,7 +144,7 @@ func _create_impact_effect():
 	# Deep ground cracks - more dramatic
 	for i in range(12):
 		var crack = ColorRect.new()
-		crack.size = Vector2(IMPACT_RADIUS * randf_range(0.8, 1.4), randf_range(4, 8))
+		crack.size = Vector2(impact_radius * randf_range(0.8, 1.4), randf_range(4, 8))
 		crack.color = Color(0.25, 0.15, 0.1, 0.9)
 		crack.pivot_offset = Vector2(0, crack.size.y / 2)
 		crack.rotation = (TAU / 12) * i + randf_range(-0.15, 0.15)
@@ -218,9 +220,6 @@ func _create_shockwave(delay: float, alpha: float):
 	tween.tween_property(shockwave, "modulate:a", 0.0, 0.4)
 	tween.tween_callback(shockwave.queue_free)
 
-# ============================================
-# VISUAL EFFECT HELPERS
-# ============================================
 func _create_leap_trail(start: Vector2, end: Vector2):
 	# Ghost images along the leap path
 	for i in range(5):
@@ -296,7 +295,7 @@ func _on_hit_box_area_entered(area: Area2D):
 
 	if target.has_method("take_damage"):
 		hits_this_slam.append(target)
-		target.take_damage(damage, global_position, 600.0, 0.3, player_ref)
+		target.take_damage(damage, global_position, knockback_force, knockback_stun, player_ref)
 		dealt_damage.emit(target, damage)
 
 func _on_hit_box_body_entered(body: Node2D):
@@ -305,5 +304,5 @@ func _on_hit_box_body_entered(body: Node2D):
 
 	if body.has_method("take_damage"):
 		hits_this_slam.append(body)
-		body.take_damage(damage, global_position, 600.0, 0.3, player_ref)
+		body.take_damage(damage, global_position, knockback_force, knockback_stun, player_ref)
 		dealt_damage.emit(body, damage)

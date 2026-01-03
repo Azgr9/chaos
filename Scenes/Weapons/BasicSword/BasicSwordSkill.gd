@@ -1,15 +1,19 @@
-# SCRIPT: SpinSlash.gd
-# ATTACH TO: SpinSlash (Node2D) root node in SpinSlash.tscn
-# LOCATION: res://Scripts/Weapons/SpinSlash.gd
+# SCRIPT: BasicSwordSkill.gd
+# ATTACH TO: BasicSwordSkill (Node2D) root node in BasicSwordSkill.tscn
+# LOCATION: res://Scenes/Weapons/BasicSword/BasicSwordSkill.gd
+# Spin Slash - AoE spinning attack
 
 extends Node2D
 
 @onready var hit_box: Area2D = $HitBox
 @onready var visual: Node2D = $Visual
 
-var damage: float = 20.0
+@export var damage: float = 20.0
+@export var spin_duration: float = 0.6
+@export var knockback_force: float = 400.0
+@export var knockback_stun: float = 0.2
+
 var hits_this_spin: Array = []
-var spin_duration: float = 0.6
 var owner_ref: Node2D = null  # Reference to who created the spin slash (for thorns)
 
 signal dealt_damage(target: Node2D, damage: float)
@@ -64,7 +68,7 @@ func _on_hit_box_area_entered(area: Area2D):
 
 	if target.has_method("take_damage"):
 		hits_this_spin.append(target)
-		target.take_damage(damage, global_position, 400.0, 0.2, owner_ref)
+		target.take_damage(damage, global_position, knockback_force, knockback_stun, owner_ref)
 		dealt_damage.emit(target, damage)
 
 func _on_hit_box_body_entered(body: Node2D):
@@ -73,5 +77,5 @@ func _on_hit_box_body_entered(body: Node2D):
 
 	if body.has_method("take_damage"):
 		hits_this_spin.append(body)
-		body.take_damage(damage, global_position, 400.0, 0.2, owner_ref)
+		body.take_damage(damage, global_position, knockback_force, knockback_stun, owner_ref)
 		dealt_damage.emit(body, damage)

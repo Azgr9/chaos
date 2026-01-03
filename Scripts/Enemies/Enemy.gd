@@ -143,6 +143,10 @@ func get_best_target() -> Node2D:
 	var best_target: Node2D = null
 	var best_distance: float = INF
 
+	# If this is a converted minion, target real enemies instead
+	if is_in_group("converted_minion"):
+		return _get_best_enemy_target()
+
 	# Check player
 	if player_reference and is_instance_valid(player_reference):
 		best_target = player_reference
@@ -157,6 +161,38 @@ func get_best_target() -> Node2D:
 		if dist < best_distance:
 			best_distance = dist
 			best_target = minion
+
+	return best_target
+
+## For converted minions - find nearest real enemy to attack
+func _get_best_enemy_target() -> Node2D:
+	var best_target: Node2D = null
+	var best_distance: float = 500.0  # Max targeting range
+
+	# Find real enemies (not other converted minions or portals)
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+		# Skip other converted minions
+		if enemy.is_in_group("converted_minion"):
+			continue
+		# Skip portals - don't attack them!
+		if enemy.is_in_group("portal"):
+			continue
+		var dist = global_position.distance_to(enemy.global_position)
+		if dist < best_distance:
+			best_distance = dist
+			best_target = enemy
+
+	# If no enemies nearby, follow player
+	if not best_target:
+		var player = get_tree().get_first_node_in_group("player")
+		if player and is_instance_valid(player):
+			var dist_to_player = global_position.distance_to(player.global_position)
+			# Only follow if far from player
+			if dist_to_player > 150:
+				best_target = player
 
 	return best_target
 
@@ -179,9 +215,14 @@ func _play_hit_flash():
 	# Instant bright white flash
 	modulate = HIT_FLASH_COLOR
 
-	# Always restore to white - prevents color corruption from rapid damage
+	# Determine target color - converted minions return to purple, others to white
+	var target_color = Color.WHITE
+	if is_in_group("converted_minion"):
+		target_color = Color(0.4, 0.2, 0.6, 1.0)  # Dark purple for minions
+
+	# Restore to appropriate color - prevents color corruption from rapid damage
 	_flash_tween = TweenHelper.new_tween()
-	_flash_tween.tween_property(self, "modulate", Color.WHITE, HIT_FLASH_DURATION)
+	_flash_tween.tween_property(self, "modulate", target_color, HIT_FLASH_DURATION)
 
 	# Squash effect on visuals pivot if it exists
 	_play_hit_squash()

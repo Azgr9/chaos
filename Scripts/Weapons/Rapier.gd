@@ -20,6 +20,11 @@ const RAPIER_GUARD_COLOR: Color = Color(0.7, 0.6, 0.3)  # Gold guard
 const RAPIER_THRUST_COLOR: Color = Color(0.5, 0.7, 1.0, 0.9)  # Blue thrust trail
 const RAPIER_SPARK_COLOR: Color = Color(1.0, 1.0, 1.0)  # White sparks
 
+# Shader references
+var thrust_shader: Shader = preload("res://Shaders/Weapons/ThrustTrail.gdshader")
+var spark_shader: Shader = preload("res://Shaders/Weapons/SparkBurst.gdshader")
+var energy_shader: Shader = preload("res://Shaders/Weapons/EnergyGlow.gdshader")
+
 func _weapon_ready():
 	# Rapier - longest range melee, pure precision stabs
 	damage = 7.0  # Lower per-hit but fastest attack speed
@@ -98,8 +103,6 @@ func _animate_precision_stab(duration: float, is_dash_attack: bool):
 	if active_attack_tween:
 		active_attack_tween.kill()
 		active_attack_tween = null
-		# Ensure hitbox is disabled if previous attack was interrupted
-		hit_box_collision.set_deferred("disabled", true)
 		_is_in_active_frames = false
 
 	active_attack_tween = TweenHelper.new_tween()
@@ -181,48 +184,65 @@ func _create_stab_trail(is_finisher: bool):
 	if not player_reference:
 		return
 
-	# Create sharp thrust line effect
-	var trail_length = 80.0 if is_finisher else 50.0
-	var trail_width = 4.0 if is_finisher else 2.0
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Shader-based thrust trail
+	var trail_length = 100.0 if is_finisher else 70.0
+	var trail_width = 16.0 if is_finisher else 10.0
 
 	var trail = ColorRect.new()
-	trail.size = Vector2(trail_width, trail_length)
-	trail.color = RAPIER_THRUST_COLOR if not is_finisher else Color(1.0, 0.9, 0.4, 0.9)
-	trail.pivot_offset = Vector2(trail_width / 2, trail_length / 2)
-	get_tree().current_scene.add_child(trail)
-	trail.global_position = global_position + current_attack_direction * 60
-	trail.rotation = current_attack_direction.angle() + PI/2
+	trail.size = Vector2(trail_length, trail_width)
+	trail.pivot_offset = Vector2(0, trail_width / 2)
+	scene.add_child(trail)
+	trail.global_position = global_position + current_attack_direction * 30
+	trail.rotation = current_attack_direction.angle()
+
+	var mat = ShaderMaterial.new()
+	mat.shader = thrust_shader
+	mat.set_shader_parameter("thrust_color", RAPIER_THRUST_COLOR if not is_finisher else Color(1.0, 0.9, 0.5, 0.9))
+	mat.set_shader_parameter("tip_color", RAPIER_SPARK_COLOR)
+	mat.set_shader_parameter("glow_intensity", 2.5 if is_finisher else 1.8)
+	mat.set_shader_parameter("sharpness", 4.0)
+	mat.set_shader_parameter("progress", 0.0)
+	trail.material = mat
 
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(trail, "scale", Vector2(0.3, 1.8), 0.06)
-	tween.tween_property(trail, "modulate:a", 0.0, 0.10)
-	tween.chain().tween_callback(trail.queue_free)
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.1)
+	tween.tween_callback(trail.queue_free)
 
 	# Additional spark effect for finisher
 	if is_finisher:
 		_create_thrust_sparks()
 
 func _create_thrust_sparks():
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
 	var hit_pos = global_position + current_attack_direction * 100
 
-	for i in range(4):
-		var spark = ColorRect.new()
-		spark.size = Vector2(3, 12)
-		spark.color = RAPIER_SPARK_COLOR
-		spark.pivot_offset = Vector2(1.5, 6)
-		get_tree().current_scene.add_child(spark)
-		spark.global_position = hit_pos
+	# Shader-based spark burst
+	var spark_burst = ColorRect.new()
+	spark_burst.size = Vector2(80, 80)
+	spark_burst.pivot_offset = Vector2(40, 40)
+	spark_burst.global_position = hit_pos - Vector2(40, 40)
 
-		var angle = current_attack_direction.angle() + randf_range(-0.4, 0.4)
-		var dir = Vector2.from_angle(angle)
-		spark.rotation = angle
+	var mat = ShaderMaterial.new()
+	mat.shader = spark_shader
+	mat.set_shader_parameter("spark_color", RAPIER_THRUST_COLOR)
+	mat.set_shader_parameter("hot_color", RAPIER_SPARK_COLOR)
+	mat.set_shader_parameter("spark_count", 6.0)
+	mat.set_shader_parameter("rotation_speed", 8.0)
+	mat.set_shader_parameter("progress", 0.0)
+	spark_burst.material = mat
 
-		var stween = TweenHelper.new_tween()
-		stween.set_parallel(true)
-		stween.tween_property(spark, "global_position", hit_pos + dir * 35, 0.08)
-		stween.tween_property(spark, "modulate:a", 0.0, 0.10)
-		stween.chain().tween_callback(spark.queue_free)
+	scene.add_child(spark_burst)
+
+	var tween = TweenHelper.new_tween()
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.12)
+	tween.tween_callback(spark_burst.queue_free)
 
 # ============================================
 # FLURRY SKILL - Rapid multi-stab barrage
@@ -319,42 +339,86 @@ func _perform_flurry_stab(direction: Vector2, stab_index: int):
 					dealt_damage.emit(enemy, flurry_damage)
 
 func _create_mini_stab_trail(stab_dir: Vector2):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Shader-based mini thrust trail
 	var trail = ColorRect.new()
-	trail.size = Vector2(2, 40)
-	trail.color = Color(0.5, 0.7, 1.0, 0.6)
-	trail.pivot_offset = Vector2(1, 20)
-	get_tree().current_scene.add_child(trail)
-	trail.global_position = global_position + stab_dir * 50
-	trail.rotation = stab_dir.angle() + PI/2
+	trail.size = Vector2(50, 8)
+	trail.pivot_offset = Vector2(0, 4)
+	scene.add_child(trail)
+	trail.global_position = global_position + stab_dir * 30
+	trail.rotation = stab_dir.angle()
+
+	var mat = ShaderMaterial.new()
+	mat.shader = thrust_shader
+	mat.set_shader_parameter("thrust_color", Color(0.5, 0.7, 1.0, 0.7))
+	mat.set_shader_parameter("tip_color", RAPIER_SPARK_COLOR)
+	mat.set_shader_parameter("glow_intensity", 1.5)
+	mat.set_shader_parameter("sharpness", 3.5)
+	mat.set_shader_parameter("progress", 0.0)
+	trail.material = mat
 
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(trail, "modulate:a", 0.0, 0.08)
-	tween.chain().tween_callback(trail.queue_free)
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.08)
+	tween.tween_callback(trail.queue_free)
 
 func _create_flurry_finish_effect(direction: Vector2):
-	# Final thrust line burst
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
 	var hit_pos = global_position + direction * 100
 
+	# Shader-based spark burst for finish
+	var spark_burst = ColorRect.new()
+	spark_burst.size = Vector2(140, 140)
+	spark_burst.pivot_offset = Vector2(70, 70)
+	spark_burst.global_position = hit_pos - Vector2(70, 70)
+
+	var mat = ShaderMaterial.new()
+	mat.shader = spark_shader
+	mat.set_shader_parameter("spark_color", Color(0.6, 0.8, 1.0, 0.9))
+	mat.set_shader_parameter("hot_color", RAPIER_SPARK_COLOR)
+	mat.set_shader_parameter("spark_count", 10.0)
+	mat.set_shader_parameter("rotation_speed", 10.0)
+	mat.set_shader_parameter("progress", 0.0)
+	spark_burst.material = mat
+
+	scene.add_child(spark_burst)
+
+	var tween = TweenHelper.new_tween()
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.2)
+	tween.tween_callback(spark_burst.queue_free)
+
+	# Energy burst lines with shader
 	for i in range(8):
 		var line = ColorRect.new()
-		line.size = Vector2(2, 60)
-		line.color = Color(0.6, 0.8, 1.0, 0.8)
-		line.pivot_offset = Vector2(1, 30)
-		get_tree().current_scene.add_child(line)
-		line.global_position = hit_pos
+		line.size = Vector2(70, 10)
+		line.pivot_offset = Vector2(0, 5)
+		scene.add_child(line)
 
-		var angle = direction.angle() + (i - 3.5) * 0.15
-		line.rotation = angle + PI/2
+		var angle = direction.angle() + (i - 3.5) * 0.18
+		line.global_position = hit_pos
+		line.rotation = angle
+
+		var line_mat = ShaderMaterial.new()
+		line_mat.shader = thrust_shader
+		line_mat.set_shader_parameter("thrust_color", Color(0.6, 0.8, 1.0, 0.8))
+		line_mat.set_shader_parameter("tip_color", RAPIER_SPARK_COLOR)
+		line_mat.set_shader_parameter("glow_intensity", 2.0)
+		line_mat.set_shader_parameter("sharpness", 3.0)
+		line_mat.set_shader_parameter("progress", 0.0)
+		line.material = line_mat
 
 		var dir = Vector2.from_angle(angle)
 
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(line, "global_position", hit_pos + dir * 50, 0.12)
-		tween.tween_property(line, "scale:y", 0.3, 0.12)
-		tween.tween_property(line, "modulate:a", 0.0, 0.12)
-		tween.chain().tween_callback(line.queue_free)
+		var l_tween = TweenHelper.new_tween()
+		l_tween.set_parallel(true)
+		l_tween.tween_property(line, "global_position", hit_pos + dir * 50, 0.12)
+		l_tween.tween_method(func(p): line_mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.12)
+		l_tween.tween_callback(line.queue_free)
 
 	DamageNumberManager.shake(0.25)
 
@@ -366,39 +430,51 @@ func _on_combo_finisher_hit(target: Node2D):
 	_create_precision_thrust_effect(hit_pos)
 
 func _create_precision_thrust_effect(hit_pos: Vector2):
-	# Large thrust line through target
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Shader-based large thrust line through target
 	var thrust_line = ColorRect.new()
-	thrust_line.size = Vector2(5, 140)
-	thrust_line.color = Color(1.0, 0.95, 0.7, 0.9)
-	thrust_line.pivot_offset = Vector2(2.5, 70)
-	get_tree().current_scene.add_child(thrust_line)
-	thrust_line.global_position = hit_pos
-	thrust_line.rotation = current_attack_direction.angle() + PI/2
+	thrust_line.size = Vector2(160, 20)
+	thrust_line.pivot_offset = Vector2(80, 10)
+	scene.add_child(thrust_line)
+	thrust_line.global_position = hit_pos - Vector2(80, 10)
+	thrust_line.rotation = current_attack_direction.angle()
+
+	var mat = ShaderMaterial.new()
+	mat.shader = thrust_shader
+	mat.set_shader_parameter("thrust_color", Color(1.0, 0.95, 0.7, 0.9))
+	mat.set_shader_parameter("tip_color", RAPIER_SPARK_COLOR)
+	mat.set_shader_parameter("glow_intensity", 3.0)
+	mat.set_shader_parameter("sharpness", 4.0)
+	mat.set_shader_parameter("progress", 0.0)
+	thrust_line.material = mat
 
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(thrust_line, "scale", Vector2(0.2, 1.8), 0.08)
-	tween.tween_property(thrust_line, "modulate:a", 0.0, 0.15)
-	tween.chain().tween_callback(thrust_line.queue_free)
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.15)
+	tween.tween_callback(thrust_line.queue_free)
 
-	# Radial spark burst
-	for i in range(8):
-		var spark = ColorRect.new()
-		spark.size = Vector2(3, 15)
-		spark.color = RAPIER_SPARK_COLOR
-		spark.pivot_offset = Vector2(1.5, 7.5)
-		get_tree().current_scene.add_child(spark)
-		spark.global_position = hit_pos
+	# Shader-based radial spark burst
+	var spark_burst = ColorRect.new()
+	spark_burst.size = Vector2(120, 120)
+	spark_burst.pivot_offset = Vector2(60, 60)
+	spark_burst.global_position = hit_pos - Vector2(60, 60)
 
-		var angle = (TAU / 8) * i
-		var dir = Vector2.from_angle(angle)
-		spark.rotation = angle
+	var spark_mat = ShaderMaterial.new()
+	spark_mat.shader = spark_shader
+	spark_mat.set_shader_parameter("spark_color", RAPIER_THRUST_COLOR)
+	spark_mat.set_shader_parameter("hot_color", RAPIER_SPARK_COLOR)
+	spark_mat.set_shader_parameter("spark_count", 8.0)
+	spark_mat.set_shader_parameter("rotation_speed", 6.0)
+	spark_mat.set_shader_parameter("progress", 0.0)
+	spark_burst.material = spark_mat
 
-		var stween = TweenHelper.new_tween()
-		stween.set_parallel(true)
-		stween.tween_property(spark, "global_position", hit_pos + dir * 50, 0.10)
-		stween.tween_property(spark, "modulate:a", 0.0, 0.12)
-		stween.chain().tween_callback(spark.queue_free)
+	scene.add_child(spark_burst)
+
+	var spark_tween = TweenHelper.new_tween()
+	spark_tween.tween_method(func(p): spark_mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.15)
+	spark_tween.tween_callback(spark_burst.queue_free)
 
 # Block attacks during flurry
 func attack(direction: Vector2, player_damage_multiplier: float = 1.0) -> bool:

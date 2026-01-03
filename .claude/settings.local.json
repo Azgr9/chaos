@@ -14,7 +14,14 @@
       "Bash(powershell -Command:*)",
       "Bash(grep:*)",
       "Bash(del \"C:\\Users\\alizg\\OneDrive\\Desktop\\chaos\\Scripts\\Systems\\DifficultyManager.gd\")",
-      "Bash(del \"C:\\Users\\alizg\\OneDrive\\Desktop\\chaos\\Scripts\\Systems\\VFXManager.gd\")"
+      "Bash(del \"C:\\Users\\alizg\\OneDrive\\Desktop\\chaos\\Scripts\\Systems\\VFXManager.gd\")",
+      "Bash(ls:*)",
+      "Bash(del \"C:\\Users\\alizg\\OneDrive\\Desktop\\chaos\\Scripts\\Weapons\\SpinSlash.gd\")",
+      "Bash(del \"C:\\Users\\alizg\\OneDrive\\Desktop\\chaos\\Scripts\\Weapons\\SpinSlash.gd.uid\")",
+      "Bash(del \"C:\\Users\\alizg\\OneDrive\\Desktop\\chaos\\Scripts\\Weapons\\GuillotineDrop.gd\")",
+      "Bash(del \"C:\\Users\\alizg\\OneDrive\\Desktop\\chaos\\Scripts\\Weapons\\GuillotineDrop.gd.uid\")",
+      "Bash(dir:*)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []

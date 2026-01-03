@@ -9,7 +9,7 @@ extends Control
 @onready var buy_button: Button = $Panel/VBoxContainer/BuyButton
 @onready var close_button: Button = $Panel/VBoxContainer/CloseButton
 
-const KATANA_SCENE = preload("res://Scenes/Weapons/Katana.tscn")
+const KATANA_SCENE = preload("res://Scenes/Weapons/Katana/Katana.tscn")
 const KATANA_PRICE = 1
 
 var player_reference: Node2D = null

@@ -42,6 +42,12 @@ const DEFAULT_BEAM_RANGE: float = 800.0
 ## Enable hit-stop on skill impact
 @export var enable_skill_hit_stop: bool = true
 
+@export_group("Trail Settings")
+## Enable casting trail effect
+@export var enable_cast_trail: bool = true
+## Trail width
+@export var trail_width: float = 20.0
+
 # ============================================
 # NODES - Expected in scene tree
 # ============================================
@@ -61,6 +67,15 @@ var player_reference: Node2D = null
 var skill_ready: bool = true
 var skill_timer: float = 0.0
 var is_using_skill: bool = false
+
+# Trail system
+var _active_trail: Line2D = null
+var _trail_points: Array[Vector2] = []
+var _trail_shader_material: ShaderMaterial = null
+var _is_casting: bool = false
+const TRAIL_MAX_POINTS: int = 16
+const TRAIL_FADE_SPEED: float = 5.0
+var _magic_trail_shader: Shader = preload("res://Shaders/Weapons/MagicTrail.gdshader")
 
 # Cached enemy group for efficiency
 var _cached_enemies: Array = []
@@ -103,6 +118,7 @@ func _exit_tree():
 
 func _process(delta):
 	_update_skill_cooldown(delta)
+	_update_cast_trail()
 	_weapon_process(delta)
 
 # ============================================
@@ -321,6 +337,9 @@ func _calculate_spread_angle(projectile_index: int) -> float:
 		return randf_range(-deg_to_rad(projectile_spread), deg_to_rad(projectile_spread))
 
 func _play_attack_animation():
+	# Start cast trail
+	_create_cast_trail()
+
 	# Muzzle flash
 	muzzle_flash.modulate.a = 1.0
 	var flash_tween = TweenHelper.new_tween()
@@ -334,9 +353,12 @@ func _play_attack_animation():
 	# Staff glow
 	var original_color = sprite.color
 	sprite.color = staff_color.lightened(0.3)
-	await get_tree().create_timer(0.1).timeout
+	await get_tree().create_timer(0.15).timeout
 	if is_instance_valid(self) and sprite:
 		sprite.color = original_color
+
+	# End cast trail after animation
+	_end_cast_trail()
 
 func _on_cooldown_finished():
 	can_attack = true
@@ -472,3 +494,105 @@ func _create_beam_hit_effect(pos: Vector2):
 	tween.tween_property(flash, "scale", Vector2(2, 2), 0.2)
 	tween.tween_property(flash, "modulate:a", 0.0, 0.2)
 	tween.chain().tween_callback(flash.queue_free)
+
+# ============================================
+# CAST TRAIL SYSTEM
+# ============================================
+func _create_cast_trail():
+	if not enable_cast_trail:
+		return
+
+	_trail_points.clear()
+	_is_casting = true
+
+	if _active_trail and is_instance_valid(_active_trail):
+		_active_trail.queue_free()
+
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	_active_trail = Line2D.new()
+	_active_trail.width = trail_width
+	_active_trail.default_color = Color.WHITE
+	_active_trail.joint_mode = Line2D.LINE_JOINT_ROUND
+	_active_trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_active_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_active_trail.texture_mode = Line2D.LINE_TEXTURE_STRETCH
+
+	# Width curve - thin at old, thick at new
+	var width_curve = Curve.new()
+	width_curve.add_point(Vector2(0.0, 0.0))
+	width_curve.add_point(Vector2(0.5, 0.5))
+	width_curve.add_point(Vector2(1.0, 1.0))
+	_active_trail.width_curve = width_curve
+
+	# Apply shader
+	_trail_shader_material = ShaderMaterial.new()
+	_trail_shader_material.shader = _magic_trail_shader
+
+	var trail_color = _get_trail_color()
+	var glow_color = _get_trail_glow_color()
+
+	_trail_shader_material.set_shader_parameter("trail_color", trail_color)
+	_trail_shader_material.set_shader_parameter("glow_color", glow_color)
+	_trail_shader_material.set_shader_parameter("glow_intensity", _get_trail_glow_intensity())
+	_trail_shader_material.set_shader_parameter("pulse_speed", _get_trail_pulse_speed())
+	_trail_shader_material.set_shader_parameter("sparkle_amount", _get_trail_sparkle_amount())
+
+	_active_trail.material = _trail_shader_material
+	scene.add_child(_active_trail)
+
+func _get_staff_tip_position() -> Vector2:
+	if projectile_spawn:
+		return projectile_spawn.global_position
+	return global_position
+
+func _update_cast_trail():
+	if not _active_trail or not is_instance_valid(_active_trail):
+		return
+
+	if not _is_casting:
+		# Fade out
+		if _active_trail.modulate.a > 0:
+			_active_trail.modulate.a -= get_process_delta_time() * TRAIL_FADE_SPEED
+			if _active_trail.modulate.a <= 0:
+				_active_trail.queue_free()
+				_active_trail = null
+				_trail_points.clear()
+		return
+
+	# Add current tip position
+	var tip_pos = _get_staff_tip_position()
+	_trail_points.append(tip_pos)
+
+	# Limit trail length
+	while _trail_points.size() > TRAIL_MAX_POINTS:
+		_trail_points.remove_at(0)
+
+	# Update Line2D
+	_active_trail.clear_points()
+	for point in _trail_points:
+		_active_trail.add_point(point)
+
+func _end_cast_trail():
+	_is_casting = false
+
+# ============================================
+# VIRTUAL TRAIL METHODS - Override in subclasses
+# ============================================
+func _get_trail_color() -> Color:
+	# Default arcane blue
+	return Color(0.4, 0.8, 1.0, 0.9)
+
+func _get_trail_glow_color() -> Color:
+	return Color(1.0, 1.0, 1.0, 1.0)
+
+func _get_trail_glow_intensity() -> float:
+	return 1.5
+
+func _get_trail_pulse_speed() -> float:
+	return 4.0
+
+func _get_trail_sparkle_amount() -> float:
+	return 0.3

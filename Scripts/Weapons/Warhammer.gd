@@ -14,6 +14,15 @@ const EARTHQUAKE_RADIUS: float = 200.0
 const EARTHQUAKE_DAMAGE_MULTIPLIER: float = 2.0
 const EARTHQUAKE_STUN: float = 0.8
 
+# Shader references
+var shockwave_shader: Shader = preload("res://Shaders/Weapons/ImpactShockwave.gdshader")
+var crack_shader: Shader = preload("res://Shaders/Weapons/GroundCrack.gdshader")
+var energy_shader: Shader = preload("res://Shaders/Weapons/EnergyGlow.gdshader")
+
+# Colors
+const HAMMER_GLOW_COLOR: Color = Color(1.0, 0.5, 0.1)  # Orange impact
+const HAMMER_EARTH_COLOR: Color = Color(0.5, 0.4, 0.25)  # Earth brown
+
 func _weapon_ready():
 	# Warhammer: extremely slow but devastating
 	damage = 35.0
@@ -156,43 +165,76 @@ func _create_ground_crack():
 	if not player_reference:
 		return
 
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
 	var impact_pos = player_reference.global_position + current_attack_direction * 70
 
 	# Big screen shake
 	if DamageNumberManager:
 		DamageNumberManager.shake(0.5)
 
-	# Shockwave ring
+	# Shader-based shockwave
 	var ring = ColorRect.new()
-	ring.size = Vector2(40, 40)
-	ring.color = Color(0.5, 0.4, 0.3, 0.9)
-	ring.pivot_offset = Vector2(20, 20)
-	get_tree().current_scene.add_child(ring)
-	ring.global_position = impact_pos - Vector2(20, 20)
+	ring.size = Vector2(200, 200)
+	ring.pivot_offset = Vector2(100, 100)
+	ring.global_position = impact_pos - Vector2(100, 100)
+
+	var mat = ShaderMaterial.new()
+	mat.shader = shockwave_shader
+	mat.set_shader_parameter("wave_color", HAMMER_GLOW_COLOR)
+	mat.set_shader_parameter("ring_thickness", 0.15)
+	mat.set_shader_parameter("inner_glow", 1.8)
+	mat.set_shader_parameter("progress", 0.0)
+	ring.material = mat
+
+	scene.add_child(ring)
 
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(ring, "scale", Vector2(5, 5), 0.4)
-	tween.tween_property(ring, "modulate:a", 0.0, 0.4)
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.4)
 	tween.tween_callback(ring.queue_free)
 
-	# Debris particles
+	# Shader-based ground cracks
 	for i in range(8):
+		var crack = ColorRect.new()
+		crack.size = Vector2(randf_range(70, 110), 8)
+		crack.pivot_offset = Vector2(0, 4)
+		crack.rotation = (TAU / 8) * i + randf_range(-0.2, 0.2)
+		crack.global_position = impact_pos
+
+		var crack_mat = ShaderMaterial.new()
+		crack_mat.shader = crack_shader
+		crack_mat.set_shader_parameter("crack_color", HAMMER_EARTH_COLOR)
+		crack_mat.set_shader_parameter("glow_color", HAMMER_GLOW_COLOR)
+		crack_mat.set_shader_parameter("progress", 0.0)
+		crack.material = crack_mat
+
+		scene.add_child(crack)
+
+		var crack_tween = TweenHelper.new_tween()
+		crack_tween.tween_method(func(p): crack_mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.5)
+		crack_tween.tween_callback(crack.queue_free)
+
+	# Debris particles
+	for i in range(10):
 		var debris = ColorRect.new()
-		debris.size = Vector2(16, 16)
-		debris.color = Color(0.4, 0.35, 0.25, 0.9)
-		get_tree().current_scene.add_child(debris)
+		debris.size = Vector2(randf_range(12, 20), randf_range(12, 20))
+		debris.color = Color(0.45, 0.38, 0.28, 1.0)
+		debris.pivot_offset = debris.size / 2
+		scene.add_child(debris)
 		debris.global_position = impact_pos
 
-		var angle = (TAU / 8) * i + randf_range(-0.3, 0.3)
+		var angle = (TAU / 10) * i + randf_range(-0.25, 0.25)
 		var dir = Vector2.from_angle(angle)
-		var dist = randf_range(60, 120)
+		var dist = randf_range(70, 140)
 
 		var dtween = TweenHelper.new_tween()
 		dtween.set_parallel(true)
-		dtween.tween_property(debris, "global_position", impact_pos + dir * dist, 0.3)
-		dtween.tween_property(debris, "global_position:y", debris.global_position.y + 50, 0.3).set_delay(0.15)
-		dtween.tween_property(debris, "modulate:a", 0.0, 0.3)
+		dtween.tween_property(debris, "global_position", impact_pos + dir * dist, 0.35)
+		dtween.tween_property(debris, "global_position:y", debris.global_position.y + 60, 0.35).set_delay(0.18)
+		dtween.tween_property(debris, "rotation", randf_range(-TAU, TAU), 0.35)
+		dtween.tween_property(debris, "modulate:a", 0.0, 0.35)
 		dtween.tween_callback(debris.queue_free)
 
 # ============================================
@@ -314,17 +356,29 @@ func _create_shockwave_ring(pos: Vector2, delay: float):
 	if not is_instance_valid(self):
 		return
 
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Massive shader-based shockwave for earthquake
 	var ring = ColorRect.new()
-	ring.size = Vector2(50, 50)
-	ring.color = Color(0.6, 0.4, 0.2, 0.8)
-	ring.pivot_offset = Vector2(25, 25)
-	get_tree().current_scene.add_child(ring)
-	ring.global_position = pos - Vector2(25, 25)
+	ring.size = Vector2(EARTHQUAKE_RADIUS * 2, EARTHQUAKE_RADIUS * 2)
+	ring.pivot_offset = Vector2(EARTHQUAKE_RADIUS, EARTHQUAKE_RADIUS)
+	ring.global_position = pos - Vector2(EARTHQUAKE_RADIUS, EARTHQUAKE_RADIUS)
+
+	var mat = ShaderMaterial.new()
+	mat.shader = shockwave_shader
+	mat.set_shader_parameter("wave_color", Color(0.7, 0.5, 0.2, 0.9))
+	mat.set_shader_parameter("ring_thickness", 0.1)
+	mat.set_shader_parameter("inner_glow", 2.0)
+	mat.set_shader_parameter("distortion", 0.03)
+	mat.set_shader_parameter("progress", 0.0)
+	ring.material = mat
+
+	scene.add_child(ring)
 
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(ring, "scale", Vector2(EARTHQUAKE_RADIUS / 25, EARTHQUAKE_RADIUS / 25), 0.4)
-	tween.tween_property(ring, "modulate:a", 0.0, 0.4)
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.5)
 	tween.tween_callback(ring.queue_free)
 
 func _create_earthquake_debris(pos: Vector2):

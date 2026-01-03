@@ -8,12 +8,14 @@ extends MeleeWeapon
 # ============================================
 # SWORD-SPECIFIC SETTINGS
 # ============================================
-const SPIN_SLASH_SCENE = preload("res://Scenes/Weapons/SpinSlash.tscn")
+const SKILL_SCENE = preload("res://Scenes/Weapons/BasicSword/BasicSwordSkill.tscn")
 
 # Visual colors
 const SWORD_BLADE_COLOR: Color = Color(0.85, 0.85, 0.9)  # Polished silver
 const SWORD_EDGE_COLOR: Color = Color(1.0, 1.0, 1.0)  # Bright edge
-const SWORD_TRAIL_COLOR: Color = Color(0.7, 0.8, 1.0, 0.6)  # Blue-white trail
+
+# Shaders
+var spark_shader: Shader = preload("res://Shaders/Weapons/SparkBurst.gdshader")
 
 func _weapon_ready():
 	# BasicSword - balanced all-rounder
@@ -51,15 +53,15 @@ func _perform_skill() -> bool:
 	if not player:
 		return false
 
-	var spin_slash = SPIN_SLASH_SCENE.instantiate()
-	get_tree().current_scene.add_child(spin_slash)
+	var skill_instance = SKILL_SCENE.instantiate()
+	get_tree().current_scene.add_child(skill_instance)
 
 	var slash_damage = damage * 2.0 * damage_multiplier
-	spin_slash.initialize(player.global_position, slash_damage, player)
+	skill_instance.initialize(player.global_position, slash_damage, player)
 
-	if spin_slash.has_signal("dealt_damage"):
+	if skill_instance.has_signal("dealt_damage"):
 		var sword_ref = weakref(self)
-		spin_slash.dealt_damage.connect(func(target, dmg):
+		skill_instance.dealt_damage.connect(func(target, dmg):
 			var sword = sword_ref.get_ref()
 			if sword:
 				sword.dealt_damage.emit(target, dmg)
@@ -76,34 +78,6 @@ func _get_hit_color(combo_finisher: bool, dash_attack: bool, crit: bool) -> Colo
 		return Color.CYAN
 	return SWORD_BLADE_COLOR
 
-# Visual swing trail for BasicSword
-func _perform_attack_animation(pattern: String, duration: float, is_dash_attack: bool):
-	# Call parent animation
-	super._perform_attack_animation(pattern, duration, is_dash_attack)
-
-	# Add swing trail effect
-	_create_sword_swing_trail()
-
-func _create_sword_swing_trail():
-	if not player_reference:
-		return
-
-	# Create multiple trail segments
-	for i in range(4):
-		var trail = ColorRect.new()
-		trail.size = Vector2(8, weapon_length * 0.7)
-		trail.color = SWORD_TRAIL_COLOR
-		trail.pivot_offset = Vector2(4, weapon_length * 0.35)
-		get_tree().current_scene.add_child(trail)
-		trail.global_position = global_position
-		trail.rotation = pivot.rotation + randf_range(-0.2, 0.2)
-
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(trail, "modulate:a", 0.0, 0.15)
-		tween.tween_property(trail, "scale", Vector2(0.3, 1.0), 0.15)
-		tween.tween_callback(trail.queue_free)
-
 func _on_combo_finisher_hit(_target: Node2D):
 	# Create flash effect on finisher
 	DamageNumberManager.shake(0.3)
@@ -113,15 +87,43 @@ func _create_finisher_flash():
 	if not player_reference:
 		return
 
-	var flash = ColorRect.new()
-	flash.size = Vector2(60, 60)
-	flash.color = Color(1.0, 1.0, 0.8, 0.8)
-	flash.pivot_offset = Vector2(30, 30)
-	get_tree().current_scene.add_child(flash)
-	flash.global_position = player_reference.global_position + current_attack_direction * 50
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	var hit_pos = player_reference.global_position + current_attack_direction * 50
+
+	# Spark burst with shader
+	var spark_burst = ColorRect.new()
+	spark_burst.size = Vector2(120, 120)
+	spark_burst.pivot_offset = Vector2(60, 60)
+	spark_burst.global_position = hit_pos - Vector2(60, 60)
+
+	var mat = ShaderMaterial.new()
+	mat.shader = spark_shader
+	mat.set_shader_parameter("spark_color", Color(0.8, 0.9, 1.0, 0.9))
+	mat.set_shader_parameter("hot_color", SWORD_EDGE_COLOR)
+	mat.set_shader_parameter("spark_count", 8.0)
+	mat.set_shader_parameter("rotation_speed", 5.0)
+	mat.set_shader_parameter("progress", 0.0)
+	spark_burst.material = mat
+
+	scene.add_child(spark_burst)
 
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(flash, "scale", Vector2(2, 2), 0.2)
-	tween.tween_property(flash, "modulate:a", 0.0, 0.2)
-	tween.tween_callback(flash.queue_free)
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.25)
+	tween.tween_callback(spark_burst.queue_free)
+
+	# Additional glow flash
+	var flash = ColorRect.new()
+	flash.size = Vector2(80, 80)
+	flash.color = Color(1.0, 1.0, 0.9, 0.6)
+	flash.pivot_offset = Vector2(40, 40)
+	scene.add_child(flash)
+	flash.global_position = hit_pos - Vector2(40, 40)
+
+	var flash_tween = TweenHelper.new_tween()
+	flash_tween.set_parallel(true)
+	flash_tween.tween_property(flash, "scale", Vector2(2.5, 2.5), 0.15)
+	flash_tween.tween_property(flash, "modulate:a", 0.0, 0.15)
+	flash_tween.tween_callback(flash.queue_free)

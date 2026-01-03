@@ -21,6 +21,11 @@ const SCYTHE_HANDLE_COLOR: Color = Color(0.15, 0.1, 0.2)  # Dark handle
 const SCYTHE_SOUL_COLOR: Color = Color(0.4, 0.9, 0.5)  # Green soul energy
 const SCYTHE_TRAIL_COLOR: Color = Color(0.5, 0.1, 0.6, 0.7)  # Dark purple trail
 
+# Shader references
+var swing_shader: Shader = preload("res://Shaders/Weapons/SwingTrail.gdshader")
+var soul_shader: Shader = preload("res://Shaders/Weapons/SoulEffect.gdshader")
+var shockwave_shader: Shader = preload("res://Shaders/Weapons/ImpactShockwave.gdshader")
+
 # Reap state
 var souls_collected: int = 0
 var is_reaping: bool = false
@@ -204,31 +209,36 @@ func _create_soul_steal_effect(from_pos: Vector2):
 	if not player_reference:
 		return
 
-	# Soul orb travels from enemy to player
-	var soul = ColorRect.new()
-	soul.size = Vector2(12, 12)
-	soul.color = SCYTHE_SOUL_COLOR
-	soul.pivot_offset = Vector2(6, 6)
-
 	var scene = get_tree().current_scene
 	if not scene:
 		return
+
+	# Shader-based soul orb travels from enemy to player
+	var soul = ColorRect.new()
+	soul.size = Vector2(30, 30)
+	soul.pivot_offset = Vector2(15, 15)
+
+	var mat = ShaderMaterial.new()
+	mat.shader = soul_shader
+	mat.set_shader_parameter("soul_color", SCYTHE_SOUL_COLOR)
+	mat.set_shader_parameter("core_color", Color(0.8, 1.0, 0.9))
+	mat.set_shader_parameter("pulse_speed", 8.0)
+	mat.set_shader_parameter("wisp_intensity", 0.6)
+	soul.material = mat
+
 	scene.add_child(soul)
-	soul.global_position = from_pos
+	soul.global_position = from_pos - Vector2(15, 15)
 
 	# Curved path to player
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
 
 	# Arc upward then to player
 	var mid_point = from_pos + Vector2(0, -50) + (player_reference.global_position - from_pos) * 0.5
 
-	tween.tween_property(soul, "global_position", mid_point, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.chain().tween_property(soul, "global_position", player_reference.global_position, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-
-	tween.tween_property(soul, "scale", Vector2(0.5, 0.5), 0.3)
-	tween.tween_property(soul, "modulate:a", 0.0, 0.3).set_delay(0.2)
-	tween.chain().tween_callback(soul.queue_free)
+	tween.tween_property(soul, "global_position", mid_point - Vector2(15, 15), 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(soul, "global_position", player_reference.global_position - Vector2(15, 15), 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(soul, "scale", Vector2(0.3, 0.3), 0.1)
+	tween.tween_callback(soul.queue_free)
 
 # ============================================
 # VISUAL EFFECTS
@@ -241,21 +251,28 @@ func _create_soul_wisps():
 	if not scene:
 		return
 
-	for i in range(3):
+	for i in range(4):
 		var wisp = ColorRect.new()
-		wisp.size = Vector2(6, 6)
-		wisp.color = Color(SCYTHE_SOUL_COLOR.r, SCYTHE_SOUL_COLOR.g, SCYTHE_SOUL_COLOR.b, 0.6)
-		wisp.pivot_offset = Vector2(3, 3)
+		wisp.size = Vector2(20, 20)
+		wisp.pivot_offset = Vector2(10, 10)
+
+		var mat = ShaderMaterial.new()
+		mat.shader = soul_shader
+		mat.set_shader_parameter("soul_color", SCYTHE_SOUL_COLOR)
+		mat.set_shader_parameter("core_color", Color(0.6, 1.0, 0.7))
+		mat.set_shader_parameter("pulse_speed", 6.0 + randf() * 4.0)
+		mat.set_shader_parameter("wisp_intensity", 0.8)
+		wisp.material = mat
+
 		scene.add_child(wisp)
 
-		var offset = Vector2(randf_range(-30, 30), randf_range(-30, 30))
-		wisp.global_position = global_position + offset
+		var offset = Vector2(randf_range(-40, 40), randf_range(-40, 40))
+		wisp.global_position = global_position + offset - Vector2(10, 10)
 
 		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
-		tween.tween_property(wisp, "global_position", global_position, 0.2)
-		tween.tween_property(wisp, "modulate:a", 0.0, 0.2)
-		tween.tween_property(wisp, "scale", Vector2(0.3, 0.3), 0.2)
+		tween.tween_property(wisp, "global_position", global_position - Vector2(10, 10), 0.2)
+		tween.tween_property(wisp, "scale", Vector2(0.2, 0.2), 0.2)
 		tween.tween_callback(wisp.queue_free)
 
 func _start_sweep_trail():
@@ -281,18 +298,25 @@ func _spawn_delayed_trail_segment(delay: float):
 	if not scene:
 		return
 
+	# Shader-based swing trail
 	var trail = ColorRect.new()
-	trail.size = Vector2(8, weapon_length * 0.8)
-	trail.color = SCYTHE_TRAIL_COLOR
-	trail.pivot_offset = Vector2(4, weapon_length * 0.4)
+	trail.size = Vector2(weapon_length * 1.0, 20)
+	trail.pivot_offset = Vector2(0, 10)
 	scene.add_child(trail)
 	trail.global_position = global_position
 	trail.rotation = pivot.rotation
 
+	var mat = ShaderMaterial.new()
+	mat.shader = swing_shader
+	mat.set_shader_parameter("trail_color", SCYTHE_TRAIL_COLOR)
+	mat.set_shader_parameter("glow_color", SCYTHE_EDGE_COLOR)
+	mat.set_shader_parameter("glow_intensity", 2.5)
+	mat.set_shader_parameter("edge_softness", 0.35)
+	mat.set_shader_parameter("progress", 0.0)
+	trail.material = mat
+
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(trail, "modulate:a", 0.0, 0.15)
-	tween.tween_property(trail, "scale:x", 0.2, 0.15)
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.18)
 	tween.tween_callback(trail.queue_free)
 
 func _create_soul_gathering_effect():
@@ -303,25 +327,32 @@ func _create_soul_gathering_effect():
 	if not scene:
 		return
 
-	# Souls spiral inward
+	# Shader-based souls spiral inward
 	for i in range(8):
 		var soul = ColorRect.new()
-		soul.size = Vector2(10, 10)
-		soul.color = SCYTHE_SOUL_COLOR
-		soul.pivot_offset = Vector2(5, 5)
+		soul.size = Vector2(28, 28)
+		soul.pivot_offset = Vector2(14, 14)
+
+		var mat = ShaderMaterial.new()
+		mat.shader = soul_shader
+		mat.set_shader_parameter("soul_color", SCYTHE_SOUL_COLOR)
+		mat.set_shader_parameter("core_color", Color(0.7, 1.0, 0.8))
+		mat.set_shader_parameter("pulse_speed", 10.0 + randf() * 5.0)
+		mat.set_shader_parameter("wisp_intensity", 0.7)
+		soul.material = mat
+
 		scene.add_child(soul)
 
 		var angle = (TAU / 8) * i
 		var start_pos = player_reference.global_position + Vector2.from_angle(angle) * 100
-		soul.global_position = start_pos
+		soul.global_position = start_pos - Vector2(14, 14)
 		soul.scale = Vector2(0.5, 0.5)
 
 		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
-		tween.tween_property(soul, "global_position", player_reference.global_position, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		tween.tween_property(soul, "scale", Vector2(1.5, 1.5), 0.15)
-		tween.chain().tween_property(soul, "scale", Vector2(0.3, 0.3), 0.15)
-		tween.tween_property(soul, "modulate:a", 0.0, 0.3)
+		tween.tween_property(soul, "global_position", player_reference.global_position - Vector2(14, 14), 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tween.tween_property(soul, "scale", Vector2(1.3, 1.3), 0.15)
+		tween.chain().tween_property(soul, "scale", Vector2(0.2, 0.2), 0.15)
 		tween.chain().tween_callback(soul.queue_free)
 
 func _create_soul_explosion():
@@ -332,14 +363,22 @@ func _create_soul_explosion():
 	if not scene:
 		return
 
-	# Souls burst outward
+	# Shader-based souls burst outward
 	for i in range(12):
 		var soul = ColorRect.new()
-		soul.size = Vector2(8, 8)
-		soul.color = SCYTHE_SOUL_COLOR
-		soul.pivot_offset = Vector2(4, 4)
+		soul.size = Vector2(24, 24)
+		soul.pivot_offset = Vector2(12, 12)
+
+		var mat = ShaderMaterial.new()
+		mat.shader = soul_shader
+		mat.set_shader_parameter("soul_color", SCYTHE_SOUL_COLOR)
+		mat.set_shader_parameter("core_color", Color(0.8, 1.0, 0.9))
+		mat.set_shader_parameter("pulse_speed", 8.0 + randf() * 6.0)
+		mat.set_shader_parameter("wisp_intensity", 0.9)
+		soul.material = mat
+
 		scene.add_child(soul)
-		soul.global_position = player_reference.global_position
+		soul.global_position = player_reference.global_position - Vector2(12, 12)
 
 		var angle = (TAU / 12) * i + randf_range(-0.2, 0.2)
 		var dir = Vector2.from_angle(angle)
@@ -347,9 +386,9 @@ func _create_soul_explosion():
 
 		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
-		tween.tween_property(soul, "global_position", player_reference.global_position + dir * dist, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tween.tween_property(soul, "rotation", randf_range(-TAU, TAU), 0.3)
-		tween.tween_property(soul, "modulate:a", 0.0, 0.3)
+		tween.tween_property(soul, "global_position", player_reference.global_position + dir * dist - Vector2(12, 12), 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(soul, "rotation", randf_range(-TAU, TAU), 0.35)
+		tween.tween_property(soul, "scale", Vector2(0.3, 0.3), 0.35)
 		tween.tween_callback(soul.queue_free)
 
 	# Screen shake
@@ -590,38 +629,52 @@ func _create_spin_end_effect():
 	if not scene:
 		return
 
-	# Massive soul explosion
+	# Massive shader-based soul explosion
 	for i in range(16):
 		var soul = ColorRect.new()
-		soul.size = Vector2(12, 12)
-		soul.color = SCYTHE_SOUL_COLOR
-		soul.pivot_offset = Vector2(6, 6)
+		soul.size = Vector2(28, 28)
+		soul.pivot_offset = Vector2(14, 14)
+
+		var mat = ShaderMaterial.new()
+		mat.shader = soul_shader
+		mat.set_shader_parameter("soul_color", SCYTHE_SOUL_COLOR)
+		mat.set_shader_parameter("core_color", Color(0.9, 1.0, 0.95))
+		mat.set_shader_parameter("pulse_speed", 12.0 + randf() * 6.0)
+		mat.set_shader_parameter("wisp_intensity", 1.0)
+		soul.material = mat
+
 		scene.add_child(soul)
-		soul.global_position = player_reference.global_position
+		soul.global_position = player_reference.global_position - Vector2(14, 14)
 
 		var angle = (TAU / 16) * i
 		var dir = Vector2.from_angle(angle)
 
 		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
-		tween.tween_property(soul, "global_position", player_reference.global_position + dir * SPIN_RADIUS * 1.2, 0.3)\
+		tween.tween_property(soul, "global_position", player_reference.global_position + dir * SPIN_RADIUS * 1.2 - Vector2(14, 14), 0.35)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tween.tween_property(soul, "rotation", randf_range(-TAU, TAU), 0.3)
-		tween.tween_property(soul, "modulate:a", 0.0, 0.3)
+		tween.tween_property(soul, "rotation", randf_range(-TAU, TAU), 0.35)
+		tween.tween_property(soul, "scale", Vector2(0.2, 0.2), 0.35)
 		tween.tween_callback(soul.queue_free)
 
-	# Final shockwave
+	# Final shader-based shockwave
 	var shockwave = ColorRect.new()
-	shockwave.size = Vector2(60, 60)
-	shockwave.color = Color(SCYTHE_EDGE_COLOR.r, SCYTHE_EDGE_COLOR.g, SCYTHE_EDGE_COLOR.b, 0.6)
-	shockwave.pivot_offset = Vector2(30, 30)
+	shockwave.size = Vector2(SPIN_RADIUS * 2.5, SPIN_RADIUS * 2.5)
+	shockwave.pivot_offset = Vector2(SPIN_RADIUS * 1.25, SPIN_RADIUS * 1.25)
+	shockwave.global_position = player_reference.global_position - Vector2(SPIN_RADIUS * 1.25, SPIN_RADIUS * 1.25)
+
+	var wave_mat = ShaderMaterial.new()
+	wave_mat.shader = shockwave_shader
+	wave_mat.set_shader_parameter("wave_color", Color(SCYTHE_EDGE_COLOR.r, SCYTHE_EDGE_COLOR.g, SCYTHE_EDGE_COLOR.b, 0.8))
+	wave_mat.set_shader_parameter("ring_thickness", 0.12)
+	wave_mat.set_shader_parameter("inner_glow", 1.5)
+	wave_mat.set_shader_parameter("progress", 0.0)
+	shockwave.material = wave_mat
+
 	scene.add_child(shockwave)
-	shockwave.global_position = player_reference.global_position - Vector2(30, 30)
 
 	var s_tween = TweenHelper.new_tween()
-	s_tween.set_parallel(true)
-	s_tween.tween_property(shockwave, "scale", Vector2(SPIN_RADIUS / 30.0, SPIN_RADIUS / 30.0), 0.25)
-	s_tween.tween_property(shockwave, "modulate:a", 0.0, 0.25)
+	s_tween.tween_method(func(p): wave_mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.4)
 	s_tween.tween_callback(shockwave.queue_free)
 
 	# Big screen shake

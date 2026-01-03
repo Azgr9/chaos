@@ -341,6 +341,22 @@ func _get_beam_color() -> Color:
 func _get_beam_glow_color() -> Color:
 	return FIRE_OUTER
 
+# Trail colors - Hot fire orange-yellow
+func _get_trail_color() -> Color:
+	return Color(1.0, 0.6, 0.1, 0.9)  # Fire orange
+
+func _get_trail_glow_color() -> Color:
+	return Color(1.0, 0.9, 0.4, 1.0)  # Bright yellow core
+
+func _get_trail_glow_intensity() -> float:
+	return 2.2  # Intense fire glow
+
+func _get_trail_pulse_speed() -> float:
+	return 6.0  # Fast flickering like flames
+
+func _get_trail_sparkle_amount() -> float:
+	return 0.2  # Less sparkle, more smooth fire
+
 func _customize_projectile(projectile: Node2D):
 	# Blazing fireball projectile
 	if projectile.has_node("Sprite"):
@@ -357,27 +373,28 @@ func _add_flame_trail(projectile: Node2D):
 	timer.one_shot = false
 	projectile.add_child(timer)
 
-	# Use weakref to safely capture self
+	# Use weakref to safely capture references
 	var staff_ref = weakref(self)
+	var projectile_ref = weakref(projectile)
+	var timer_ref = weakref(timer)
 
 	timer.timeout.connect(func():
-		if not is_instance_valid(projectile):
-			timer.stop()
-			timer.queue_free()
-			return
-
-		# Check if staff is still valid using weakref
+		var t = timer_ref.get_ref()
+		var p = projectile_ref.get_ref()
 		var staff = staff_ref.get_ref()
-		if not staff or not is_instance_valid(staff):
-			timer.stop()
-			timer.queue_free()
+
+		if not t or not p or not is_instance_valid(p):
+			if t and is_instance_valid(t):
+				t.stop()
 			return
 
-		# Ensure staff is in tree
+		if not staff or not is_instance_valid(staff):
+			if t and is_instance_valid(t):
+				t.stop()
+			return
+
 		var tree = staff.get_tree()
 		if not tree or not tree.current_scene:
-			timer.stop()
-			timer.queue_free()
 			return
 
 		# Flame particle
@@ -393,7 +410,7 @@ func _add_flame_trail(projectile: Node2D):
 			flame.color = FIRE_OUTER
 		flame.pivot_offset = flame.size / 2
 		tree.current_scene.add_child(flame)
-		flame.global_position = projectile.global_position + Vector2(randf_range(-6, 6), randf_range(-6, 6))
+		flame.global_position = p.global_position + Vector2(randf_range(-6, 6), randf_range(-6, 6))
 
 		# Flames rise and fade
 		var tween = TweenHelper.new_tween()
@@ -405,7 +422,7 @@ func _add_flame_trail(projectile: Node2D):
 
 		# Smoke particle occasionally
 		if randf() > 0.8:
-			staff._spawn_smoke_particle(projectile.global_position)
+			staff._spawn_smoke_particle(p.global_position)
 	)
 	timer.start()
 

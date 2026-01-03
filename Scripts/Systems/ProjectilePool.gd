@@ -77,7 +77,6 @@ func _register_pools():
 		var scene = load(scene_path) as PackedScene
 		if scene and ObjectPool:
 			ObjectPool.register_pool(pool_name, scene, config.initial_size, config.max_size)
-			print("[ProjectilePool] Registered pool: %s" % pool_name)
 
 	_initialized = true
 

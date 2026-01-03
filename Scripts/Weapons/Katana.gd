@@ -22,6 +22,11 @@ const KATANA_BLADE_COLOR: Color = Color(0.85, 0.15, 0.15)  # Deep red blade
 const KATANA_ACCENT_COLOR: Color = Color(1.0, 0.3, 0.3)  # Bright red accent
 const KATANA_TRAIL_COLOR: Color = Color(1.0, 0.2, 0.2, 0.8)  # Red trail
 const KATANA_SLASH_COLOR: Color = Color(1.0, 0.4, 0.4, 0.9)  # Light red slash
+const KATANA_GLOW_COLOR: Color = Color(1.0, 0.6, 0.4)  # Orange-red glow
+
+# Shaders
+var slash_shader: Shader = preload("res://Scenes/Weapons/Katana/SlashTrail.gdshader")
+var ghost_shader: Shader = preload("res://Scenes/Weapons/Katana/DashGhost.gdshader")
 
 func _weapon_ready():
 	# Katana - fast, precise, combo-focused
@@ -81,20 +86,30 @@ func _create_katana_slash_trail():
 	if not player_reference:
 		return
 
-	# Sharp slash line
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Sharp slash lines with shader - oriented to attack direction
 	for i in range(3):
 		var slash = ColorRect.new()
-		slash.size = Vector2(4, weapon_length * 0.9)
-		slash.color = KATANA_TRAIL_COLOR
-		slash.pivot_offset = Vector2(2, weapon_length * 0.45)
-		get_tree().current_scene.add_child(slash)
-		slash.global_position = global_position
-		slash.rotation = pivot.rotation + (i - 1) * 0.1
+		slash.size = Vector2(weapon_length * 1.0, 12)
+		slash.pivot_offset = Vector2(0, 6)
+		scene.add_child(slash)
+		slash.global_position = global_position + current_attack_direction * 20
+		slash.rotation = current_attack_direction.angle() + (i - 1) * 0.08
+
+		var mat = ShaderMaterial.new()
+		mat.shader = slash_shader
+		mat.set_shader_parameter("slash_color", KATANA_TRAIL_COLOR)
+		mat.set_shader_parameter("glow_color", KATANA_GLOW_COLOR)
+		mat.set_shader_parameter("glow_intensity", 2.0)
+		mat.set_shader_parameter("edge_sharpness", 4.0)
+		mat.set_shader_parameter("progress", 0.0)
+		slash.material = mat
 
 		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(slash, "modulate:a", 0.0, 0.1)
-		tween.tween_property(slash, "scale:x", 0.1, 0.1)
+		tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.12)
 		tween.tween_callback(slash.queue_free)
 
 func _on_combo_finisher_hit(_target: Node2D):
@@ -222,43 +237,161 @@ func _create_dash_trail():
 	if not player_reference:
 		return
 
-	for i in range(5):
-		await get_tree().create_timer(0.03).timeout
+	# Create main slash line with shader
+	_create_shader_slash_trail()
 
-		# Check validity after await
+	# Create ghost afterimages
+	for i in range(8):
+		await get_tree().create_timer(0.018).timeout
+
 		if not is_instance_valid(self) or not is_instance_valid(player_reference):
 			return
 
-		var ghost = ColorRect.new()
-		ghost.size = Vector2(40, 40)
-		ghost.color = Color(0.9, 0.2, 0.2, 0.5)
-		get_tree().current_scene.add_child(ghost)
-		ghost.global_position = player_reference.global_position
-
-		var tween = TweenHelper.new_tween()
-		tween.tween_property(ghost, "modulate:a", 0.0, 0.3)
-		tween.tween_callback(ghost.queue_free)
+		_create_ghost_afterimage(i / 8.0)
 
 # ============================================
 # VISUAL EFFECTS
 # ============================================
-func _create_slash_effect(hit_position: Vector2):
-	for i in range(3):
-		var particle = ColorRect.new()
-		particle.size = Vector2(24, 8)
-		particle.color = Color(1.0, 0.3, 0.3, 1.0)
-		get_tree().current_scene.add_child(particle)
-		particle.global_position = hit_position
 
-		var angle = randf_range(-PI, PI)
-		var direction = Vector2.from_angle(angle)
-		var distance = randf_range(40, 80)
+func _create_shader_slash_trail():
+	if not player_reference:
+		return
+
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	var direction = (player_reference.get_global_mouse_position() - player_reference.global_position).normalized()
+
+	# Main slash trail with shader
+	var slash = ColorRect.new()
+	slash.size = Vector2(DASH_DISTANCE * 1.2, 40)
+	slash.pivot_offset = Vector2(0, 20)
+	slash.global_position = player_reference.global_position - Vector2(0, 20)
+	slash.rotation = direction.angle()
+
+	# Apply shader
+	var mat = ShaderMaterial.new()
+	mat.shader = slash_shader
+	mat.set_shader_parameter("slash_color", KATANA_SLASH_COLOR)
+	mat.set_shader_parameter("glow_color", KATANA_GLOW_COLOR)
+	mat.set_shader_parameter("glow_intensity", 2.0)
+	mat.set_shader_parameter("edge_sharpness", 4.0)
+	mat.set_shader_parameter("progress", 0.0)
+	slash.material = mat
+
+	scene.add_child(slash)
+
+	# Animate progress
+	var tween = TweenHelper.new_tween()
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.35)
+	tween.tween_callback(slash.queue_free)
+
+	# Secondary thin slash lines
+	for i in range(3):
+		var thin_slash = ColorRect.new()
+		thin_slash.size = Vector2(DASH_DISTANCE * 0.9, 8)
+		thin_slash.pivot_offset = Vector2(0, 4)
+		thin_slash.global_position = player_reference.global_position + Vector2(0, (i - 1) * 12)
+		thin_slash.rotation = direction.angle() + (i - 1) * 0.05
+
+		var thin_mat = ShaderMaterial.new()
+		thin_mat.shader = slash_shader
+		thin_mat.set_shader_parameter("slash_color", Color(1.0, 0.4, 0.3, 0.7))
+		thin_mat.set_shader_parameter("glow_color", Color(1.0, 1.0, 0.8))
+		thin_mat.set_shader_parameter("glow_intensity", 1.5)
+		thin_mat.set_shader_parameter("progress", 0.0)
+		thin_slash.material = thin_mat
+
+		scene.add_child(thin_slash)
+
+		var thin_tween = TweenHelper.new_tween()
+		thin_tween.tween_method(func(p): thin_mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.25 + i * 0.05)
+		thin_tween.tween_callback(thin_slash.queue_free)
+
+func _create_ghost_afterimage(_progress: float):
+	if not player_reference:
+		return
+
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Ghost rectangle with shader
+	var ghost = ColorRect.new()
+	ghost.size = Vector2(50, 50)
+	ghost.pivot_offset = Vector2(25, 25)
+	ghost.global_position = player_reference.global_position - Vector2(25, 25)
+
+	# Apply ghost shader
+	var mat = ShaderMaterial.new()
+	mat.shader = ghost_shader
+	mat.set_shader_parameter("ghost_color", Color(1.0, 0.25, 0.2, 0.7))
+	mat.set_shader_parameter("distortion_amount", 0.03)
+	mat.set_shader_parameter("scan_line_density", 50.0)
+	mat.set_shader_parameter("progress", 0.0)
+	ghost.material = mat
+
+	scene.add_child(ghost)
+
+	# Fade out with shader progress
+	var tween = TweenHelper.new_tween()
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.25)
+	tween.tween_callback(ghost.queue_free)
+
+func _create_slash_effect(hit_position: Vector2):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Create X-shaped slash marks with glow
+	for i in range(4):
+		var slash = ColorRect.new()
+		slash.size = Vector2(6, 35)
+		slash.pivot_offset = Vector2(3, 17.5)
+		slash.global_position = hit_position
+
+		# Apply shader for glow
+		var mat = ShaderMaterial.new()
+		mat.shader = slash_shader
+		mat.set_shader_parameter("slash_color", KATANA_ACCENT_COLOR)
+		mat.set_shader_parameter("glow_color", Color(1.0, 0.8, 0.6))
+		mat.set_shader_parameter("glow_intensity", 2.5)
+		mat.set_shader_parameter("progress", 0.0)
+		slash.material = mat
+
+		# Rotate in X pattern
+		slash.rotation = (PI / 4) * i
+
+		scene.add_child(slash)
+
+		# Scale up and fade
+		slash.scale = Vector2(0.3, 0.3)
+		var tween = TweenHelper.new_tween()
+		tween.set_parallel(true)
+		tween.tween_property(slash, "scale", Vector2(1.2, 1.2), 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.2)
+		tween.tween_callback(slash.queue_free)
+
+	# Spark particles
+	for i in range(6):
+		var spark = ColorRect.new()
+		spark.size = Vector2(4, 12)
+		spark.color = Color(1.0, 0.9, 0.7)
+		spark.pivot_offset = Vector2(2, 6)
+		scene.add_child(spark)
+		spark.global_position = hit_position
+
+		var angle = randf() * TAU
+		var dir = Vector2.from_angle(angle)
+		spark.rotation = angle
 
 		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
-		tween.tween_property(particle, "global_position", hit_position + direction * distance, 0.2)
-		tween.tween_property(particle, "modulate:a", 0.0, 0.2)
-		tween.tween_callback(particle.queue_free)
+		tween.tween_property(spark, "global_position", hit_position + dir * randf_range(40, 70), 0.15)
+		tween.tween_property(spark, "scale", Vector2(0.2, 0.2), 0.15)
+		tween.tween_property(spark, "modulate:a", 0.0, 0.15)
+		tween.tween_callback(spark.queue_free)
 
 # Override attack to block during dash slash
 func attack(direction: Vector2, player_damage_multiplier: float = 1.0) -> bool:

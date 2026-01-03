@@ -52,6 +52,22 @@ func _get_beam_color() -> Color:
 func _get_beam_glow_color() -> Color:
 	return VOID_OUTER
 
+# Trail colors - Dark void purple
+func _get_trail_color() -> Color:
+	return Color(0.4, 0.15, 0.6, 0.9)  # Dark purple
+
+func _get_trail_glow_color() -> Color:
+	return Color(0.7, 0.4, 1.0, 1.0)  # Bright purple
+
+func _get_trail_glow_intensity() -> float:
+	return 1.8
+
+func _get_trail_pulse_speed() -> float:
+	return 3.0  # Slow, ominous pulse
+
+func _get_trail_sparkle_amount() -> float:
+	return 0.15  # Minimal sparkle, dark and heavy
+
 # ============================================
 # PROJECTILE CUSTOMIZATION - Dark void bolts
 # ============================================
@@ -75,20 +91,28 @@ func _add_void_trail(projectile: Node2D):
 	timer.one_shot = false
 	projectile.add_child(timer)
 
-	# Use weakref to safely capture self
+	# Use weakref to safely capture references
 	var staff_ref = weakref(self)
+	var projectile_ref = weakref(projectile)
+	var timer_ref = weakref(timer)
 
 	timer.timeout.connect(func():
-		if not is_instance_valid(projectile):
-			timer.stop()
-			timer.queue_free()
+		var t = timer_ref.get_ref()
+		var p = projectile_ref.get_ref()
+		var staff = staff_ref.get_ref()
+
+		if not t or not p or not is_instance_valid(p):
+			if t and is_instance_valid(t):
+				t.stop()
 			return
 
-		# Check if staff is still valid using weakref
-		var staff = staff_ref.get_ref()
-		if not staff:
-			timer.stop()
-			timer.queue_free()
+		if not staff or not is_instance_valid(staff):
+			if t and is_instance_valid(t):
+				t.stop()
+			return
+
+		var tree = staff.get_tree()
+		if not tree or not tree.current_scene:
 			return
 
 		# Main void trail - dark core
@@ -96,8 +120,8 @@ func _add_void_trail(projectile: Node2D):
 		trail.size = Vector2(14, 14)
 		trail.color = VOID_OUTER
 		trail.pivot_offset = Vector2(7, 7)
-		staff.get_tree().current_scene.add_child(trail)
-		trail.global_position = projectile.global_position
+		tree.current_scene.add_child(trail)
+		trail.global_position = p.global_position
 
 		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
@@ -107,11 +131,11 @@ func _add_void_trail(projectile: Node2D):
 
 		# Swirling void particles being pulled in
 		if randf() > 0.6:
-			staff._spawn_void_swirl_particle(projectile.global_position)
+			staff._spawn_void_swirl_particle(p.global_position)
 
 		# Occasional bright spark
 		if randf() > 0.85:
-			staff._spawn_void_spark(projectile.global_position)
+			staff._spawn_void_spark(p.global_position)
 	)
 	timer.start()
 

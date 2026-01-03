@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://cc8tgokhenny4"]
+[gd_scene load_steps=2 format=3 uid="uid://8obk5qvsqmhk"]
 
 [ext_resource type="Script" uid="uid://d1tui45fks0ip" path="res://Scripts/Weapons/BasicSword.gd" id="1_mp8x4"]
 

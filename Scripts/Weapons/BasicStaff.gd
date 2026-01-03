@@ -46,28 +46,36 @@ func _add_arcane_trail(projectile: Node2D):
 	timer.one_shot = false
 	projectile.add_child(timer)
 
-	# Use weakref to safely capture self
+	# Use weakref to safely capture references
 	var staff_ref = weakref(self)
+	var projectile_ref = weakref(projectile)
+	var timer_ref = weakref(timer)
 
 	timer.timeout.connect(func():
-		if not is_instance_valid(projectile):
-			timer.stop()
-			timer.queue_free()
+		var t = timer_ref.get_ref()
+		var p = projectile_ref.get_ref()
+		var staff = staff_ref.get_ref()
+
+		if not t or not p or not is_instance_valid(p):
+			if t and is_instance_valid(t):
+				t.stop()
 			return
 
-		# Check if staff is still valid using weakref
-		var staff = staff_ref.get_ref()
-		if not staff:
-			timer.stop()
-			timer.queue_free()
+		if not staff or not is_instance_valid(staff):
+			if t and is_instance_valid(t):
+				t.stop()
+			return
+
+		var tree = staff.get_tree()
+		if not tree or not tree.current_scene:
 			return
 
 		var sparkle = ColorRect.new()
 		sparkle.size = Vector2(8, 8)
 		sparkle.color = ARCANE_GLOW
 		sparkle.pivot_offset = Vector2(4, 4)
-		staff.get_tree().current_scene.add_child(sparkle)
-		sparkle.global_position = projectile.global_position + Vector2(randf_range(-5, 5), randf_range(-5, 5))
+		tree.current_scene.add_child(sparkle)
+		sparkle.global_position = p.global_position + Vector2(randf_range(-5, 5), randf_range(-5, 5))
 
 		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
@@ -82,3 +90,19 @@ func _get_beam_color() -> Color:
 
 func _get_beam_glow_color() -> Color:
 	return ARCANE_GLOW
+
+# Trail colors - Arcane blue with sparkles
+func _get_trail_color() -> Color:
+	return Color(0.4, 0.8, 1.0, 0.9)  # Cyan-blue
+
+func _get_trail_glow_color() -> Color:
+	return Color(0.8, 0.95, 1.0, 1.0)  # Light blue-white
+
+func _get_trail_glow_intensity() -> float:
+	return 1.8
+
+func _get_trail_pulse_speed() -> float:
+	return 4.0
+
+func _get_trail_sparkle_amount() -> float:
+	return 0.4  # More sparkles for arcane magic

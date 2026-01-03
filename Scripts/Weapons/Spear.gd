@@ -25,6 +25,12 @@ const SPEAR_SHAFT_COLOR: Color = Color(0.45, 0.3, 0.2)  # Dark wood shaft
 const SPEAR_ACCENT_COLOR: Color = Color(1.0, 0.85, 0.4)  # Gold accent
 const SPEAR_THRUST_COLOR: Color = Color(1.0, 0.9, 0.5, 0.8)  # Bright thrust trail
 
+# Shader references
+var thrust_shader: Shader = preload("res://Shaders/Weapons/ThrustTrail.gdshader")
+var spark_shader: Shader = preload("res://Shaders/Weapons/SparkBurst.gdshader")
+var shockwave_shader: Shader = preload("res://Shaders/Weapons/ImpactShockwave.gdshader")
+var energy_shader: Shader = preload("res://Shaders/Weapons/EnergyGlow.gdshader")
+
 # State
 var pierced_enemies: Array = []
 var is_charging: bool = false
@@ -270,19 +276,25 @@ func _spawn_thrust_trail_segment(delay: float):
 	if not scene:
 		return
 
-	# Long thin trail following spear
+	# Shader-based thrust trail
 	var trail = ColorRect.new()
-	trail.size = Vector2(weapon_length * 0.8, 4)
-	trail.color = SPEAR_THRUST_COLOR
-	trail.pivot_offset = Vector2(0, 2)
+	trail.size = Vector2(weapon_length * 1.0, 16)
+	trail.pivot_offset = Vector2(0, 8)
 	scene.add_child(trail)
 	trail.global_position = global_position
 	trail.rotation = current_attack_direction.angle()
 
+	var mat = ShaderMaterial.new()
+	mat.shader = thrust_shader
+	mat.set_shader_parameter("thrust_color", SPEAR_THRUST_COLOR)
+	mat.set_shader_parameter("tip_color", SPEAR_TIP_COLOR)
+	mat.set_shader_parameter("glow_intensity", 2.0)
+	mat.set_shader_parameter("sharpness", 3.0)
+	mat.set_shader_parameter("progress", 0.0)
+	trail.material = mat
+
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(trail, "modulate:a", 0.0, 0.12)
-	tween.tween_property(trail, "scale:y", 0.2, 0.12)
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.15)
 	tween.tween_callback(trail.queue_free)
 
 func _create_thrust_impact():
@@ -295,23 +307,26 @@ func _create_thrust_impact():
 
 	var impact_pos = player_reference.global_position + current_attack_direction * THRUST_RANGE
 
-	# Small spark burst
-	for i in range(4):
-		var spark = ColorRect.new()
-		spark.size = Vector2(4, 8)
-		spark.color = SPEAR_ACCENT_COLOR
-		spark.pivot_offset = Vector2(2, 4)
-		scene.add_child(spark)
-		spark.global_position = impact_pos
+	# Shader-based spark burst
+	var spark_burst = ColorRect.new()
+	spark_burst.size = Vector2(60, 60)
+	spark_burst.pivot_offset = Vector2(30, 30)
+	spark_burst.global_position = impact_pos - Vector2(30, 30)
 
-		var angle = current_attack_direction.angle() + PI + randf_range(-0.5, 0.5)
-		var dir = Vector2.from_angle(angle)
+	var mat = ShaderMaterial.new()
+	mat.shader = spark_shader
+	mat.set_shader_parameter("spark_color", SPEAR_ACCENT_COLOR)
+	mat.set_shader_parameter("hot_color", Color(1.0, 1.0, 0.9))
+	mat.set_shader_parameter("spark_count", 6.0)
+	mat.set_shader_parameter("rotation_speed", 4.0)
+	mat.set_shader_parameter("progress", 0.0)
+	spark_burst.material = mat
 
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(spark, "global_position", impact_pos + dir * randf_range(20, 40), 0.15)
-		tween.tween_property(spark, "modulate:a", 0.0, 0.15)
-		tween.tween_callback(spark.queue_free)
+	scene.add_child(spark_burst)
+
+	var tween = TweenHelper.new_tween()
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.18)
+	tween.tween_callback(spark_burst.queue_free)
 
 func _create_charge_effect():
 	if not player_reference:
@@ -321,23 +336,45 @@ func _create_charge_effect():
 	if not scene:
 		return
 
-	# Energy gathering at spear tip
+	# Shader-based energy glow at spear tip
+	var glow = ColorRect.new()
+	glow.size = Vector2(60, 60)
+	glow.pivot_offset = Vector2(30, 30)
+	var tip_pos = global_position + current_attack_direction * weapon_length
+	glow.global_position = tip_pos - Vector2(30, 30)
+
+	var mat = ShaderMaterial.new()
+	mat.shader = energy_shader
+	mat.set_shader_parameter("energy_color", SPEAR_ACCENT_COLOR)
+	mat.set_shader_parameter("core_color", Color(1.0, 1.0, 0.9))
+	mat.set_shader_parameter("pulse_speed", 12.0)
+	mat.set_shader_parameter("intensity", 2.0)
+	mat.set_shader_parameter("progress", 0.0)
+	glow.material = mat
+
+	scene.add_child(glow)
+
+	var tween = TweenHelper.new_tween()
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 0.8, 0.2)
+	tween.tween_callback(glow.queue_free)
+
+	# Energy particles gathering
 	for i in range(6):
 		var particle = ColorRect.new()
-		particle.size = Vector2(8, 8)
+		particle.size = Vector2(12, 12)
 		particle.color = SPEAR_ACCENT_COLOR
-		particle.pivot_offset = Vector2(4, 4)
+		particle.pivot_offset = Vector2(6, 6)
 		scene.add_child(particle)
 
 		var angle = (TAU / 6) * i
 		var start_pos = global_position + Vector2.from_angle(angle) * 50
 		particle.global_position = start_pos
 
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(particle, "global_position", global_position + current_attack_direction * weapon_length, 0.2)
-		tween.tween_property(particle, "scale", Vector2(0.3, 0.3), 0.2)
-		tween.tween_callback(particle.queue_free)
+		var p_tween = TweenHelper.new_tween()
+		p_tween.set_parallel(true)
+		p_tween.tween_property(particle, "global_position", tip_pos, 0.2)
+		p_tween.tween_property(particle, "scale", Vector2(0.2, 0.2), 0.2)
+		p_tween.tween_callback(particle.queue_free)
 
 func _create_impale_shockwave():
 	if not player_reference:
@@ -349,39 +386,46 @@ func _create_impale_shockwave():
 
 	var impact_pos = player_reference.global_position + current_attack_direction * CHARGE_THRUST_RANGE
 
-	# Shockwave ring
+	# Shader-based shockwave ring
 	var wave = ColorRect.new()
-	wave.size = Vector2(40, 40)
-	wave.color = Color(SPEAR_ACCENT_COLOR.r, SPEAR_ACCENT_COLOR.g, SPEAR_ACCENT_COLOR.b, 0.6)
-	wave.pivot_offset = Vector2(20, 20)
+	wave.size = Vector2(200, 200)
+	wave.pivot_offset = Vector2(100, 100)
+	wave.global_position = impact_pos - Vector2(100, 100)
+
+	var wave_mat = ShaderMaterial.new()
+	wave_mat.shader = shockwave_shader
+	wave_mat.set_shader_parameter("wave_color", Color(SPEAR_ACCENT_COLOR.r, SPEAR_ACCENT_COLOR.g, SPEAR_ACCENT_COLOR.b, 0.8))
+	wave_mat.set_shader_parameter("ring_thickness", 0.12)
+	wave_mat.set_shader_parameter("inner_glow", 1.8)
+	wave_mat.set_shader_parameter("progress", 0.0)
+	wave.material = wave_mat
+
 	scene.add_child(wave)
-	wave.global_position = impact_pos - Vector2(20, 20)
-	wave.scale = Vector2(0.5, 0.5)
 
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(wave, "scale", Vector2(4, 4), 0.25)
-	tween.tween_property(wave, "modulate:a", 0.0, 0.25)
+	tween.tween_method(func(p): wave_mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.3)
 	tween.tween_callback(wave.queue_free)
 
-	# Sparks explosion
-	for i in range(8):
-		var spark = ColorRect.new()
-		spark.size = Vector2(6, 14)
-		spark.color = SPEAR_ACCENT_COLOR
-		spark.pivot_offset = Vector2(3, 7)
-		scene.add_child(spark)
-		spark.global_position = impact_pos
+	# Shader-based spark burst
+	var spark_burst = ColorRect.new()
+	spark_burst.size = Vector2(120, 120)
+	spark_burst.pivot_offset = Vector2(60, 60)
+	spark_burst.global_position = impact_pos - Vector2(60, 60)
 
-		var angle = (TAU / 8) * i + randf_range(-0.2, 0.2)
-		var dir = Vector2.from_angle(angle)
+	var spark_mat = ShaderMaterial.new()
+	spark_mat.shader = spark_shader
+	spark_mat.set_shader_parameter("spark_color", SPEAR_ACCENT_COLOR)
+	spark_mat.set_shader_parameter("hot_color", Color(1.0, 1.0, 0.95))
+	spark_mat.set_shader_parameter("spark_count", 8.0)
+	spark_mat.set_shader_parameter("rotation_speed", 6.0)
+	spark_mat.set_shader_parameter("progress", 0.0)
+	spark_burst.material = spark_mat
 
-		var spark_tween = TweenHelper.new_tween()
-		spark_tween.set_parallel(true)
-		spark_tween.tween_property(spark, "global_position", impact_pos + dir * randf_range(50, 90), 0.2)
-		spark_tween.tween_property(spark, "rotation", randf_range(-PI, PI), 0.2)
-		spark_tween.tween_property(spark, "modulate:a", 0.0, 0.2)
-		spark_tween.tween_callback(spark.queue_free)
+	scene.add_child(spark_burst)
+
+	var spark_tween = TweenHelper.new_tween()
+	spark_tween.tween_method(func(p): spark_mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.25)
+	spark_tween.tween_callback(spark_burst.queue_free)
 
 	# Screen shake
 	if DamageNumberManager:
@@ -594,18 +638,25 @@ func _spawn_javelin_trail_segment(delay: float):
 	if not scene:
 		return
 
+	# Shader-based javelin trail
 	var trail = ColorRect.new()
-	trail.size = Vector2(40, 6)
-	trail.color = SPEAR_THRUST_COLOR
-	trail.pivot_offset = Vector2(20, 3)
+	trail.size = Vector2(60, 14)
+	trail.pivot_offset = Vector2(0, 7)
 	scene.add_child(trail)
 	trail.global_position = javelin_visual.global_position
 	trail.rotation = javelin_visual.rotation
 
+	var mat = ShaderMaterial.new()
+	mat.shader = thrust_shader
+	mat.set_shader_parameter("thrust_color", SPEAR_THRUST_COLOR)
+	mat.set_shader_parameter("tip_color", SPEAR_ACCENT_COLOR)
+	mat.set_shader_parameter("glow_intensity", 2.5)
+	mat.set_shader_parameter("sharpness", 2.5)
+	mat.set_shader_parameter("progress", 0.0)
+	trail.material = mat
+
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(trail, "modulate:a", 0.0, 0.15)
-	tween.tween_property(trail, "scale:y", 0.2, 0.15)
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.18)
 	tween.tween_callback(trail.queue_free)
 
 func _create_throw_effect(pos: Vector2, direction: Vector2):
@@ -636,19 +687,25 @@ func _create_impact_flash(pos: Vector2):
 	if not scene:
 		return
 
-	# Flash at max range
+	# Shader-based flash at max range
 	var flash = ColorRect.new()
-	flash.size = Vector2(40, 40)
-	flash.color = SPEAR_ACCENT_COLOR
-	flash.pivot_offset = Vector2(20, 20)
+	flash.size = Vector2(100, 100)
+	flash.pivot_offset = Vector2(50, 50)
+	flash.global_position = pos - Vector2(50, 50)
+
+	var mat = ShaderMaterial.new()
+	mat.shader = spark_shader
+	mat.set_shader_parameter("spark_color", SPEAR_ACCENT_COLOR)
+	mat.set_shader_parameter("hot_color", Color(1.0, 1.0, 0.9))
+	mat.set_shader_parameter("spark_count", 6.0)
+	mat.set_shader_parameter("rotation_speed", 8.0)
+	mat.set_shader_parameter("progress", 0.0)
+	flash.material = mat
+
 	scene.add_child(flash)
-	flash.global_position = pos - Vector2(20, 20)
-	flash.scale = Vector2(0.5, 0.5)
 
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(flash, "scale", Vector2(2, 2), 0.15)
-	tween.tween_property(flash, "modulate:a", 0.0, 0.15)
+	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.2)
 	tween.tween_callback(flash.queue_free)
 
 	if DamageNumberManager:

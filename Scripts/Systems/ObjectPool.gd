@@ -78,13 +78,16 @@ func register_pool(pool_name: String, scene: PackedScene, initial_size: int = DE
 		"container": container
 	}
 
-	# Pre-warm the pool
-	for i in range(initial_size):
+	# Pre-warm the pool (deferred to avoid startup lag)
+	call_deferred("_prewarm_pool", pool_name, initial_size)
+
+func _prewarm_pool(pool_name: String, count: int):
+	if pool_name not in _pools:
+		return
+	for i in range(count):
 		var obj = _create_pooled_object(pool_name)
 		if obj:
 			_return_to_pool(pool_name, obj)
-
-	print("[ObjectPool] Registered pool '%s' with %d objects" % [pool_name, initial_size])
 
 ## Register a pool using a scene path string
 func register_pool_from_path(pool_name: String, scene_path: String, initial_size: int = DEFAULT_POOL_SIZE, max_size: int = DEFAULT_MAX_SIZE) -> void:
