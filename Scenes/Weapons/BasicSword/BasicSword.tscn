@@ -6,7 +6,6 @@
 [node name="BasicSword" type="Node2D"]
 z_index = -1
 script = ExtResource("1_mp8x4")
-attack_range = 120.0
 attack_cone_angle = 100.0
 
 [node name="Pivot" type="Node2D" parent="."]

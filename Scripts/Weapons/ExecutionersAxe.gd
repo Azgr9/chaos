@@ -65,6 +65,14 @@ func _weapon_ready():
 	# Apply idle state after setting custom values
 	_setup_idle_state()
 
+func _setup_idle_state():
+	# Call parent first
+	super._setup_idle_state()
+
+	# Also set AxeTexture scale for idle
+	if axe_sprite:
+		axe_sprite.scale = Vector2(1.5, 1.5)  # Idle scale (smaller than attack)
+
 func _get_attack_pattern(attack_index: int) -> String:
 	# Executioner's Axe: slash -> slash_reverse -> overhead slam
 	match attack_index:

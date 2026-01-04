@@ -39,8 +39,8 @@ const DEFAULT_RECOVERY_RATIO: float = 0.35 # 35% of duration for recovery
 @export var min_cooldown: float = 0.15
 
 @export_group("Hitbox Settings")
-## Range of the cone hitbox (how far the attack reaches)
-@export var attack_range: float = 100.0
+## Range of the cone hitbox (how far the attack reaches). If 0, auto-calculated from sprite size.
+@export var attack_range: float = 0.0
 ## Angle of the cone hitbox in degrees (full width, e.g., 90 = 45 degrees each side)
 @export var attack_cone_angle: float = 90.0
 ## Inner radius - attacks won't hit enemies closer than this (for some weapons)
@@ -160,6 +160,9 @@ func _ready():
 	# Call subclass setup
 	_weapon_ready()
 
+	# Auto-calculate hitbox based on weapon size
+	_calculate_hitbox_from_size()
+
 func _exit_tree():
 	# Unregister from animation system
 	if CombatAnimationSystem:
@@ -197,6 +200,44 @@ func _setup_idle_state():
 		pivot.rotation = deg_to_rad(idle_rotation)
 	if sprite:
 		sprite.scale = idle_scale
+
+func _calculate_hitbox_from_size():
+	# Auto-calculate attack_range based on actual sprite size
+	# Only calculate if attack_range is 0 (not manually set in scene)
+	if attack_range <= 0.0:
+		var max_reach: float = 0.0
+
+		# Check ColorRect sprite (base Sprite node)
+		if sprite and sprite.visible:
+			if sprite is ColorRect:
+				# ColorRect uses offset system - calculate height
+				var height = abs(sprite.offset_bottom - sprite.offset_top)
+				max_reach = max(max_reach, height * sprite.scale.y)
+			elif sprite is Sprite2D and sprite.texture:
+				var tex_size = sprite.texture.get_size()
+				max_reach = max(max_reach, tex_size.y * sprite.scale.y)
+
+		# Check for Sprite2D children in Pivot (texture-based weapons)
+		if pivot:
+			for child in pivot.get_children():
+				if child is Sprite2D and child.visible and child.texture:
+					var tex_size = child.texture.get_size()
+					# Sprite position + half texture height (scaled)
+					var sprite_reach = abs(child.position.y) + (tex_size.y * child.scale.y * 0.5)
+					max_reach = max(max_reach, sprite_reach)
+				elif child is ColorRect and child.visible:
+					var height = abs(child.offset_bottom - child.offset_top)
+					max_reach = max(max_reach, height * child.scale.y)
+
+		# Set attack_range to sprite reach (with buffer for better feel)
+		if max_reach > 0:
+			attack_range = max_reach * 1.25  # 25% buffer for better hit detection
+		else:
+			# Fallback to weapon_length if no sprite found
+			attack_range = weapon_length
+
+	# Debug output
+	# print("%s - attack_range: %.1f" % [name, attack_range])
 
 func _get_attack_pattern(attack_index: int) -> String:
 	# Override to define combo attack sequence
