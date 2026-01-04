@@ -1,0 +1,34 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scenes/Weapons/NecroStaff/spells/NecroProjectile.gd" id="1_necro"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_necro"]
+radius = 12.0
+
+[node name="NecroProjectile" type="Area2D"]
+collision_layer = 64
+collision_mask = 24
+monitorable = false
+script = ExtResource("1_necro")
+
+[node name="Sprite" type="ColorRect" parent="."]
+offset_left = -12.0
+offset_top = -12.0
+offset_right = 12.0
+offset_bottom = 12.0
+pivot_offset = Vector2(12, 12)
+color = Color(0.1, 0.05, 0.15, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_necro")
+
+[node name="LifetimeTimer" type="Timer" parent="."]
+wait_time = 3.0
+one_shot = true
+autostart = true
+
+[node name="TrailParticles" type="CPUParticles2D" parent="."]
+amount = 8
+lifetime = 0.25
+scale_amount_min = 0.4
+color = Color(0.4, 0.1, 0.5, 1)

@@ -48,8 +48,9 @@ func _weapon_ready():
 	max_attacks_per_second = 2.5
 	min_cooldown = 0.28
 
-	# Idle appearance - scythe held at angle
-	idle_rotation = 60.0
+	# Idle appearance - Scythe held behind, blade angled back
+	idle_rotation = -50.0  # Angled behind player
+	idle_position = Vector2(-8, -5)  # Slightly behind and up
 	idle_scale = Vector2(0.65, 0.65)
 
 	# Moderate knockback (reaping motion)

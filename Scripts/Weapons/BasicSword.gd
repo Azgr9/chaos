@@ -30,6 +30,11 @@ func _weapon_ready():
 	weapon_color = SWORD_BLADE_COLOR
 	skill_cooldown = 8.0
 
+	# Idle - Sword held at ready, classic guard position
+	idle_rotation = 45.0  # Diagonal guard
+	idle_position = Vector2(3, -3)  # Slightly forward and up
+	idle_scale = Vector2(0.6, 0.6)
+
 	# Cone Hitbox - Now configured via @export in scene inspector
 	# attack_range = 120.0  # Medium range
 	# attack_cone_angle = 100.0  # 50 degrees each side - balanced arc

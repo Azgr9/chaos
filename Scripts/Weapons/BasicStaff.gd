@@ -10,7 +10,14 @@ extends MagicWeapon
 const ARCANE_CORE: Color = Color(0.4, 0.8, 1.0)  # Cyan core
 const ARCANE_GLOW: Color = Color(0.6, 0.9, 1.0, 0.6)  # Light blue glow
 
+# Spell scenes
+const PROJECTILE_SCENE = preload("res://Scenes/Weapons/BasicStaff/spells/ArcaneProjectile.tscn")
+const SKILL_SCENE = preload("res://Scenes/Weapons/BasicStaff/spells/ArcaneBeamSkill.tscn")
+
 func _weapon_ready():
+	# Set projectile scene
+	projectile_scene = PROJECTILE_SCENE
+
 	# BasicStaff - balanced arcane staff
 	attack_cooldown = 0.28  # Slightly faster than default
 	projectile_spread = 5.0
@@ -27,6 +34,20 @@ func _weapon_ready():
 	beam_damage = 50.0
 	beam_range = 800.0
 	beam_width = 32.0
+
+func _perform_skill() -> bool:
+	if not player_reference:
+		return false
+
+	var mouse_pos = player_reference.get_global_mouse_position()
+	var direction = (mouse_pos - player_reference.global_position).normalized()
+
+	# Spawn skill scene
+	var skill = SKILL_SCENE.instantiate()
+	get_tree().current_scene.add_child(skill)
+	skill.initialize(player_reference, direction, player_reference.stats.magic_damage_multiplier, damage_type)
+
+	return true
 
 func _get_projectile_color() -> Color:
 	return ARCANE_CORE
@@ -74,14 +95,16 @@ func _add_arcane_trail(projectile: Node2D):
 		sparkle.size = Vector2(8, 8)
 		sparkle.color = ARCANE_GLOW
 		sparkle.pivot_offset = Vector2(4, 4)
+		sparkle.z_index = 100
 		tree.current_scene.add_child(sparkle)
 		sparkle.global_position = p.global_position + Vector2(randf_range(-5, 5), randf_range(-5, 5))
 
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(sparkle, "scale", Vector2(0.2, 0.2), 0.2)
-		tween.tween_property(sparkle, "modulate:a", 0.0, 0.2)
-		tween.tween_callback(sparkle.queue_free)
+		var tween = tree.create_tween()
+		if tween:
+			tween.set_parallel(true)
+			tween.tween_property(sparkle, "scale", Vector2(0.2, 0.2), 0.2)
+			tween.tween_property(sparkle, "modulate:a", 0.0, 0.2)
+			tween.tween_callback(sparkle.queue_free)
 	)
 	timer.start()
 

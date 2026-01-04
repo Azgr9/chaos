@@ -34,7 +34,10 @@ func _weapon_ready():
 	attack_duration = 0.16  # Very fast swings
 	attack_cooldown = 0.24  # Quick recovery for combos
 	weapon_color = KATANA_BLADE_COLOR
-	idle_rotation = 45.0
+
+	# Idle - Katana sheathed position (ready to draw)
+	idle_rotation = -75.0  # Angled down at hip, ready to draw
+	idle_position = Vector2(-3, 5)  # At hip level
 	idle_scale = Vector2(0.6, 0.6)
 
 	# Cone Hitbox - Now configured via @export in scene inspector

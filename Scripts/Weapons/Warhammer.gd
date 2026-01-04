@@ -31,7 +31,10 @@ func _weapon_ready():
 	swing_arc = 100.0       # Wide overhead arc
 	weapon_length = 70.0    # Shorter, bulky
 	weapon_color = Color(0.4, 0.35, 0.3)  # Dark iron
-	idle_rotation = 60.0
+
+	# Idle appearance - Hammer resting on ground, leaning against player
+	idle_rotation = 80.0  # Almost vertical, leaning
+	idle_position = Vector2(8, 10)  # Down and to the side (grounded)
 	idle_scale = Vector2(0.7, 0.7)
 
 	# Cone Hitbox - Now configured via @export in scene inspector

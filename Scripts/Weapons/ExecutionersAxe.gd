@@ -49,8 +49,9 @@ func _weapon_ready():
 	max_attacks_per_second = 2.0  # Slow but powerful
 	min_cooldown = 0.35  # Cannot swing faster than this
 
-	# Idle appearance
-	idle_rotation = 50.0
+	# Idle appearance - Axe resting on shoulder
+	idle_rotation = -30.0  # Angled back over shoulder
+	idle_position = Vector2(-5, -15)  # Up and slightly back (shoulder position)
 	idle_scale = Vector2(1.05, 1.05)  # Base ColorRect idle scale (hidden)
 
 	# Heavier knockback

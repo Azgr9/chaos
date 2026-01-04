@@ -34,7 +34,9 @@ func _weapon_ready():
 	weapon_length = 120.0  # Longest melee reach
 	weapon_color = RAPIER_BLADE_COLOR
 	damage_type = DamageTypes.Type.BLEED  # Applies BLEED status effect
-	idle_rotation = 25.0  # Angled forward, ready stance
+	# Idle - Rapier in fencing ready stance, pointed forward
+	idle_rotation = 0.0  # Pointed straight forward
+	idle_position = Vector2(10, 0)  # Extended forward
 	idle_scale = Vector2(0.4, 1.0)  # Thin and long
 
 	# Cone Hitbox - Now configured via @export in scene inspector

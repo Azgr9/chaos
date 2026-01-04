@@ -55,8 +55,9 @@ func _weapon_ready():
 	max_attacks_per_second = 3.5
 	min_cooldown = 0.2
 
-	# Idle - spear held forward
-	idle_rotation = 30.0
+	# Idle - Spear held upright like a guard
+	idle_rotation = -10.0  # Nearly vertical, slightly forward
+	idle_position = Vector2(5, -8)  # Slightly forward and up
 	idle_scale = Vector2(0.55, 0.55)
 
 	# Moderate knockback (piercing reduces knockback)

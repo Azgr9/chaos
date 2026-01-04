@@ -48,15 +48,15 @@ const SPEAR_SCENE = preload("res://Scenes/Weapons/Spear/Spear.tscn")
 const SPEAR_PRICE = 16
 
 # STAFFS
-const LIGHTNING_STAFF_SCENE = preload("res://Scenes/Weapons/LightningStaff.tscn")
+const LIGHTNING_STAFF_SCENE = preload("res://Scenes/Weapons/LightningStaff/LightningStaff.tscn")
 const STAFF_PRICE = 10
-const INFERNO_STAFF_SCENE = preload("res://Scenes/Weapons/InfernoStaff.tscn")
+const INFERNO_STAFF_SCENE = preload("res://Scenes/Weapons/InfernoStaff/InfernoStaff.tscn")
 const INFERNO_STAFF_PRICE = 12
-const FROST_STAFF_SCENE = preload("res://Scenes/Weapons/FrostStaff.tscn")
+const FROST_STAFF_SCENE = preload("res://Scenes/Weapons/FrostStaff/FrostStaff.tscn")
 const FROST_STAFF_PRICE = 11
-const VOID_STAFF_SCENE = preload("res://Scenes/Weapons/VoidStaff.tscn")
+const VOID_STAFF_SCENE = preload("res://Scenes/Weapons/VoidStaff/VoidStaff.tscn")
 const VOID_STAFF_PRICE = 16
-const NECRO_STAFF_SCENE = preload("res://Scenes/Weapons/NecroStaff.tscn")
+const NECRO_STAFF_SCENE = preload("res://Scenes/Weapons/NecroStaff/NecroStaff.tscn")
 const NECRO_STAFF_PRICE = 22
 
 # Card references

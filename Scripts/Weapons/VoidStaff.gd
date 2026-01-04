@@ -17,6 +17,8 @@ const VOID_SPARK: Color = Color(0.7, 0.4, 1.0)  # Bright purple sparks
 # ============================================
 # VOID STAFF SPECIFIC
 # ============================================
+const PROJECTILE_SCENE_PATH = preload("res://Scenes/Weapons/VoidStaff/spells/VoidProjectile.tscn")
+const SKILL_SCENE = preload("res://Scenes/Weapons/VoidStaff/spells/BlackHoleSkill.tscn")
 
 # Black Hole skill settings
 var black_hole_radius: float = 180.0
@@ -26,6 +28,9 @@ var black_hole_tick_rate: float = 0.3
 var black_hole_pull_strength: float = 150.0
 
 func _weapon_ready():
+	# Set projectile scene
+	projectile_scene = PROJECTILE_SCENE_PATH
+
 	# Void Staff - slowest but highest damage, precise shots
 	attack_cooldown = 0.48  # Slowest staff - heavy void blasts
 	projectile_spread = 0.0  # Precise dark bolts (no spread)
@@ -120,14 +125,16 @@ func _add_void_trail(projectile: Node2D):
 		trail.size = Vector2(14, 14)
 		trail.color = VOID_OUTER
 		trail.pivot_offset = Vector2(7, 7)
+		trail.z_index = 100
 		tree.current_scene.add_child(trail)
 		trail.global_position = p.global_position
 
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(trail, "scale", Vector2(0.2, 0.2), 0.25)
-		tween.tween_property(trail, "modulate:a", 0.0, 0.25)
-		tween.tween_callback(trail.queue_free)
+		var tween = tree.create_tween()
+		if tween:
+			tween.set_parallel(true)
+			tween.tween_property(trail, "scale", Vector2(0.2, 0.2), 0.25)
+			tween.tween_property(trail, "modulate:a", 0.0, 0.25)
+			tween.tween_callback(trail.queue_free)
 
 		# Swirling void particles being pulled in
 		if randf() > 0.6:
@@ -140,11 +147,16 @@ func _add_void_trail(projectile: Node2D):
 	timer.start()
 
 func _spawn_void_swirl_particle(center: Vector2):
+	var tree = get_tree()
+	if not tree or not tree.current_scene:
+		return
+
 	var particle = ColorRect.new()
 	particle.size = Vector2(6, 6)
 	particle.color = VOID_GLOW
 	particle.pivot_offset = Vector2(3, 3)
-	get_tree().current_scene.add_child(particle)
+	particle.z_index = 100
+	tree.current_scene.add_child(particle)
 
 	# Start from offset position
 	var angle = randf() * TAU
@@ -152,28 +164,35 @@ func _spawn_void_swirl_particle(center: Vector2):
 	particle.global_position = center + start_offset
 
 	# Spiral into center
-	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(particle, "global_position", center, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tween.tween_property(particle, "scale", Vector2(0.3, 0.3), 0.2)
-	tween.tween_property(particle, "rotation", angle + PI, 0.2)
-	tween.tween_property(particle, "modulate:a", 0.0, 0.2)
-	tween.tween_callback(particle.queue_free)
+	var tween = tree.create_tween()
+	if tween:
+		tween.set_parallel(true)
+		tween.tween_property(particle, "global_position", center, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tween.tween_property(particle, "scale", Vector2(0.3, 0.3), 0.2)
+		tween.tween_property(particle, "rotation", angle + PI, 0.2)
+		tween.tween_property(particle, "modulate:a", 0.0, 0.2)
+		tween.tween_callback(particle.queue_free)
 
 func _spawn_void_spark(pos: Vector2):
+	var tree = get_tree()
+	if not tree or not tree.current_scene:
+		return
+
 	var spark = ColorRect.new()
 	spark.size = Vector2(4, 8)
 	spark.color = VOID_SPARK
 	spark.pivot_offset = Vector2(2, 4)
-	get_tree().current_scene.add_child(spark)
+	spark.z_index = 100
+	tree.current_scene.add_child(spark)
 	spark.global_position = pos
 	spark.rotation = randf() * TAU
 
-	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(spark, "scale", Vector2(0.2, 0.2), 0.1)
-	tween.tween_property(spark, "modulate:a", 0.0, 0.1)
-	tween.tween_callback(spark.queue_free)
+	var tween = tree.create_tween()
+	if tween:
+		tween.set_parallel(true)
+		tween.tween_property(spark, "scale", Vector2(0.2, 0.2), 0.1)
+		tween.tween_property(spark, "modulate:a", 0.0, 0.1)
+		tween.tween_callback(spark.queue_free)
 
 # ============================================
 # BLACK HOLE SKILL - Pull enemies and deal damage
@@ -184,8 +203,10 @@ func _perform_skill() -> bool:
 
 	var target_pos = player_reference.get_global_mouse_position()
 
-	# Create black hole at target location
-	_create_black_hole(target_pos)
+	# Spawn BlackHoleSkill scene
+	var skill = SKILL_SCENE.instantiate()
+	get_tree().current_scene.add_child(skill)
+	skill.initialize(target_pos, player_reference, player_reference.stats.magic_damage_multiplier)
 
 	# Visual feedback on staff
 	_play_skill_animation()

@@ -15,6 +15,9 @@ const NECRO_AURA: Color = Color(0.2, 0.0, 0.3, 0.5)  # Dark aura
 # ============================================
 # DARK CONVERSION SYSTEM
 # ============================================
+const PROJECTILE_SCENE_PATH = preload("res://Scenes/Weapons/NecroStaff/spells/NecroProjectile.tscn")
+const SKILL_SCENE = preload("res://Scenes/Weapons/NecroStaff/spells/DarkConversionSkill.tscn")
+
 const SKILL_DURATION: float = 6.0  # 6 seconds of dark conversion
 const MINION_DURATION: float = 15.0  # Minions last 15 seconds
 const MAX_MINIONS: int = 6
@@ -22,10 +25,12 @@ const MAX_MINIONS: int = 6
 var is_skill_active: bool = false
 var skill_time_remaining: float = 0.0
 var active_minions: Array = []
-
-# No preloading needed - we get scene path from the dying enemy directly
+var _active_skill_instance: Node2D = null
 
 func _weapon_ready():
+	# Set projectile scene
+	projectile_scene = PROJECTILE_SCENE_PATH
+
 	attack_cooldown = 0.35
 	projectile_spread = 0.1
 	multi_shot = 1
@@ -40,10 +45,6 @@ func _weapon_ready():
 	skill_cooldown = 20.0
 	beam_damage = 0.0
 
-	# Connect to enemy death events
-	if CombatEventBus:
-		CombatEventBus.enemy_died.connect(_on_enemy_died)
-
 func _exit_tree():
 	super._exit_tree()
 
@@ -53,22 +54,9 @@ func _exit_tree():
 			minion.queue_free()
 	active_minions.clear()
 
-	if CombatEventBus and CombatEventBus.enemy_died.is_connected(_on_enemy_died):
-		CombatEventBus.enemy_died.disconnect(_on_enemy_died)
-
-func _weapon_process(delta: float):
-	# Update skill duration
-	if is_skill_active:
-		skill_time_remaining -= delta
-		if skill_time_remaining <= 0:
-			_end_dark_conversion()
-		else:
-			# Pulsing dark aura around player during skill
-			if Engine.get_process_frames() % 10 == 0:
-				_create_dark_pulse()
-
-	# Clean up dead minions
-	active_minions = active_minions.filter(func(m): return is_instance_valid(m))
+	# Clean up skill instance
+	if is_instance_valid(_active_skill_instance):
+		_active_skill_instance.queue_free()
 
 # ============================================
 # SKILL - DARK CONVERSION
@@ -80,10 +68,24 @@ func _perform_skill() -> bool:
 	if not player_reference:
 		return false
 
-	_activate_dark_conversion()
+	# Spawn DarkConversionSkill scene
+	var skill = SKILL_SCENE.instantiate()
+	get_tree().current_scene.add_child(skill)
+	skill.initialize(player_reference)
+	_active_skill_instance = skill
+
+	# Connect to track skill state
+	skill.skill_completed.connect(_on_skill_completed)
+
+	is_skill_active = true
 	return true
 
-func _activate_dark_conversion():
+func _on_skill_completed():
+	is_skill_active = false
+	_active_skill_instance = null
+
+func _unused_activate_dark_conversion():
+	# NOTE: This is now handled by DarkConversionSkill scene
 	is_skill_active = true
 	skill_time_remaining = SKILL_DURATION
 
@@ -530,14 +532,16 @@ func _add_dark_trail(projectile: Node2D):
 		trail.size = Vector2(10, 10)
 		trail.color = NECRO_GLOW
 		trail.pivot_offset = Vector2(5, 5)
+		trail.z_index = 100
 		tree.current_scene.add_child(trail)
 		trail.global_position = p.global_position
 
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(trail, "scale", Vector2(0.2, 0.2), 0.15)
-		tween.tween_property(trail, "modulate:a", 0.0, 0.15)
-		tween.tween_callback(trail.queue_free)
+		var tween = tree.create_tween()
+		if tween:
+			tween.set_parallel(true)
+			tween.tween_property(trail, "scale", Vector2(0.2, 0.2), 0.15)
+			tween.tween_property(trail, "modulate:a", 0.0, 0.15)
+			tween.tween_callback(trail.queue_free)
 	)
 	timer.start()
 

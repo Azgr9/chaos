@@ -16,7 +16,8 @@ const ICE_CRYSTAL: Color = Color(0.9, 0.95, 1.0)  # Near-white crystal
 # ============================================
 # FROST STAFF SPECIFIC
 # ============================================
-const FROST_PROJECTILE_SCENE = preload("res://Scenes/Spells/BasicProjectile.tscn")
+const PROJECTILE_SCENE_PATH = preload("res://Scenes/Weapons/FrostStaff/spells/FrostProjectile.tscn")
+const SKILL_SCENE = preload("res://Scenes/Weapons/FrostStaff/spells/BlizzardSkill.tscn")
 
 # Slow effect settings
 var slow_duration: float = 2.0
@@ -29,6 +30,9 @@ var blizzard_damage_per_tick: float = 5.0
 var blizzard_tick_rate: float = 0.5
 
 func _weapon_ready():
+	# Set projectile scene
+	projectile_scene = PROJECTILE_SCENE_PATH
+
 	# Frost Staff - moderate speed, slowing effect on hit
 	attack_cooldown = 0.32  # Moderate speed
 	projectile_spread = 3.0
@@ -136,18 +140,22 @@ func _add_frost_trail(projectile: Node2D):
 		crystal.size = Vector2(6, 10)
 		crystal.color = ICE_CRYSTAL if randf() > 0.6 else ICE_GLOW
 		crystal.pivot_offset = Vector2(3, 5)
+		crystal.z_index = 100
 		tree.current_scene.add_child(crystal)
 		crystal.global_position = p.global_position
 		crystal.rotation = randf_range(-PI/4, PI/4)
 
 		# Float and fade
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(crystal, "global_position:y", crystal.global_position.y - 15, 0.3)
-		tween.tween_property(crystal, "global_position:x", crystal.global_position.x + randf_range(-10, 10), 0.3)
-		tween.tween_property(crystal, "modulate:a", 0.0, 0.3)
-		tween.tween_property(crystal, "scale", Vector2(0.3, 0.3), 0.3)
-		tween.tween_callback(crystal.queue_free)
+		var target_y = crystal.global_position.y - 15
+		var target_x = crystal.global_position.x + randf_range(-10, 10)
+		var tween = tree.create_tween()
+		if tween:
+			tween.set_parallel(true)
+			tween.tween_property(crystal, "global_position:y", target_y, 0.3)
+			tween.tween_property(crystal, "global_position:x", target_x, 0.3)
+			tween.tween_property(crystal, "modulate:a", 0.0, 0.3)
+			tween.tween_property(crystal, "scale", Vector2(0.3, 0.3), 0.3)
+			tween.tween_callback(crystal.queue_free)
 
 		# Occasional snowflake
 		if randf() > 0.7:
@@ -156,19 +164,25 @@ func _add_frost_trail(projectile: Node2D):
 	timer.start()
 
 func _spawn_trail_snowflake(pos: Vector2):
+	var tree = get_tree()
+	if not tree or not tree.current_scene:
+		return
+
 	var snow = ColorRect.new()
 	snow.size = Vector2(4, 4)
 	snow.color = ICE_CRYSTAL
 	snow.pivot_offset = Vector2(2, 2)
-	get_tree().current_scene.add_child(snow)
+	snow.z_index = 100
+	tree.current_scene.add_child(snow)
 	snow.global_position = pos + Vector2(randf_range(-8, 8), randf_range(-8, 8))
 
-	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(snow, "global_position:y", snow.global_position.y + 20, 0.4)
-	tween.tween_property(snow, "rotation", randf() * TAU, 0.4)
-	tween.tween_property(snow, "modulate:a", 0.0, 0.4)
-	tween.tween_callback(snow.queue_free)
+	var tween = tree.create_tween()
+	if tween:
+		tween.set_parallel(true)
+		tween.tween_property(snow, "global_position:y", snow.global_position.y + 20, 0.4)
+		tween.tween_property(snow, "rotation", randf() * TAU, 0.4)
+		tween.tween_property(snow, "modulate:a", 0.0, 0.4)
+		tween.tween_callback(snow.queue_free)
 
 func _on_projectile_hit_enemy(enemy: Node2D):
 	_apply_slow_effect(enemy)
@@ -233,123 +247,15 @@ func _perform_skill() -> bool:
 
 	var target_pos = player_reference.get_global_mouse_position()
 
-	# Create blizzard at target location
-	_create_blizzard(target_pos)
+	# Spawn BlizzardSkill scene
+	var skill = SKILL_SCENE.instantiate()
+	get_tree().current_scene.add_child(skill)
+	skill.initialize(target_pos, player_reference, player_reference.stats.magic_damage_multiplier)
 
 	# Visual feedback on staff
 	_play_skill_animation()
 
 	return true
-
-func _create_blizzard(pos: Vector2):
-	# Create blizzard zone node
-	var blizzard = Node2D.new()
-	blizzard.global_position = pos
-	get_tree().current_scene.add_child(blizzard)
-
-	# Visual base (ice ring)
-	var base_visual = ColorRect.new()
-	base_visual.size = Vector2(blizzard_radius * 2, blizzard_radius * 2)
-	base_visual.color = Color(0.5, 0.8, 1.0, 0.3)
-	base_visual.pivot_offset = Vector2(blizzard_radius, blizzard_radius)
-	base_visual.position = -Vector2(blizzard_radius, blizzard_radius)
-	blizzard.add_child(base_visual)
-
-	# Spawn animation
-	base_visual.scale = Vector2(0.3, 0.3)
-	var spawn_tween = TweenHelper.new_tween()
-	spawn_tween.tween_property(base_visual, "scale", Vector2(1, 1), 0.3)\
-		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-
-	# Start blizzard effect
-	_run_blizzard(blizzard, base_visual, pos)
-
-func _run_blizzard(blizzard: Node2D, visual: ColorRect, center: Vector2):
-	var elapsed = 0.0
-	var tick_timer = 0.0
-
-	# Store weakref for safe access after await
-	var staff_ref = weakref(self)
-
-	while elapsed < blizzard_duration:
-		# Check blizzard validity first
-		if not is_instance_valid(blizzard):
-			break
-
-		var delta = get_process_delta_time()
-		elapsed += delta
-		tick_timer += delta
-
-		# Spawn snowflake particles (only if staff valid)
-		var staff = staff_ref.get_ref()
-		if staff and randf() < 0.3:
-			staff._spawn_snowflake(center)
-
-		# Damage tick
-		if tick_timer >= blizzard_tick_rate:
-			tick_timer = 0.0
-			if staff:
-				staff._blizzard_damage_tick(center)
-
-		# Fade out near end
-		if elapsed > blizzard_duration - 1.0 and is_instance_valid(visual):
-			var fade = (blizzard_duration - elapsed) / 1.0
-			visual.modulate.a = 0.3 * fade
-
-		await get_tree().process_frame
-
-		# Check validity after await - both staff and blizzard
-		if not staff_ref.get_ref():
-			if is_instance_valid(blizzard):
-				blizzard.queue_free()
-			return
-
-		# Also check blizzard after await
-		if not is_instance_valid(blizzard):
-			break
-
-	# Cleanup
-	if is_instance_valid(blizzard):
-		blizzard.queue_free()
-
-func _blizzard_damage_tick(center: Vector2):
-	var enemies = _get_enemies()
-	var attacker = player_reference if is_instance_valid(player_reference) else null
-
-	for enemy in enemies:
-		if not is_instance_valid(enemy):
-			continue
-
-		var distance = enemy.global_position.distance_to(center)
-		if distance < blizzard_radius:
-			# Deal damage with ICE type to apply CHILL
-			var tick_damage = blizzard_damage_per_tick * damage_multiplier
-			if enemy.has_method("take_damage"):
-				enemy.take_damage(tick_damage, center, 50.0, 0.05, attacker, damage_type)
-
-			# Apply slow
-			_apply_slow_effect(enemy)
-
-func _spawn_snowflake(center: Vector2):
-	var snowflake = ColorRect.new()
-	snowflake.size = Vector2(6, 6)
-	snowflake.color = Color(0.9, 0.95, 1.0, 0.8)
-	snowflake.pivot_offset = Vector2(3, 3)
-	get_tree().current_scene.add_child(snowflake)
-
-	# Random position within blizzard radius
-	var angle = randf() * TAU
-	var dist = randf() * blizzard_radius
-	snowflake.global_position = center + Vector2.from_angle(angle) * dist + Vector2(0, -50)
-
-	# Fall animation
-	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(snowflake, "global_position:y", snowflake.global_position.y + 80, 0.8)
-	tween.tween_property(snowflake, "global_position:x", snowflake.global_position.x + randf_range(-20, 20), 0.8)
-	tween.tween_property(snowflake, "rotation", randf_range(-PI, PI), 0.8)
-	tween.tween_property(snowflake, "modulate:a", 0.0, 0.8)
-	tween.tween_callback(snowflake.queue_free)
 
 func _play_skill_animation():
 	# Staff glow ice blue during skill

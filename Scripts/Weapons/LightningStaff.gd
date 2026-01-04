@@ -14,6 +14,12 @@ const ELECTRIC_GLOW: Color = Color(0.0, 1.0, 1.0, 0.8)  # Cyan
 const ELECTRIC_SPARK: Color = Color(1.0, 1.0, 0.6)  # Yellow-white sparks
 
 # ============================================
+# SPELL SCENES
+# ============================================
+const PROJECTILE_SCENE_PATH = preload("res://Scenes/Weapons/LightningStaff/spells/LightningProjectile.tscn")
+const SKILL_SCENE = preload("res://Scenes/Weapons/LightningStaff/spells/ChainLightningSkill.tscn")
+
+# ============================================
 # CHAIN LIGHTNING SETTINGS
 # ============================================
 @export_group("Chain Lightning")
@@ -28,11 +34,10 @@ const ELECTRIC_SPARK: Color = Color(1.0, 1.0, 0.6)  # Yellow-white sparks
 # ============================================
 var ability_active: bool = false
 
-# Timers (set up in _weapon_ready)
-var ability_duration_timer: Timer
-var zap_timer: Timer
-
 func _weapon_ready():
+	# Set projectile scene
+	projectile_scene = PROJECTILE_SCENE_PATH
+
 	# LightningStaff - fast, electric damage
 	attack_cooldown = 0.22  # Fast attack speed - lightning is quick
 	projectile_spread = 5.0
@@ -47,22 +52,6 @@ func _weapon_ready():
 
 	# Override skill cooldown
 	skill_cooldown = 8.0
-
-	# Set up ability timers (replacing while-loop)
-	_setup_ability_timers()
-
-func _setup_ability_timers():
-	# Duration timer - how long the ability lasts
-	ability_duration_timer = Timer.new()
-	ability_duration_timer.one_shot = true
-	ability_duration_timer.timeout.connect(_on_ability_duration_finished)
-	add_child(ability_duration_timer)
-
-	# Zap timer - interval between chain lightning strikes
-	zap_timer = Timer.new()
-	zap_timer.one_shot = false
-	zap_timer.timeout.connect(_perform_chain_lightning)
-	add_child(zap_timer)
 
 func _get_beam_color() -> Color:
 	return Color("#00ffff")  # Cyan
@@ -134,19 +123,22 @@ func _add_electric_trail(projectile: Node2D):
 		spark.size = Vector2(4, 8)
 		spark.color = ELECTRIC_SPARK if randf() > 0.5 else ELECTRIC_GLOW
 		spark.pivot_offset = Vector2(2, 4)
+		spark.z_index = 100
 		tree.current_scene.add_child(spark)
 		spark.global_position = p.global_position
 		spark.rotation = randf() * TAU
 
 		# Small arc/zap away from projectile
 		var offset = Vector2(randf_range(-15, 15), randf_range(-15, 15))
+		var target_pos = p.global_position + offset
 
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(spark, "global_position", p.global_position + offset, 0.1)
-		tween.tween_property(spark, "modulate:a", 0.0, 0.1)
-		tween.tween_property(spark, "scale", Vector2(0.3, 0.3), 0.1)
-		tween.tween_callback(spark.queue_free)
+		var tween = tree.create_tween()
+		if tween:
+			tween.set_parallel(true)
+			tween.tween_property(spark, "global_position", target_pos, 0.1)
+			tween.tween_property(spark, "modulate:a", 0.0, 0.1)
+			tween.tween_property(spark, "scale", Vector2(0.3, 0.3), 0.1)
+			tween.tween_callback(spark.queue_free)
 
 		# Occasional mini-bolt branching off
 		if randf() > 0.7:
@@ -155,22 +147,28 @@ func _add_electric_trail(projectile: Node2D):
 	timer.start()
 
 func _create_mini_bolt(pos: Vector2):
+	var tree = get_tree()
+	if not tree or not tree.current_scene:
+		return
+
 	var bolt = Line2D.new()
-	get_tree().current_scene.add_child(bolt)
 	bolt.default_color = ELECTRIC_GLOW
 	bolt.width = 2.0
+	bolt.z_index = 100
+	tree.current_scene.add_child(bolt)
 
 	var end_pos = pos + Vector2(randf_range(-20, 20), randf_range(-20, 20))
 	var mid_pos = pos.lerp(end_pos, 0.5) + Vector2(randf_range(-8, 8), randf_range(-8, 8))
 
 	bolt.points = PackedVector2Array([pos, mid_pos, end_pos])
 
-	var tween = TweenHelper.new_tween()
-	tween.tween_property(bolt, "modulate:a", 0.0, 0.08)
-	tween.tween_callback(bolt.queue_free)
+	var tween = tree.create_tween()
+	if tween:
+		tween.tween_property(bolt, "modulate:a", 0.0, 0.08)
+		tween.tween_callback(bolt.queue_free)
 
 # ============================================
-# CHAIN LIGHTNING SKILL (Timer-based)
+# CHAIN LIGHTNING SKILL (Scene-based)
 # ============================================
 func _perform_skill() -> bool:
 	if ability_active:
@@ -181,21 +179,22 @@ func _perform_skill() -> bool:
 	# Visual feedback
 	sprite.color = Color("#ffff00")  # Bright yellow during ability
 
-	# Start timers
-	ability_duration_timer.start(chain_lightning_duration)
-	zap_timer.start(zap_interval)
+	# Spawn ChainLightningSkill scene
+	var skill = SKILL_SCENE.instantiate()
+	get_tree().current_scene.add_child(skill)
+	skill.initialize(player_reference, player_reference.stats.magic_damage_multiplier)
 
-	# Do first zap immediately
-	_perform_chain_lightning()
+	# Connect to skill completion to reset ability state
+	skill.skill_completed.connect(_on_ability_duration_finished)
 
 	return true
 
 func _on_ability_duration_finished():
 	ability_active = false
-	zap_timer.stop()
 	sprite.color = staff_color
 
-func _perform_chain_lightning():
+func _unused_perform_chain_lightning():
+	# NOTE: This is now handled by ChainLightningSkill scene
 	if not ability_active or not player_reference:
 		return
 

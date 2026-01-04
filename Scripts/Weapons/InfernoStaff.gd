@@ -17,21 +17,13 @@ const EMBER_COLOR: Color = Color(1.0, 0.5, 0.0)  # Ember particles
 # ============================================
 # INFERNO STAFF SPECIFIC
 # ============================================
-const FIRE_ZONE_SCENE = preload("res://Scenes/Spells/FireZone.tscn")
-
-# Volcano Eruption settings
-var volcano_radius: float = 150.0  # Larger explosion radius
-var volcano_damage: float = 35.0  # Initial burst damage
-var lava_pool_damage: float = 10.0  # Damage per second in lava
-var lava_pool_duration: float = 4.0  # How long lava persists
-var fire_immunity_duration: float = 3.0  # Fire immunity lasts this long
-
-# Visual colors
-const LAVA_CORE: Color = Color(1.0, 0.6, 0.0)  # Bright orange-yellow
-const LAVA_OUTER: Color = Color(0.8, 0.2, 0.0, 0.8)  # Dark red
-const MAGMA_COLOR: Color = Color(1.0, 0.3, 0.0)  # Red-orange
+const PROJECTILE_SCENE_PATH = preload("res://Scenes/Weapons/InfernoStaff/spells/FireProjectile.tscn")
+const SKILL_SCENE = preload("res://Scenes/Weapons/InfernoStaff/spells/VolcanoSkill.tscn")
 
 func _weapon_ready():
+	# Set projectile scene
+	projectile_scene = PROJECTILE_SCENE_PATH
+
 	# Inferno Staff - slower but higher damage fireballs
 	attack_cooldown = 0.38  # Slower, heavier fireballs
 	projectile_spread = 8.0
@@ -74,243 +66,15 @@ func _perform_skill() -> bool:
 	if not player_reference:
 		return false
 
-	var player_pos = player_reference.global_position
-
-	# Grant fire immunity FIRST
-	_grant_fire_immunity()
-
-	# Create volcano eruption effect
-	_create_volcano_eruption(player_pos)
-
-	# Deal burst damage to all enemies in radius
-	_deal_eruption_damage(player_pos)
-
-	# Create persistent lava pool
-	_create_lava_pool(player_pos)
+	# Spawn VolcanoSkill scene
+	var skill = SKILL_SCENE.instantiate()
+	get_tree().current_scene.add_child(skill)
+	skill.initialize(player_reference, player_reference.stats.magic_damage_multiplier)
 
 	# Visual feedback on staff
 	_play_skill_animation()
 
 	return true
-
-func _grant_fire_immunity():
-	if not player_reference:
-		return
-
-	# Grant actual fire immunity
-	player_reference.is_fire_immune = true
-
-	# Visual indicator - player glows orange
-	player_reference.modulate = Color(1.0, 0.7, 0.4)
-
-	# Create fire aura around player
-	_create_fire_aura()
-
-	# Timer to remove immunity
-	_remove_fire_immunity_delayed()
-
-func _remove_fire_immunity_delayed():
-	await get_tree().create_timer(fire_immunity_duration).timeout
-	if is_instance_valid(player_reference):
-		player_reference.is_fire_immune = false
-		player_reference.modulate = Color.WHITE
-
-func _create_fire_aura():
-	if not player_reference:
-		return
-
-	# Create particles that orbit around player during immunity
-	var aura_container = Node2D.new()
-	player_reference.add_child(aura_container)
-
-	# Spawn orbiting embers
-	for i in range(8):
-		var ember = ColorRect.new()
-		ember.size = Vector2(8, 12)
-		ember.color = FIRE_CORE
-		ember.pivot_offset = Vector2(4, 6)
-		aura_container.add_child(ember)
-
-		var angle = (TAU / 8) * i
-		ember.position = Vector2.from_angle(angle) * 40
-
-	# Animate the aura
-	_animate_fire_aura(aura_container)
-
-func _animate_fire_aura(aura: Node2D):
-	var elapsed = 0.0
-	while elapsed < fire_immunity_duration:
-		if not is_instance_valid(aura):
-			break
-
-		var delta = get_process_delta_time()
-		elapsed += delta
-
-		# Rotate the aura
-		aura.rotation += delta * 3.0
-
-		# Update ember positions with wobble
-		var children = aura.get_children()
-		for i in range(children.size()):
-			var ember = children[i]
-			if is_instance_valid(ember):
-				var base_angle = (TAU / children.size()) * i + aura.rotation
-				var radius = 35 + sin(elapsed * 5.0 + i) * 8
-				ember.position = Vector2.from_angle(base_angle) * radius
-				ember.color = FIRE_CORE.lerp(FIRE_MID, (sin(elapsed * 8.0 + i) + 1) / 2)
-
-		# Fade out near end
-		if elapsed > fire_immunity_duration - 0.5:
-			aura.modulate.a = (fire_immunity_duration - elapsed) / 0.5
-
-		await get_tree().process_frame
-
-	if is_instance_valid(aura):
-		aura.queue_free()
-
-func _create_volcano_eruption(center: Vector2):
-	# Initial explosion flash
-	var flash = ColorRect.new()
-	flash.size = Vector2(volcano_radius * 2.5, volcano_radius * 2.5)
-	flash.color = FIRE_CORE
-	flash.pivot_offset = flash.size / 2
-	get_tree().current_scene.add_child(flash)
-	flash.global_position = center
-
-	var flash_tween = TweenHelper.new_tween()
-	flash_tween.set_parallel(true)
-	flash_tween.tween_property(flash, "scale", Vector2(1.5, 1.5), 0.15)
-	flash_tween.tween_property(flash, "modulate:a", 0.0, 0.15)
-	flash_tween.tween_callback(flash.queue_free)
-
-	# Create multiple shockwave rings
-	for i in range(3):
-		_create_eruption_ring(center, i * 0.08, volcano_radius * (0.5 + i * 0.3))
-
-	# Spawn erupting fire/magma particles shooting outward
-	for i in range(30):
-		_spawn_eruption_particle(center)
-
-	# Screen shake
-	DamageNumberManager.shake(0.7)
-
-func _create_eruption_ring(center: Vector2, delay: float, radius: float):
-	await get_tree().create_timer(delay).timeout
-
-	if not is_instance_valid(self):
-		return
-
-	var ring = ColorRect.new()
-	ring.size = Vector2(radius * 2, radius * 2)
-	ring.color = LAVA_OUTER
-	ring.pivot_offset = Vector2(radius, radius)
-	get_tree().current_scene.add_child(ring)
-	ring.global_position = center
-	ring.scale = Vector2(0.3, 0.3)
-
-	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(ring, "scale", Vector2(1.2, 1.2), 0.3).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-	tween.tween_property(ring, "modulate:a", 0.0, 0.3)
-	tween.tween_callback(ring.queue_free)
-
-func _spawn_eruption_particle(center: Vector2):
-	var particle = ColorRect.new()
-	particle.size = Vector2(randf_range(12, 24), randf_range(16, 32))
-	particle.pivot_offset = particle.size / 2
-
-	# Random fire color
-	var color_roll = randf()
-	if color_roll > 0.6:
-		particle.color = FIRE_CORE
-	elif color_roll > 0.3:
-		particle.color = FIRE_MID
-	else:
-		particle.color = MAGMA_COLOR
-
-	get_tree().current_scene.add_child(particle)
-	particle.global_position = center
-
-	# Launch in random direction with arc
-	var angle = randf() * TAU
-	var direction = Vector2.from_angle(angle)
-	var target_pos = center + direction * randf_range(80, volcano_radius * 1.2)
-
-	# Arc upward then fall
-	var peak_height = randf_range(50, 120)
-	var duration = randf_range(0.4, 0.7)
-
-	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-
-	# Horizontal movement
-	tween.tween_property(particle, "global_position:x", target_pos.x, duration)
-
-	# Vertical arc - go up then down
-	var start_y = center.y
-	tween.tween_property(particle, "global_position:y", start_y - peak_height, duration * 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.chain().tween_property(particle, "global_position:y", target_pos.y, duration * 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-
-	# Rotate as it flies
-	tween.tween_property(particle, "rotation", randf_range(-TAU, TAU), duration)
-
-	# Fade and shrink at end
-	tween.tween_property(particle, "modulate:a", 0.0, duration)
-	tween.tween_property(particle, "scale", Vector2(0.3, 0.3), duration)
-	tween.tween_callback(particle.queue_free)
-
-func _deal_eruption_damage(center: Vector2):
-	var enemies = _get_enemies()
-	var magic_mult = player_reference.stats.magic_damage_multiplier if player_reference else 1.0
-
-	for enemy in enemies:
-		if not is_instance_valid(enemy):
-			continue
-
-		var dist = enemy.global_position.distance_to(center)
-		if dist <= volcano_radius:
-			# Full damage at center, less at edge
-			var damage_falloff = 1.0 - (dist / volcano_radius) * 0.5
-			var final_damage = volcano_damage * magic_mult * damage_falloff
-
-			if enemy.has_method("take_damage"):
-				var attacker = player_reference if is_instance_valid(player_reference) else null
-				enemy.take_damage(final_damage, center, 400.0, 0.2, attacker, damage_type)
-
-			# Create hit effect
-			_create_eruption_hit(enemy.global_position)
-
-func _create_eruption_hit(pos: Vector2):
-	var hit = ColorRect.new()
-	hit.size = Vector2(40, 40)
-	hit.color = FIRE_CORE
-	hit.pivot_offset = Vector2(20, 20)
-	get_tree().current_scene.add_child(hit)
-	hit.global_position = pos
-
-	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(hit, "scale", Vector2(2, 2), 0.2)
-	tween.tween_property(hit, "modulate:a", 0.0, 0.2)
-	tween.tween_callback(hit.queue_free)
-
-func _create_lava_pool(center: Vector2):
-	# Create fire zone using existing system
-	var fire_zone = FIRE_ZONE_SCENE.instantiate()
-	get_tree().current_scene.add_child(fire_zone)
-
-	var magic_mult = player_reference.stats.magic_damage_multiplier if player_reference else 1.0
-
-	fire_zone.initialize(
-		center,
-		lava_pool_damage * magic_mult,
-		lava_pool_duration,
-		volcano_radius * 0.8,  # Slightly smaller than eruption radius
-		player_reference
-	)
-
-	# Add bubbling lava effect on top
-	_animate_lava_bubbles(center, lava_pool_duration)
 
 func _play_skill_animation():
 	# Staff glow red during skill
@@ -409,16 +173,19 @@ func _add_flame_trail(projectile: Node2D):
 		else:
 			flame.color = FIRE_OUTER
 		flame.pivot_offset = flame.size / 2
+		flame.z_index = 100
 		tree.current_scene.add_child(flame)
 		flame.global_position = p.global_position + Vector2(randf_range(-6, 6), randf_range(-6, 6))
 
 		# Flames rise and fade
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(flame, "global_position:y", flame.global_position.y - randf_range(15, 30), 0.25)
-		tween.tween_property(flame, "scale", Vector2(0.2, 0.4), 0.25)
-		tween.tween_property(flame, "modulate:a", 0.0, 0.25)
-		tween.tween_callback(flame.queue_free)
+		var target_y = flame.global_position.y - randf_range(15, 30)
+		var tween = tree.create_tween()
+		if tween:
+			tween.set_parallel(true)
+			tween.tween_property(flame, "global_position:y", target_y, 0.25)
+			tween.tween_property(flame, "scale", Vector2(0.2, 0.4), 0.25)
+			tween.tween_property(flame, "modulate:a", 0.0, 0.25)
+			tween.tween_callback(flame.queue_free)
 
 		# Smoke particle occasionally
 		if randf() > 0.8:
@@ -427,55 +194,23 @@ func _add_flame_trail(projectile: Node2D):
 	timer.start()
 
 func _spawn_smoke_particle(pos: Vector2):
+	var tree = get_tree()
+	if not tree or not tree.current_scene:
+		return
+
 	var smoke = ColorRect.new()
 	smoke.size = Vector2(10, 10)
 	smoke.color = Color(0.3, 0.3, 0.3, 0.4)
 	smoke.pivot_offset = Vector2(5, 5)
-	get_tree().current_scene.add_child(smoke)
+	smoke.z_index = 100
+	tree.current_scene.add_child(smoke)
 	smoke.global_position = pos
 
-	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(smoke, "global_position:y", pos.y - 40, 0.5)
-	tween.tween_property(smoke, "global_position:x", pos.x + randf_range(-15, 15), 0.5)
-	tween.tween_property(smoke, "scale", Vector2(2.0, 2.0), 0.5)
-	tween.tween_property(smoke, "modulate:a", 0.0, 0.5)
-	tween.tween_callback(smoke.queue_free)
-
-func _animate_lava_bubbles(center: Vector2, duration: float):
-	var elapsed = 0.0
-	var pool_radius = volcano_radius * 0.8
-
-	while elapsed < duration:
-		# Check if self is still valid after await
-		if not is_instance_valid(self):
-			return
-
-		var delta = get_process_delta_time()
-		elapsed += delta
-
-		# Spawn bubbling lava particles randomly within pool
-		if randf() < 0.3:  # ~30% chance per frame
-			var bubble = ColorRect.new()
-			bubble.size = Vector2(randf_range(8, 16), randf_range(8, 16))
-			bubble.pivot_offset = bubble.size / 2
-			bubble.color = LAVA_CORE if randf() > 0.4 else MAGMA_COLOR
-
-			# Random position within pool
-			var angle = randf() * TAU
-			var dist = randf() * pool_radius * 0.9
-			var spawn_pos = center + Vector2.from_angle(angle) * dist
-
-			get_tree().current_scene.add_child(bubble)
-			bubble.global_position = spawn_pos
-
-			# Bubble rises and pops
-			var tween = TweenHelper.new_tween()
-			tween.set_parallel(true)
-			tween.tween_property(bubble, "global_position:y", spawn_pos.y - randf_range(20, 40), 0.3)
-			tween.tween_property(bubble, "scale", Vector2(1.5, 1.5), 0.15)
-			tween.chain().tween_property(bubble, "scale", Vector2(0.2, 0.2), 0.15)
-			tween.tween_property(bubble, "modulate:a", 0.0, 0.3)
-			tween.tween_callback(bubble.queue_free)
-
-		await get_tree().process_frame
+	var tween = tree.create_tween()
+	if tween:
+		tween.set_parallel(true)
+		tween.tween_property(smoke, "global_position:y", pos.y - 40, 0.5)
+		tween.tween_property(smoke, "global_position:x", pos.x + randf_range(-15, 15), 0.5)
+		tween.tween_property(smoke, "scale", Vector2(2.0, 2.0), 0.5)
+		tween.tween_property(smoke, "modulate:a", 0.0, 0.5)
+		tween.tween_callback(smoke.queue_free)

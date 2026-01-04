@@ -3,8 +3,8 @@
 [ext_resource type="Script" uid="uid://dsmf6w5yegfc" path="res://Scripts/Player/Player.gd" id="1_ft8w5"]
 [ext_resource type="Texture2D" uid="uid://dq20hol0fbldv" path="res://icon.svg" id="1_uvnfx"]
 [ext_resource type="Script" uid="uid://qh02i550hrbk" path="res://Scripts/Player/PlayerStats.gd" id="2_ude3g"]
-[ext_resource type="PackedScene" uid="uid://8obk5qvsqmhk" path="res://Scenes/Weapons/Basic_sword.tscn" id="3_jmcll"]
-[ext_resource type="PackedScene" uid="uid://dn16fj6ro42m1" path="res://Scenes/Weapons/basic_staff.tscn" id="4_jmcll"]
+[ext_resource type="PackedScene" uid="uid://8obk5qvsqmhk" path="res://Scenes/Weapons/BasicSword/BasicSword.tscn" id="3_jmcll"]
+[ext_resource type="PackedScene" uid="uid://dn16fj6ro42m1" path="res://Scenes/Weapons/BasicStaff/BasicStaff.tscn" id="4_jmcll"]
 
 [sub_resource type="Resource" id="Resource_h54ih"]
 script = ExtResource("2_ude3g")

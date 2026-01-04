@@ -50,6 +50,7 @@ const DEFAULT_RECOVERY_RATIO: float = 0.35 # 35% of duration for recovery
 @export var weapon_length: float = 80.0
 @export var idle_rotation: float = 45.0  # Degrees
 @export var idle_scale: Vector2 = Vector2(0.6, 0.6)
+@export var idle_position: Vector2 = Vector2.ZERO  # Offset from player center
 @export var weapon_color: Color = Color("#c0c0c0")
 
 @export_group("Combo Settings")
@@ -189,7 +190,7 @@ func _setup_visuals():
 func _setup_idle_state():
 	# Override for custom idle positioning
 	if pivot:
-		pivot.position = Vector2.ZERO
+		pivot.position = idle_position
 		pivot.rotation = deg_to_rad(idle_rotation)
 	if sprite:
 		sprite.scale = idle_scale
