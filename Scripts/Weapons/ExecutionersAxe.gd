@@ -36,14 +36,14 @@ func _weapon_ready():
 	damage = 25.0
 	attack_duration = 0.45  # Slow swing
 	attack_cooldown = 0.6   # Long recovery
-	swing_arc = 120.0       # Narrower arc
-	weapon_length = 90.0    # Slightly longer reach
+	swing_arc = 120.0       # Wide cleaving arc
+	weapon_length = 130.0   # Long reach for big axe
 	weapon_color = AXE_BLADE_COLOR
 	skill_cooldown = 12.0
 
-	# Cone Hitbox - Now configured via @export in scene inspector
-	# attack_range = 125.0  # Good reach for cleave
-	# attack_cone_angle = 110.0  # Wide cleaving arc
+	# Cone Hitbox - configured via @export in scene inspector
+	# attack_range = 160.0  # Extended reach for big axe
+	# attack_cone_angle = 120.0  # Wide cleaving arc
 
 	# Attack Speed Limits (slow heavy weapon)
 	max_attacks_per_second = 2.0  # Slow but powerful

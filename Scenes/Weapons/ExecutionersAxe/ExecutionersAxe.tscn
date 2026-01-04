@@ -6,22 +6,22 @@
 [node name="ExecutionersAxe" type="Node2D"]
 z_index = -1
 script = ExtResource("1_axe")
-attack_range = 125.0
-attack_cone_angle = 110.0
+attack_range = 160.0
+attack_cone_angle = 120.0
 
 [node name="Pivot" type="Node2D" parent="."]
 
 [node name="Sprite" type="ColorRect" parent="Pivot"]
 visible = false
-offset_left = -16.0
-offset_top = -110.0
-offset_right = 16.0
+offset_left = -20.0
+offset_top = -140.0
+offset_right = 20.0
 offset_bottom = -10.0
 color = Color(0.29, 0.29, 0.29, 1)
 
 [node name="AxeTexture" type="Sprite2D" parent="Pivot"]
-position = Vector2(0, -50)
-scale = Vector2(1.5, 1.5)
+position = Vector2(0, -65)
+scale = Vector2(2.0, 2.0)
 texture = ExtResource("2_balta")
 
 [node name="AttackTimer" type="Timer" parent="."]

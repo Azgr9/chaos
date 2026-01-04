@@ -185,18 +185,22 @@ func _create_lightning_bolt(from: Vector2, to: Vector2):
 	_create_impact_spark(to)
 
 	# Fade out using TweenHelper
+	var glow_ref = weakref(glow_bolt)
+	var core_ref = weakref(core_bolt)
+	var inner_ref = weakref(inner_bolt)
+
 	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
 	tween.tween_property(glow_bolt, "modulate:a", 0.0, 0.25)
 	tween.tween_property(core_bolt, "modulate:a", 0.0, 0.2)
 	tween.tween_property(inner_bolt, "modulate:a", 0.0, 0.15)
 	tween.chain().tween_callback(func():
-		if is_instance_valid(glow_bolt):
-			glow_bolt.queue_free()
-		if is_instance_valid(core_bolt):
-			core_bolt.queue_free()
-		if is_instance_valid(inner_bolt):
-			inner_bolt.queue_free()
+		var g = glow_ref.get_ref()
+		var c = core_ref.get_ref()
+		var i = inner_ref.get_ref()
+		if g: g.queue_free()
+		if c: c.queue_free()
+		if i: i.queue_free()
 	)
 
 func _create_impact_spark(pos: Vector2):
@@ -216,13 +220,14 @@ func _create_impact_spark(pos: Vector2):
 	scene.add_child(flash)
 	flash.global_position = pos - Vector2(20, 20)
 
+	var flash_ref = weakref(flash)
 	var flash_tween = TweenHelper.new_tween()
 	flash_tween.set_parallel(true)
 	flash_tween.tween_property(flash, "scale", Vector2(2.0, 2.0), 0.12)
 	flash_tween.tween_property(flash, "modulate:a", 0.0, 0.12)
 	flash_tween.chain().tween_callback(func():
-		if is_instance_valid(flash):
-			flash.queue_free()
+		var f = flash_ref.get_ref()
+		if f: f.queue_free()
 	)
 
 	# Sparks flying out
@@ -239,14 +244,15 @@ func _create_impact_spark(pos: Vector2):
 		var dir = Vector2.from_angle(angle)
 		var end_pos = pos + dir * randf_range(30, 60)
 
+		var spark_ref = weakref(spark)
 		var tween = TweenHelper.new_tween()
 		tween.set_parallel(true)
 		tween.tween_property(spark, "global_position", end_pos, 0.18)
 		tween.tween_property(spark, "modulate:a", 0.0, 0.18)
 		tween.tween_property(spark, "scale", Vector2(0.3, 0.3), 0.18)
 		tween.chain().tween_callback(func():
-			if is_instance_valid(spark):
-				spark.queue_free()
+			var s = spark_ref.get_ref()
+			if s: s.queue_free()
 		)
 
 func _apply_stun_effect(target: Node2D):
@@ -269,19 +275,22 @@ func _apply_stun_effect(target: Node2D):
 			tree.current_scene.add_child(spark)
 			spark.global_position = target.global_position + Vector2(randf_range(-15, 15), randf_range(-20, 10))
 
+			var spark_ref = weakref(spark)
 			var tween = TweenHelper.new_tween()
 			tween.set_parallel(true)
 			tween.tween_property(spark, "global_position:y", spark.global_position.y - 25, 0.25)
 			tween.tween_property(spark, "modulate:a", 0.0, 0.25)
 			tween.chain().tween_callback(func():
-				if is_instance_valid(spark):
-					spark.queue_free()
+				var s = spark_ref.get_ref()
+				if s: s.queue_free()
 			)
 
 	# Reset color after stun
+	var target_ref = weakref(target)
 	var reset_tween = TweenHelper.new_tween()
 	reset_tween.tween_interval(stun_duration)
 	reset_tween.tween_callback(func():
-		if is_instance_valid(target):
-			target.modulate = original_modulate
+		var t = target_ref.get_ref()
+		if t:
+			t.modulate = original_modulate
 	)
