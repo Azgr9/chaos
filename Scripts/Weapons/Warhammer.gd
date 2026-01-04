@@ -58,6 +58,11 @@ func _weapon_ready():
 	# Skill settings
 	skill_cooldown = 15.0
 
+	# Walk animation - heaviest weapon = very slow, heavy bob
+	walk_bob_amount = 14.0  # Massive bob for heaviest weapon
+	walk_sway_amount = 20.0  # Heavy sway
+	walk_anim_speed = 0.5  # Slowest animation
+
 	# Apply idle state after setting custom values
 	_setup_idle_state()
 

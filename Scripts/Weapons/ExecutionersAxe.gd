@@ -62,6 +62,11 @@ func _weapon_ready():
 	combo_finisher_multiplier = 1.8  # Higher finisher bonus for heavy weapon
 	combo_window = 2.0  # Longer window for slow weapon
 
+	# Walk animation - heavy weapon = slow, pronounced bob
+	walk_bob_amount = 12.0  # Heavy bob for heavy weapon
+	walk_sway_amount = 18.0  # Pronounced sway
+	walk_anim_speed = 0.7  # Slower animation
+
 	# Apply idle state after setting custom values
 	_setup_idle_state()
 

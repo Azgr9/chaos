@@ -66,6 +66,11 @@ func _weapon_ready():
 	# Skill settings
 	skill_cooldown = 4.0  # Short cooldown for aggressive play
 
+	# Walk animation - lightest weapon = very fast, elegant movement
+	walk_bob_amount = 5.0  # Light but visible bob
+	walk_sway_amount = 8.0  # Elegant sway
+	walk_anim_speed = 1.5  # Fastest animation
+
 	# Apply idle state after setting custom values
 	_setup_idle_state()
 

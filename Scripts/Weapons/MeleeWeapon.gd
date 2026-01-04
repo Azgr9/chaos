@@ -78,6 +78,16 @@ const DEFAULT_RECOVERY_RATIO: float = 0.35 # 35% of duration for recovery
 ## Enable animation canceling during recovery
 @export var allow_recovery_cancel: bool = true
 
+@export_group("Walk Animation")
+## Enable weapon bob/sway while walking
+@export var enable_walk_animation: bool = true
+## How much the weapon bobs up/down (pixels)
+@export var walk_bob_amount: float = 8.0
+## How much the weapon sways (degrees)
+@export var walk_sway_amount: float = 12.0
+## Walk animation speed multiplier (higher = faster bob)
+@export var walk_anim_speed: float = 1.0
+
 # Trail system
 var _active_trail: Line2D = null
 var _trail_points: Array[Vector2] = []
@@ -121,6 +131,11 @@ const SPEED_BOOST_PER_HIT: float = 0.1
 var _is_in_active_frames: bool = false
 var _current_attack_data: Dictionary = {}
 
+# Walk animation state
+var _walk_anim_time: float = 0.0
+var _last_player_pos: Vector2 = Vector2.ZERO
+var _is_player_moving: bool = false
+
 # ============================================
 # SIGNALS
 # ============================================
@@ -153,6 +168,10 @@ func _ready():
 		return
 	player_reference = get_tree().get_first_node_in_group("player")
 
+	# Initialize walk animation tracking position
+	if player_reference and is_instance_valid(player_reference):
+		_last_player_pos = player_reference.global_position
+
 	# Register with animation system
 	if CombatAnimationSystem:
 		CombatAnimationSystem.register_weapon(self)
@@ -173,6 +192,7 @@ func _process(delta):
 	_update_skill_cooldown(delta)
 	_scan_cone_hitbox()  # Active cone scanning each frame when attacking
 	_update_swing_trail()  # Update weapon trail
+	_update_walk_animation(delta)  # Weapon bob/sway while walking
 	_weapon_process(delta)
 
 # ============================================
@@ -238,6 +258,59 @@ func _calculate_hitbox_from_size():
 
 	# Debug output
 	# print("%s - attack_range: %.1f" % [name, attack_range])
+
+func _update_walk_animation(delta: float):
+	# Skip if disabled, attacking, or using skill
+	if not enable_walk_animation or is_attacking or is_using_skill:
+		if _walk_anim_time != 0.0:
+			_walk_anim_time = 0.0
+			_reset_walk_animation()
+		return
+
+	if not player_reference or not is_instance_valid(player_reference):
+		return
+
+	var current_pos = player_reference.global_position
+	var velocity = (current_pos - _last_player_pos) / max(delta, 0.001)
+	_last_player_pos = current_pos
+
+	var speed = velocity.length()
+	_is_player_moving = speed > 5.0
+
+	if not _is_player_moving:
+		# Smoothly return to idle
+		if _walk_anim_time != 0.0:
+			_walk_anim_time = lerpf(_walk_anim_time, 0.0, delta * 6.0)
+			if abs(_walk_anim_time) < 0.01:
+				_walk_anim_time = 0.0
+				_reset_walk_animation()
+			else:
+				_apply_walk_animation()
+		return
+
+	# Update animation time
+	var anim_speed = 10.0 * walk_anim_speed
+	_walk_anim_time += delta * anim_speed
+	_apply_walk_animation()
+
+func _apply_walk_animation():
+	if not pivot:
+		return
+
+	# Simple bob and sway
+	var bob_offset = sin(_walk_anim_time * 2.0) * walk_bob_amount
+	var sway_rotation = sin(_walk_anim_time) * walk_sway_amount
+
+	# Apply to pivot
+	pivot.position = idle_position + Vector2(0, bob_offset)
+	pivot.rotation = deg_to_rad(idle_rotation + sway_rotation)
+
+func _reset_walk_animation():
+	if not pivot:
+		return
+	# Reset to idle state
+	pivot.position = idle_position
+	pivot.rotation = deg_to_rad(idle_rotation)
 
 func _get_attack_pattern(attack_index: int) -> String:
 	# Override to define combo attack sequence

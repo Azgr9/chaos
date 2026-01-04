@@ -62,6 +62,11 @@ func _weapon_ready():
 	combo_window = 1.8
 	combo_hits = 3
 
+	# Walk animation - medium-heavy, eerie sway
+	walk_bob_amount = 10.0  # Noticeable bob
+	walk_sway_amount = 16.0  # Menacing sway
+	walk_anim_speed = 0.8  # Slightly slow
+
 	# Apply idle state after setting custom values
 	_setup_idle_state()
 

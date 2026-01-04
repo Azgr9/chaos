@@ -69,6 +69,11 @@ func _weapon_ready():
 	combo_window = 1.5
 	combo_hits = 4  # 4-hit combo for spear
 
+	# Walk animation - long weapon = more tip movement, medium speed
+	walk_bob_amount = 9.0  # Medium bob
+	walk_sway_amount = 14.0  # More sway (long weapon tip moves more)
+	walk_anim_speed = 0.9  # Slightly slow
+
 	# Apply idle state after setting custom values
 	_setup_idle_state()
 

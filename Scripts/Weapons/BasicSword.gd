@@ -47,6 +47,11 @@ func _weapon_ready():
 	base_knockback = 350.0
 	finisher_knockback = 600.0
 
+	# Walk animation - balanced sword
+	walk_bob_amount = 8.0
+	walk_sway_amount = 12.0
+	walk_anim_speed = 1.0
+
 	# Apply idle state after setting custom values
 	_setup_idle_state()
 

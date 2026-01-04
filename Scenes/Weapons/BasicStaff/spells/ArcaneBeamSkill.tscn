@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://ddehf8uot44ss"]
 
-[ext_resource type="Script" path="res://Scenes/Weapons/BasicStaff/spells/ArcaneBeamSkill.gd" id="1_beam"]
+[ext_resource type="Script" uid="uid://cly5bybrkrdsm" path="res://Scenes/Weapons/BasicStaff/spells/ArcaneBeamSkill.gd" id="1_beam"]
 
 [node name="ArcaneBeamSkill" type="Node2D"]
 script = ExtResource("1_beam")
