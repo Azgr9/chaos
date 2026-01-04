@@ -7,7 +7,7 @@ extends Node2D
 
 @onready var hit_box: Area2D = $HitBox
 @onready var visual: Node2D = $Visual
-@onready var axe_visual: ColorRect = $Visual/Axe
+@onready var axe_visual: Sprite2D = $Visual/Axe
 
 @export var leap_distance: float = 250.0
 @export var leap_duration: float = 0.4
@@ -62,7 +62,7 @@ func _perform_leap():
 	visual.scale = Vector2(1.5, 1.5)
 	modulate.a = 1.0
 	axe_visual.rotation = deg_to_rad(-60)  # Raised high
-	axe_visual.color = AXE_GLOW_COLOR
+	axe_visual.modulate = AXE_GLOW_COLOR
 
 	# Create leap trail effect
 	_create_leap_trail(start_pos, end_pos)
@@ -221,17 +221,19 @@ func _create_shockwave(delay: float, alpha: float):
 	tween.tween_callback(shockwave.queue_free)
 
 func _create_leap_trail(start: Vector2, end: Vector2):
-	# Ghost images along the leap path
+	# Ghost images along the leap path using the axe texture
+	var axe_texture = preload("res://Scenes/Weapons/ExecutionersAxe/balta.png")
+
 	for i in range(5):
 		var t = i / 5.0
 		var pos = start.lerp(end, t)
 
-		var ghost = ColorRect.new()
-		ghost.size = Vector2(30, 50)
-		ghost.color = Color(AXE_GLOW_COLOR.r, AXE_GLOW_COLOR.g, AXE_GLOW_COLOR.b, 0.0)
-		ghost.pivot_offset = Vector2(15, 25)
+		var ghost = Sprite2D.new()
+		ghost.texture = axe_texture
+		ghost.scale = Vector2(1.5, 1.5)
+		ghost.modulate = Color(AXE_GLOW_COLOR.r, AXE_GLOW_COLOR.g, AXE_GLOW_COLOR.b, 0.0)
 		get_tree().current_scene.add_child(ghost)
-		ghost.global_position = pos - Vector2(15, 25)
+		ghost.global_position = pos
 
 		# Fade in then out with delay
 		var ghost_tween = TweenHelper.new_tween()

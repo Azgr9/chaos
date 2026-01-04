@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://guillotine_drop"]
+[gd_scene load_steps=4 format=3 uid="uid://guillotine_drop"]
 
 [ext_resource type="Script" path="res://Scenes/Weapons/ExecutionersAxe/ExecutionersAxeSkill.gd" id="1_skill"]
+[ext_resource type="Texture2D" uid="uid://cvlhojjrk8nk7" path="res://Scenes/Weapons/ExecutionersAxe/balta.png" id="2_axe_texture"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_impact"]
 radius = 80.0
@@ -26,24 +27,7 @@ disabled = true
 
 [node name="Visual" type="Node2D" parent="."]
 
-[node name="Axe" type="ColorRect" parent="Visual"]
-offset_left = -20.0
-offset_top = -80.0
-offset_right = 20.0
-offset_bottom = 20.0
-pivot_offset = Vector2(20, 80)
-color = Color(0.35, 0.35, 0.4, 1)
-
-[node name="AxeHead" type="ColorRect" parent="Visual/Axe"]
-offset_left = -12.0
-offset_top = 0.0
-offset_right = 52.0
-offset_bottom = 40.0
-color = Color(0.5, 0.5, 0.55, 1)
-
-[node name="AxeBlade" type="ColorRect" parent="Visual/Axe"]
-offset_left = -24.0
-offset_top = 5.0
-offset_right = -12.0
-offset_bottom = 35.0
-color = Color(0.8, 0.8, 0.85, 1)
+[node name="Axe" type="Sprite2D" parent="Visual"]
+position = Vector2(0, -40)
+scale = Vector2(2.0, 2.0)
+texture = ExtResource("2_axe_texture")

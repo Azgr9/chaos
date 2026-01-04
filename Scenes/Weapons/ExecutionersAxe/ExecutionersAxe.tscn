@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://cvlhojjrk8nk7" path="res://Scenes/Weapons/ExecutionersAxe/balta.png" id="2_balta"]
 
 [node name="ExecutionersAxe" type="Node2D"]
+z_index = -1
 script = ExtResource("1_axe")
 attack_range = 125.0
 attack_cone_angle = 110.0

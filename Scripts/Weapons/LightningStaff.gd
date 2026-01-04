@@ -170,6 +170,11 @@ func _create_mini_bolt(pos: Vector2):
 # ============================================
 # CHAIN LIGHTNING SKILL (Scene-based)
 # ============================================
+
+## ChainLightning is async - it manages invulnerability timing via skill_completed signal
+func _is_async_skill() -> bool:
+	return true
+
 func _perform_skill() -> bool:
 	if ability_active:
 		return false
@@ -182,9 +187,13 @@ func _perform_skill() -> bool:
 	# Spawn ChainLightningSkill scene
 	var skill = SKILL_SCENE.instantiate()
 	get_tree().current_scene.add_child(skill)
-	skill.initialize(player_reference, player_reference.stats.magic_damage_multiplier)
 
-	# Connect to skill completion to reset ability state
+	var magic_mult = 1.0
+	if player_reference and player_reference.stats:
+		magic_mult = player_reference.stats.magic_damage_multiplier
+	skill.initialize(player_reference, magic_mult)
+
+	# Connect to skill completion to reset ability state and invulnerability
 	skill.skill_completed.connect(_on_ability_duration_finished)
 
 	return true
@@ -192,6 +201,7 @@ func _perform_skill() -> bool:
 func _on_ability_duration_finished():
 	ability_active = false
 	sprite.color = staff_color
+	_end_skill_invulnerability()
 
 func _unused_perform_chain_lightning():
 	# NOTE: This is now handled by ChainLightningSkill scene

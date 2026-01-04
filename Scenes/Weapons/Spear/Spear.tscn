@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://Scripts/Weapons/Spear.gd" id="1_spear"]
 
 [node name="Spear" type="Node2D"]
+z_index = -1
 script = ExtResource("1_spear")
 attack_range = 220.0
 attack_cone_angle = 45.0

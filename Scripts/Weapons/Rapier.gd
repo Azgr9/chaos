@@ -66,6 +66,9 @@ func _weapon_ready():
 	# Skill settings
 	skill_cooldown = 4.0  # Short cooldown for aggressive play
 
+	# Apply idle state after setting custom values
+	_setup_idle_state()
+
 	# Apply visual styling
 	_setup_rapier_visuals()
 

@@ -92,6 +92,9 @@ signal skill_ready_changed(ready: bool)
 # LIFECYCLE
 # ============================================
 func _ready():
+	# Render behind player
+	z_index = -1
+
 	cooldown_timer.timeout.connect(_on_cooldown_finished)
 	muzzle_flash.modulate.a = 0.0
 

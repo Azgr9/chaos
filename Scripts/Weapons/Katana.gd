@@ -60,6 +60,9 @@ func _weapon_ready():
 	# Skill settings
 	skill_cooldown = 6.0
 
+	# Apply idle state after setting custom values
+	_setup_idle_state()
+
 func _get_attack_pattern(attack_index: int) -> String:
 	# Katana: quick slash -> reverse slash -> overhead slash
 	match attack_index:

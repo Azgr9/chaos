@@ -69,6 +69,9 @@ func _weapon_ready():
 	combo_window = 1.5
 	combo_hits = 4  # 4-hit combo for spear
 
+	# Apply idle state after setting custom values
+	_setup_idle_state()
+
 func _get_attack_pattern(attack_index: int) -> String:
 	# Spear: thrust -> thrust -> thrust -> impale
 	match attack_index:

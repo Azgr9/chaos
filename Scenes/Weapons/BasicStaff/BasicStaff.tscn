@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://dej7hxr2yknk" path="res://Scenes/Spells/BasicProjectile.tscn" id="2_oaq23"]
 
 [node name="BasicStaff" type="Node2D"]
+z_index = -1
 script = ExtResource("1_33077")
 projectile_scene = ExtResource("2_oaq23")
 

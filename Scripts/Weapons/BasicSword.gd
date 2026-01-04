@@ -47,6 +47,9 @@ func _weapon_ready():
 	base_knockback = 350.0
 	finisher_knockback = 600.0
 
+	# Apply idle state after setting custom values
+	_setup_idle_state()
+
 func _get_attack_pattern(attack_index: int) -> String:
 	# BasicSword: horizontal -> horizontal_reverse -> overhead
 	match attack_index:

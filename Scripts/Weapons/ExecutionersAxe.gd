@@ -62,6 +62,9 @@ func _weapon_ready():
 	combo_finisher_multiplier = 1.8  # Higher finisher bonus for heavy weapon
 	combo_window = 2.0  # Longer window for slow weapon
 
+	# Apply idle state after setting custom values
+	_setup_idle_state()
+
 func _get_attack_pattern(attack_index: int) -> String:
 	# Executioner's Axe: slash -> slash_reverse -> overhead slam
 	match attack_index:
@@ -444,6 +447,7 @@ func _perform_skill() -> bool:
 	# Guillotine Drop skill - leap forward, deal 3x damage in small AoE
 	var player = get_tree().get_first_node_in_group("player")
 	if not player:
+		_end_skill_invulnerability()
 		return false
 
 	var skill_instance = SKILL_SCENE.instantiate()
@@ -453,8 +457,15 @@ func _perform_skill() -> bool:
 	var direction = (player.get_global_mouse_position() - player.global_position).normalized()
 	skill_instance.initialize(player, direction, skill_damage)
 
+	# Connect to skill completion to reset invulnerability
+	var axe_ref = weakref(self)
+	skill_instance.tree_exited.connect(func():
+		var axe = axe_ref.get_ref()
+		if axe and is_instance_valid(axe):
+			axe._end_skill_invulnerability()
+	)
+
 	if skill_instance.has_signal("dealt_damage"):
-		var axe_ref = weakref(self)
 		skill_instance.dealt_damage.connect(func(target, dmg):
 			var axe = axe_ref.get_ref()
 			if axe:

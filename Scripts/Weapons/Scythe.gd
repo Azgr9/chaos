@@ -62,6 +62,9 @@ func _weapon_ready():
 	combo_window = 1.8
 	combo_hits = 3
 
+	# Apply idle state after setting custom values
+	_setup_idle_state()
+
 func _get_attack_pattern(attack_index: int) -> String:
 	# Scythe: horizontal sweep -> reverse sweep -> soul reap (full circle)
 	match attack_index:

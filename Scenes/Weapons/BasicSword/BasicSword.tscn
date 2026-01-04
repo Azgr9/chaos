@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://c5euq74f5teu7" path="res://Scenes/Weapons/BasicSword/basic_sword.png" id="2_sword"]
 
 [node name="BasicSword" type="Node2D"]
+z_index = -1
 script = ExtResource("1_mp8x4")
 attack_range = 120.0
 attack_cone_angle = 100.0

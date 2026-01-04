@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://Scripts/Weapons/Warhammer.gd" id="1_warhammer"]
 
 [node name="Warhammer" type="Node2D"]
+z_index = -1
 script = ExtResource("1_warhammer")
 attack_range = 110.0
 attack_cone_angle = 120.0

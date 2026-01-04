@@ -133,6 +133,9 @@ signal skill_ready_changed(ready: bool)
 # LIFECYCLE
 # ============================================
 func _ready():
+	# Render behind player
+	z_index = -1
+
 	# Validate required nodes exist
 	if not attack_timer:
 		push_error("MeleeWeapon: Missing required node (AttackTimer)")
