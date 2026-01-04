@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://8obk5qvsqmhk"]
+[gd_scene load_steps=3 format=3 uid="uid://8obk5qvsqmhk"]
 
 [ext_resource type="Script" uid="uid://d1tui45fks0ip" path="res://Scripts/Weapons/BasicSword.gd" id="1_mp8x4"]
+[ext_resource type="Texture2D" uid="uid://c5euq74f5teu7" path="res://Scenes/Weapons/BasicSword/basic_sword.png" id="2_sword"]
 
 [node name="BasicSword" type="Node2D"]
 script = ExtResource("1_mp8x4")
@@ -10,11 +11,17 @@ attack_cone_angle = 100.0
 [node name="Pivot" type="Node2D" parent="."]
 
 [node name="Sprite" type="ColorRect" parent="Pivot"]
+visible = false
 offset_left = -12.0
 offset_top = -96.0
 offset_right = 12.0
 pivot_offset = Vector2(0, 12)
 color = Color(0.7529412, 0.7529412, 0.7529412, 1)
+
+[node name="SwordTexture" type="Sprite2D" parent="Pivot"]
+texture_filter = 0
+position = Vector2(0, -50)
+texture = ExtResource("2_sword")
 
 [node name="AttackTimer" type="Timer" parent="."]
 wait_time = 0.3

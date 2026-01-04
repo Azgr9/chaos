@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c6go6xbispiyg"
-path="res://.godot/imported/Goblin_Dual_Move.png-357158647b174781564552368f522a63.ctex"
+uid="uid://d12irun6277hl"
+path="res://.godot/imported/swoerd-128x128.png-3a7549b038882904ecc4e12e0c0b8db7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://temp/Updated Goblin Dual/Goblin_Dual_Move.png"
-dest_files=["res://.godot/imported/Goblin_Dual_Move.png-357158647b174781564552368f522a63.ctex"]
+source_file="res://temp/swoerd-128x128.png"
+dest_files=["res://.godot/imported/swoerd-128x128.png-3a7549b038882904ecc4e12e0c0b8db7.ctex"]
 
 [params]
 

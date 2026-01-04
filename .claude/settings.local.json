@@ -21,7 +21,10 @@
       "Bash(del \"C:\\Users\\alizg\\OneDrive\\Desktop\\chaos\\Scripts\\Weapons\\GuillotineDrop.gd\")",
       "Bash(del \"C:\\Users\\alizg\\OneDrive\\Desktop\\chaos\\Scripts\\Weapons\\GuillotineDrop.gd.uid\")",
       "Bash(dir:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(cat:*)",
+      "Bash(identify:*)",
+      "Bash(dir \"C:\\Users\\alizg\\OneDrive\\Desktop\\chaos\" /s /b /ad)"
     ],
     "deny": [],
     "ask": []

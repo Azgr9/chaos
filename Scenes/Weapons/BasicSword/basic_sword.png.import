@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://mjnkiggbpxw0"
-path="res://.godot/imported/Goblin_Dual_Idle.png-77b74bd16030a6c307df4dfde53fecb7.ctex"
+uid="uid://c5euq74f5teu7"
+path="res://.godot/imported/basic_sword.png-aebb259aa04fd503144acd70a817879e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://temp/Updated Goblin Dual/Goblin_Dual_Idle.png"
-dest_files=["res://.godot/imported/Goblin_Dual_Idle.png-77b74bd16030a6c307df4dfde53fecb7.ctex"]
+source_file="res://Scenes/Weapons/BasicSword/basic_sword.png"
+dest_files=["res://.godot/imported/basic_sword.png-aebb259aa04fd503144acd70a817879e.ctex"]
 
 [params]
 

@@ -89,7 +89,7 @@ var _line_trail_shader: Shader = preload("res://Shaders/Weapons/LineTrail.gdshad
 # NODES - Expected in scene tree
 # ============================================
 @onready var pivot: Node2D = $Pivot
-@onready var sprite: ColorRect = $Pivot/Sprite
+@onready var sprite: CanvasItem = $Pivot/Sprite  # Can be ColorRect or Sprite2D
 @onready var attack_timer: Timer = $AttackTimer
 
 # ============================================

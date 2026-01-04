@@ -11,6 +11,9 @@ extends MeleeWeapon
 # ============================================
 const SKILL_SCENE = preload("res://Scenes/Weapons/ExecutionersAxe/ExecutionersAxeSkill.tscn")
 
+# Sprite2D texture for the axe visual (ColorRect "Sprite" is hidden for base class compatibility)
+@onready var axe_sprite: Sprite2D = $Pivot/AxeTexture
+
 # Visual colors
 const AXE_BLADE_COLOR: Color = Color(0.7, 0.7, 0.75)  # Polished steel blade
 const AXE_HANDLE_COLOR: Color = Color(0.35, 0.2, 0.1)  # Dark wood handle
@@ -48,7 +51,7 @@ func _weapon_ready():
 
 	# Idle appearance
 	idle_rotation = 50.0
-	idle_scale = Vector2(0.7, 0.7)
+	idle_scale = Vector2(1.05, 1.05)  # Base ColorRect idle scale (hidden)
 
 	# Heavier knockback
 	base_knockback = 500.0
@@ -59,12 +62,12 @@ func _weapon_ready():
 	combo_window = 2.0  # Longer window for slow weapon
 
 func _get_attack_pattern(attack_index: int) -> String:
-	# Executioner's Axe: overhead -> overhead -> slam (all vertical chops)
+	# Executioner's Axe: slash -> slash_reverse -> overhead slam
 	match attack_index:
-		1: return "overhead"
-		2: return "overhead"
+		1: return "slash"
+		2: return "slash_reverse"
 		3: return "slam"
-		_: return "overhead"
+		_: return "slash"
 
 func _perform_attack_animation(pattern: String, duration: float, is_dash_attack: bool):
 	# Kill existing tween
@@ -73,37 +76,56 @@ func _perform_attack_animation(pattern: String, duration: float, is_dash_attack:
 
 	var is_finisher = is_combo_finisher()
 
-	# Set attack color
+	# Set attack color (use modulate for Sprite2D)
 	if is_finisher:
-		sprite.color = Color.GOLD
+		axe_sprite.modulate = Color.GOLD
 	elif is_dash_attack:
-		sprite.color = Color.CYAN
+		axe_sprite.modulate = Color.CYAN
 
 	match pattern:
-		"overhead":
-			_animate_overhead_chop(duration, is_dash_attack)
+		"slash":
+			_animate_slash(duration, is_dash_attack, false)
+		"slash_reverse":
+			_animate_slash(duration, is_dash_attack, true)
 		"slam":
 			_animate_slam(duration, is_dash_attack)
 		_:
-			_animate_overhead_chop(duration, is_dash_attack)
+			_animate_slash(duration, is_dash_attack, false)
 
-func _animate_overhead_chop(duration: float, _is_dash_attack: bool):
+# Horizontal cleave - wide sweeping attack
+func _animate_slash(duration: float, _is_dash_attack: bool, reverse: bool):
 	active_attack_tween = TweenHelper.new_tween()
 
 	# Get the base angle from attack direction
 	var base_angle = rad_to_deg(current_attack_direction.angle()) + 90.0
 
-	# Vertical chop: raise high, slam down
-	var raise_angle = base_angle - 90  # Raised above head
-	var chop_angle = base_angle + 30   # Follow through down
+	# Wide horizontal arc for axe cleave
+	var half_arc = 70.0
+	var start_angle: float
+	var end_angle: float
 
-	pivot.rotation = deg_to_rad(raise_angle)
+	# Flip axe blade direction based on swing direction
+	# Blade should always face the direction of the swing
+	var scale_x: float
+
+	if reverse:
+		# Right to left sweep - flip blade to face left
+		start_angle = base_angle + half_arc
+		end_angle = base_angle - half_arc
+		scale_x = 1.1  # Positive = blade faces left
+	else:
+		# Left to right sweep - blade faces right
+		start_angle = base_angle - half_arc
+		end_angle = base_angle + half_arc
+		scale_x = -1.1  # Negative = blade faces right
+
+	pivot.rotation = deg_to_rad(start_angle)
 	pivot.position = Vector2.ZERO
-	sprite.scale = Vector2(1.1, 1.1)
+	axe_sprite.scale = Vector2(scale_x, 1.1)
 
-	# Wind up - raise axe with glow
-	_create_charge_glow()
-	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(raise_angle - 20), duration * 0.25)
+	# Wind up - pull back slightly
+	var windup_angle = start_angle + (-15 if not reverse else 15)
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(windup_angle), duration * 0.2)
 
 	# Enable hitbox
 	active_attack_tween.tween_callback(_enable_hitbox.bind(is_combo_finisher(), false))
@@ -111,17 +133,19 @@ func _animate_overhead_chop(duration: float, _is_dash_attack: bool):
 	# Start trail during swing
 	active_attack_tween.tween_callback(_start_swing_trail)
 
-	# Chop down - powerful swing
-	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(chop_angle), duration * 0.35)\
-		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	# Main cleave - powerful horizontal sweep
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(end_angle), duration * 0.45)\
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-	# Impact spark on hit
+	# Impact spark
 	active_attack_tween.tween_callback(_create_chop_sparks)
 
 	# Follow through
-	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(chop_angle + 10), duration * 0.25)
+	var followthrough_angle = end_angle + (15 if not reverse else -15)
+	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(followthrough_angle), duration * 0.2)
 
 	active_attack_tween.tween_callback(_disable_hitbox)
+	active_attack_tween.tween_callback(_reset_axe_sprite)
 	_tween_to_idle(active_attack_tween)
 
 func _animate_slam(duration: float, _is_dash_attack: bool):
@@ -136,8 +160,8 @@ func _animate_slam(duration: float, _is_dash_attack: bool):
 
 	pivot.rotation = deg_to_rad(raise_angle)
 	pivot.position = Vector2.ZERO
-	sprite.scale = Vector2(1.4, 1.4)  # Scale up big for finisher
-	sprite.color = AXE_GLOW_COLOR  # Glow orange
+	axe_sprite.scale = Vector2(-1.4, 1.4)  # -1 base * 1.4 finisher boost (flipped)
+	axe_sprite.modulate = AXE_GLOW_COLOR  # Glow orange
 
 	# Intense charge glow
 	_create_finisher_charge_effect()
@@ -162,10 +186,17 @@ func _animate_slam(duration: float, _is_dash_attack: bool):
 
 	# Recovery
 	active_attack_tween.tween_property(pivot, "rotation", deg_to_rad(slam_angle + 5), duration * 0.15)
-	active_attack_tween.tween_property(sprite, "color", weapon_color, duration * 0.15)
+	active_attack_tween.tween_property(axe_sprite, "modulate", Color.WHITE, duration * 0.15)
 
 	active_attack_tween.tween_callback(_disable_hitbox)
+	active_attack_tween.tween_callback(_reset_axe_sprite)
 	_tween_to_idle(active_attack_tween)
+
+func _reset_axe_sprite():
+	# Reset axe sprite to base scale and color after attack
+	if axe_sprite:
+		axe_sprite.scale = Vector2(-1, 1)  # Flipped horizontally (base scale)
+		axe_sprite.modulate = Color.WHITE
 
 func _create_slam_impact():
 	# Ground crack visual

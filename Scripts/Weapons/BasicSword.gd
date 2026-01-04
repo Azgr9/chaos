@@ -10,6 +10,9 @@ extends MeleeWeapon
 # ============================================
 const SKILL_SCENE = preload("res://Scenes/Weapons/BasicSword/BasicSwordSkill.tscn")
 
+# Sprite2D texture reference (ColorRect "Sprite" is hidden for base class compatibility)
+@onready var sword_sprite: Sprite2D = $Pivot/SwordTexture
+
 # Visual colors
 const SWORD_BLADE_COLOR: Color = Color(0.85, 0.85, 0.9)  # Polished silver
 const SWORD_EDGE_COLOR: Color = Color(1.0, 1.0, 1.0)  # Bright edge
