@@ -501,22 +501,26 @@ func _spawn_minion():
 	if minion.has_method("set_player_reference") and player_reference:
 		minion.set_player_reference(player_reference)
 
-	# Track minion with safe callback
+	# Track minion with safe callback using instance ID
 	summoned_minions.append(minion)
 	if minion.has_signal("enemy_died"):
 		var boss_ref = weakref(self)
+		var minion_id = minion.get_instance_id()
 		minion.enemy_died.connect(func(_enemy):
 			var boss = boss_ref.get_ref()
 			if boss:
-				boss._on_minion_died(minion)
+				boss._on_minion_died_by_id(minion_id)
 		)
 
 	# Spawn effect
 	_create_summon_effect(minion.global_position)
 
-func _on_minion_died(minion):
-	if minion in summoned_minions:
-		summoned_minions.erase(minion)
+func _on_minion_died_by_id(minion_id: int):
+	# Find and remove minion by instance ID (safer than storing reference)
+	for i in range(summoned_minions.size() - 1, -1, -1):
+		var minion = summoned_minions[i]
+		if not is_instance_valid(minion) or minion.get_instance_id() == minion_id:
+			summoned_minions.remove_at(i)
 
 func _create_summon_effect(pos: Vector2):
 	for i in range(6):

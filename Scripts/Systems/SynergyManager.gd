@@ -621,13 +621,13 @@ func _on_enemy_killed(event: CombatEventBus.KillEvent):
 	# Spreading Flames - Burn spread on kill
 	if has_bonus("burn_spread_on_kill") and event.victim:
 		if event.victim.has_method("has_status_effect"):
-			if event.victim.has_status_effect(StatusEffects.EffectType.BURN):
+			if event.victim.has_status_effect(StatusEffectManager.EffectType.BURN):
 				_spread_burn_to_nearby(event.victim.global_position)
 
 	# Shatter - Ice shards on frozen kill
 	if has_bonus("shatter_on_frozen_kill") and event.victim:
 		if event.victim.has_method("has_status_effect"):
-			if event.victim.has_status_effect(StatusEffects.EffectType.CHILL):
+			if event.victim.has_status_effect(StatusEffectManager.EffectType.CHILL):
 				_create_ice_shards(event.victim.global_position)
 
 	# Soul Harvest - Minion kill heal
@@ -678,7 +678,7 @@ func _spread_burn_to_nearby(origin: Vector2):
 			continue
 		if enemy.global_position.distance_to(origin) <= radius:
 			if enemy.has_method("apply_status_effect"):
-				enemy.apply_status_effect(StatusEffects.EffectType.BURN, _player_reference)
+				enemy.apply_status_effect(StatusEffectManager.EffectType.BURN, _player_reference)
 
 func _create_ice_shards(origin: Vector2):
 	var shard_count = get_bonus("shard_count", 5)
@@ -773,7 +773,7 @@ func get_damage_multiplier(base_multiplier: float, target: Node2D = null) -> flo
 	# Frozen damage bonus
 	if has_bonus("frozen_damage_bonus") and target:
 		if target.has_method("has_status_effect"):
-			if target.has_status_effect(StatusEffects.EffectType.CHILL):
+			if target.has_status_effect(StatusEffectManager.EffectType.CHILL):
 				mult *= 1.0 + get_bonus("frozen_damage_bonus", 0.0)
 
 	# Flash Step - Dash attack bonus

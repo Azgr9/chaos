@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/RelicResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "guardian_angel"
+relic_name = "Guardian Angel"
+emoji = "😇"
+rarity = 3
+flavor_text = "You are protected."
+effect_description = "Prevents one fatal blow per wave"
+unlock_cost = 150
+special_effect = "revive_enhance"

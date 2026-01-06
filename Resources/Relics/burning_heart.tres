@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/RelicResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "burning_heart"
+relic_name = "Burning Heart"
+emoji = "🔥"
+rarity = 1
+flavor_text = "It never stops burning."
+effect_description = "Fire attacks deal +10% damage"
+unlock_cost = 50
+damage_percent = 0.1

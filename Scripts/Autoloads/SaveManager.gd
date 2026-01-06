@@ -36,9 +36,11 @@ var save_data: Dictionary = {
 # Enemy display names for bestiary UI
 const ENEMY_DISPLAY_NAMES = {
 	"slime": "Slime",
+	"goblin_dual": "Goblin Warrior",
 	"goblin_archer": "Goblin Archer",
 	"healer": "Healer",
 	"spawner": "Spawner",
+	"boss": "Chaos Champion",
 	"unknown": "Unknown"
 }
 

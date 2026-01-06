@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/RelicResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "iron_skin"
+relic_name = "Iron Skin"
+emoji = "🪨"
+rarity = 1
+flavor_text = "Hard as steel."
+effect_description = "+15% damage reduction"
+unlock_cost = 50
+damage_reduction = 0.15

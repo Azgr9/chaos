@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/RelicResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "storm_conduit"
+relic_name = "Storm Conduit"
+emoji = "⚡"
+rarity = 1
+flavor_text = "Channel the tempest."
+effect_description = "Shock chains to +2 additional enemies"
+unlock_cost = 50
+special_effect = "chain_lightning"

@@ -468,8 +468,10 @@ func _apply_legacy_upgrade(player: Node2D, upgrade: Dictionary) -> bool:
 		"heal_full":
 			player.heal(player.stats.max_health)
 		"multi_shot":
-			if player.current_staff:
-				player.current_staff.multi_shot += int(value)
+			# Apply to ALL staffs in inventory, not just current
+			for staff in player.staff_inventory:
+				if is_instance_valid(staff) and "multi_shot" in staff:
+					staff.multi_shot += int(value)
 		"lifesteal":
 			player.stats.lifesteal_amount += value
 		"crit_chance":

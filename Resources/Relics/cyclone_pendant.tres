@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/RelicResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "cyclone_pendant"
+relic_name = "Cyclone Pendant"
+emoji = "🌪️"
+rarity = 2
+flavor_text = "Unleash the storm."
+effect_description = "Combo finishers hit all nearby enemies"
+unlock_cost = 100
+special_effect = "whirlwind"

@@ -162,6 +162,8 @@ func _get_enemies() -> Array:
 	var current_frame = Engine.get_process_frames()
 	if _cache_frame != current_frame:
 		_cached_enemies = get_tree().get_nodes_in_group("enemies")
+		# Also include targetable entities (like QuartersPortal)
+		_cached_enemies.append_array(get_tree().get_nodes_in_group("targetable"))
 		_cache_frame = current_frame
 	return _cached_enemies
 

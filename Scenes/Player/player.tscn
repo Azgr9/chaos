@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://dm80m7r7kiiua"]
+[gd_scene load_steps=9 format=3 uid="uid://dx7eaxlmhefb"]
 
 [ext_resource type="Script" uid="uid://dsmf6w5yegfc" path="res://Scripts/Player/Player.gd" id="1_ft8w5"]
 [ext_resource type="Texture2D" uid="uid://dq20hol0fbldv" path="res://icon.svg" id="1_uvnfx"]
@@ -47,4 +47,5 @@ collision_layer = 2
 collision_mask = 128
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="HurtBox"]
+position = Vector2(1, 2)
 shape = SubResource("RectangleShape2D_a3d8c")

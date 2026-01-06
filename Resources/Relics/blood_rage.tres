@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/RelicResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "blood_rage"
+relic_name = "Blood Rage"
+emoji = "😠"
+rarity = 2
+flavor_text = "Fury fuels the blade."
+effect_description = "+20% damage when below 30% HP"
+unlock_cost = 100
+special_effect = "berserker"

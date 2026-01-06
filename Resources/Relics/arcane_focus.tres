@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/RelicResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "arcane_focus"
+relic_name = "Arcane Focus"
+emoji = "🔮"
+rarity = 1
+flavor_text = "Channel pure magic."
+effect_description = "+15% magic damage, -10% mana cost"
+unlock_cost = 50
+damage_percent = 0.15

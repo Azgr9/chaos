@@ -41,8 +41,8 @@ const BLOODLUST_COLOR := Color(1.0, 0.2, 0.1, 0.9)  # Red when damaged
 func _ready():
 	current_hits = 0
 	add_to_group("portal")
-	# Add to enemies group so weapons can hit it
-	add_to_group("enemies")
+	# Add to targetable group so weapons can hit it (separate from actual enemies)
+	add_to_group("targetable")
 
 	# Setup collision layers
 	# Layer 4 = enemies (so weapons can detect us)

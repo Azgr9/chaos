@@ -733,18 +733,18 @@ func _scan_cone_hitbox():
 		if _is_in_attack_cone(enemy.global_position):
 			_process_hit(enemy)
 
-	# Also scan for portals and other damageable areas
-	var portals = get_tree().get_nodes_in_group("portal")
-	for portal in portals:
-		if not is_instance_valid(portal):
+	# Also scan for targetable objects (portals, destructibles, etc.)
+	var targetables = get_tree().get_nodes_in_group("targetable")
+	for target in targetables:
+		if not is_instance_valid(target):
 			continue
-		if portal in hits_this_swing:
+		if target in hits_this_swing:
 			continue
-		if not portal.has_method("take_damage"):
+		if not target.has_method("take_damage"):
 			continue
 
-		if _is_in_attack_cone(portal.global_position):
-			_process_hit(portal)
+		if _is_in_attack_cone(target.global_position):
+			_process_hit(target)
 
 ## Check if a position is within the attack cone
 ## Cone is ALWAYS fixed to the attack direction (where mouse was when attack started)
