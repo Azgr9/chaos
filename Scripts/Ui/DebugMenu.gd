@@ -755,6 +755,7 @@ func _physics_process(_delta):
 # ============================================
 # CONE HITBOX DRAWER CLASS
 # Shows the ACTUAL hitbox - follows weapon rotation during swing
+# Also shows staff beam hitbox and skill hitboxes
 # ============================================
 class ConeHitboxDrawer extends Node2D:
 	var player_ref: Node2D = null
@@ -768,14 +769,28 @@ class ConeHitboxDrawer extends Node2D:
 
 		var origin = player_ref.global_position
 
-		# Get current weapon
-		var weapon = null
+		# Get current weapon (melee)
+		var melee_weapon = null
 		if player_ref.get("current_weapon"):
-			weapon = player_ref.current_weapon
+			melee_weapon = player_ref.current_weapon
 
-		if not is_instance_valid(weapon):
-			return
+		# Get current staff (magic weapon)
+		var staff_weapon = null
+		if player_ref.get("current_staff"):
+			staff_weapon = player_ref.current_staff
 
+		# Draw melee weapon cone hitbox
+		if is_instance_valid(melee_weapon):
+			_draw_melee_hitbox(origin, melee_weapon)
+
+		# Draw staff beam hitbox
+		if is_instance_valid(staff_weapon):
+			_draw_staff_hitbox(origin, staff_weapon)
+
+		# Draw active skill hitboxes (AoE circles, etc.)
+		_draw_skill_hitboxes()
+
+	func _draw_melee_hitbox(origin: Vector2, weapon: Node2D):
 		# Get cone parameters from weapon
 		var attack_range: float = weapon.get("attack_range") if weapon.get("attack_range") else 100.0
 		var cone_angle: float = weapon.get("attack_cone_angle") if weapon.get("attack_cone_angle") else 90.0
@@ -784,20 +799,15 @@ class ConeHitboxDrawer extends Node2D:
 		# Check if weapon is in active frames
 		var is_active = weapon.get("_is_in_active_frames") if weapon.get("_is_in_active_frames") != null else false
 
-		# Get the attack direction based on state:
-		# - When ACTIVE: use the stored attack direction (cone is FIXED when attack starts)
-		# - When IDLE: show where attack WOULD go (mouse direction preview)
+		# Get the attack direction based on state
 		var attack_angle: float
 		var attack_direction: Vector2
 
 		if is_active:
-			# Cone is ALWAYS fixed to attack direction (set when attack started)
-			# Animation is purely visual - hitbox stays locked
 			var stored_direction = weapon.get("current_attack_direction")
 			attack_direction = stored_direction if stored_direction else Vector2.RIGHT
 			attack_angle = attack_direction.angle()
 		else:
-			# When not attacking, show mouse direction (preview)
 			var mouse_pos = get_global_mouse_position()
 			attack_direction = (mouse_pos - origin).normalized()
 			if attack_direction == Vector2.ZERO:
@@ -809,36 +819,30 @@ class ConeHitboxDrawer extends Node2D:
 		# Draw cone
 		var cone_color: Color
 		if is_active:
-			cone_color = Color(1.0, 0.2, 0.2, 0.5)  # Bright red when active (actual hitbox)
+			cone_color = Color(1.0, 0.2, 0.2, 0.5)  # Bright red when active
 		else:
-			cone_color = Color(0.2, 0.6, 1.0, 0.2)  # Faint blue when inactive (preview)
+			cone_color = Color(0.2, 0.6, 1.0, 0.2)  # Faint blue when inactive
 
-		# Draw filled cone using triangles
+		# Draw filled cone
 		var segments = 32
 		var points: PackedVector2Array = []
 
-		# If there's an inner radius, we draw a ring-cone
 		if inner_radius > 0:
-			# Outer arc points
 			for i in range(segments + 1):
 				var angle = attack_angle - half_cone + (half_cone * 2.0 * i / segments)
 				var point = origin + Vector2.from_angle(angle) * attack_range
 				points.append(point)
-
-			# Inner arc points (reverse order)
 			for i in range(segments, -1, -1):
 				var angle = attack_angle - half_cone + (half_cone * 2.0 * i / segments)
 				var point = origin + Vector2.from_angle(angle) * inner_radius
 				points.append(point)
 		else:
-			# Normal cone from center
 			points.append(origin)
 			for i in range(segments + 1):
 				var angle = attack_angle - half_cone + (half_cone * 2.0 * i / segments)
 				var point = origin + Vector2.from_angle(angle) * attack_range
 				points.append(point)
 
-		# Draw the filled polygon
 		if points.size() >= 3:
 			draw_colored_polygon(points, cone_color)
 
@@ -846,7 +850,6 @@ class ConeHitboxDrawer extends Node2D:
 		var outline_color = Color(1.0, 0.3, 0.3, 0.9) if is_active else Color(0.5, 0.8, 1.0, 0.4)
 		var line_width = 3.0 if is_active else 1.0
 
-		# Draw outer arc
 		var prev_point = origin + Vector2.from_angle(attack_angle - half_cone) * attack_range
 		for i in range(1, segments + 1):
 			var angle = attack_angle - half_cone + (half_cone * 2.0 * i / segments)
@@ -854,7 +857,6 @@ class ConeHitboxDrawer extends Node2D:
 			draw_line(prev_point, point, outline_color, line_width)
 			prev_point = point
 
-		# Draw side lines
 		var left_end = origin + Vector2.from_angle(attack_angle - half_cone) * attack_range
 		var right_end = origin + Vector2.from_angle(attack_angle + half_cone) * attack_range
 
@@ -863,8 +865,6 @@ class ConeHitboxDrawer extends Node2D:
 			var right_inner = origin + Vector2.from_angle(attack_angle + half_cone) * inner_radius
 			draw_line(left_inner, left_end, outline_color, line_width)
 			draw_line(right_inner, right_end, outline_color, line_width)
-
-			# Draw inner arc
 			prev_point = origin + Vector2.from_angle(attack_angle - half_cone) * inner_radius
 			for i in range(1, segments + 1):
 				var angle = attack_angle - half_cone + (half_cone * 2.0 * i / segments)
@@ -880,11 +880,179 @@ class ConeHitboxDrawer extends Node2D:
 		var center_color = Color(1.0, 0.5, 0.0, 0.8) if is_active else Color(1.0, 1.0, 0.0, 0.5)
 		draw_line(origin, center_end, center_color, 2.0 if is_active else 1.5)
 
-		# Draw range circle (faint)
+		# Draw range circle
 		draw_arc(origin, attack_range, 0, TAU, 64, Color(1.0, 1.0, 1.0, 0.15), 1.0)
 
-		# Draw weapon info text
-		var weapon_name = weapon.name if weapon else "Unknown"
+		# Draw weapon info
+		var weapon_name = str(weapon.name) if weapon else "Unknown"
 		var status = "ACTIVE" if is_active else "Preview"
 		var info_text = "%s | %s | Range: %.0f | Angle: %.0f°" % [weapon_name, status, attack_range, cone_angle]
 		draw_string(ThemeDB.fallback_font, origin + Vector2(-100, -attack_range - 20), info_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color.WHITE)
+
+	func _draw_staff_hitbox(origin: Vector2, staff: Node2D):
+		# Get beam parameters from staff
+		var beam_range: float = staff.get("beam_range") if staff.get("beam_range") else 800.0
+		var beam_width: float = staff.get("beam_width") if staff.get("beam_width") else 32.0
+
+		# Check if staff is using skill (beam active)
+		var is_using_skill = staff.get("is_using_skill") if staff.get("is_using_skill") != null else false
+
+		# Get beam direction (toward mouse)
+		var mouse_pos = get_global_mouse_position()
+		var beam_direction = (mouse_pos - origin).normalized()
+		if beam_direction == Vector2.ZERO:
+			beam_direction = Vector2.RIGHT
+
+		# Draw beam rectangle hitbox
+		var beam_color: Color
+		if is_using_skill:
+			beam_color = Color(1.0, 0.8, 0.2, 0.4)  # Yellow when active
+		else:
+			beam_color = Color(0.8, 0.4, 1.0, 0.15)  # Faint purple preview
+
+		# Calculate beam rectangle corners
+		var perpendicular = beam_direction.rotated(PI / 2)
+		var half_width = beam_width / 2.0
+		var beam_end = origin + beam_direction * beam_range
+
+		var p1 = origin + perpendicular * half_width
+		var p2 = origin - perpendicular * half_width
+		var p3 = beam_end - perpendicular * half_width
+		var p4 = beam_end + perpendicular * half_width
+
+		# Draw filled beam area
+		var beam_points: PackedVector2Array = [p1, p2, p3, p4]
+		draw_colored_polygon(beam_points, beam_color)
+
+		# Draw outline
+		var outline_color = Color(1.0, 0.8, 0.2, 0.8) if is_using_skill else Color(0.8, 0.4, 1.0, 0.4)
+		var line_width = 2.0 if is_using_skill else 1.0
+		draw_line(p1, p2, outline_color, line_width)
+		draw_line(p2, p3, outline_color, line_width)
+		draw_line(p3, p4, outline_color, line_width)
+		draw_line(p4, p1, outline_color, line_width)
+
+		# Draw center line
+		draw_line(origin, beam_end, Color(1.0, 0.6, 0.0, 0.6), 1.5)
+
+		# Draw staff info
+		var staff_name = str(staff.name) if staff else "Unknown Staff"
+		var status = "BEAM ACTIVE" if is_using_skill else "Beam Preview"
+		var info_text = "%s | %s | Range: %.0f | Width: %.0f" % [staff_name, status, beam_range, beam_width]
+		draw_string(ThemeDB.fallback_font, origin + Vector2(-100, 40), info_text, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color(0.8, 0.6, 1.0))
+
+	func _draw_skill_hitboxes():
+		# Find active skill nodes and draw their hitboxes
+		var tree = get_tree()
+		if not tree:
+			return
+
+		# Draw BasicSwordSkill (spin slash) - circular AoE
+		for node in tree.get_nodes_in_group("skill_hitbox"):
+			if is_instance_valid(node):
+				_draw_circular_hitbox(node.global_position, 100.0, Color(0.2, 1.0, 0.2, 0.3), "Skill")
+
+		# Find any Area2D children that are skill hitboxes
+		var skills_to_check = [
+			"BasicSwordSkill", "ExecutionersAxeSkill", "VolcanoSkill",
+			"BlizzardSkill", "BlackHoleSkill", "ChainLightningSkill",
+			"DarkConversionSkill", "ArcaneBeamSkill", "FireZone"
+		]
+
+		for skill_name in skills_to_check:
+			var skill_nodes = tree.get_nodes_in_group(skill_name.to_lower())
+			for skill in skill_nodes:
+				if is_instance_valid(skill):
+					_draw_skill_area(skill, skill_name)
+
+		# Also check for any node with "Skill" in its name
+		_find_and_draw_skill_nodes(tree.current_scene)
+
+	func _find_and_draw_skill_nodes(node: Node):
+		if not is_instance_valid(node):
+			return
+
+		var node_name = node.name.to_lower()
+
+		# Check if this is a skill node
+		if "skill" in node_name or "zone" in node_name or "pool" in node_name:
+			if node is Node2D:
+				# Try to get radius from the node
+				var radius = 100.0
+				if node.get("volcano_radius"):
+					radius = node.get("volcano_radius")
+				elif node.get("radius"):
+					radius = node.get("radius")
+				elif node.get("effect_radius"):
+					radius = node.get("effect_radius")
+
+				# Check for HitBox child
+				var hitbox = node.get_node_or_null("HitBox")
+				if hitbox and hitbox is Area2D:
+					var collision = hitbox.get_node_or_null("CollisionShape2D")
+					if collision and collision.shape:
+						if collision.shape is CircleShape2D:
+							radius = collision.shape.radius
+						elif collision.shape is RectangleShape2D:
+							radius = max(collision.shape.size.x, collision.shape.size.y) / 2
+
+				var skill_color = _get_skill_color(node_name)
+				_draw_circular_hitbox(node.global_position, radius, skill_color, node.name)
+
+		# Recursively check children
+		for child in node.get_children():
+			_find_and_draw_skill_nodes(child)
+
+	func _draw_skill_area(skill: Node2D, skill_name: String):
+		var radius = 100.0
+		var color = Color(0.2, 1.0, 0.2, 0.3)
+
+		# Get skill-specific radius
+		match skill_name:
+			"VolcanoSkill":
+				radius = skill.get("volcano_radius") if skill.get("volcano_radius") else 150.0
+				color = Color(1.0, 0.4, 0.1, 0.3)
+			"BlizzardSkill":
+				radius = skill.get("blizzard_radius") if skill.get("blizzard_radius") else 200.0
+				color = Color(0.3, 0.7, 1.0, 0.3)
+			"BlackHoleSkill":
+				radius = skill.get("pull_radius") if skill.get("pull_radius") else 250.0
+				color = Color(0.5, 0.0, 0.8, 0.3)
+			"FireZone":
+				radius = skill.get("zone_radius") if skill.get("zone_radius") else 100.0
+				color = Color(1.0, 0.5, 0.0, 0.3)
+			"BasicSwordSkill", "ExecutionersAxeSkill":
+				# Try to get from HitBox collision shape
+				var hitbox = skill.get_node_or_null("HitBox")
+				if hitbox:
+					var collision = hitbox.get_node_or_null("CollisionShape2D")
+					if collision and collision.shape and collision.shape is CircleShape2D:
+						radius = collision.shape.radius
+				color = Color(0.2, 1.0, 0.4, 0.3)
+
+		_draw_circular_hitbox(skill.global_position, radius, color, skill_name)
+
+	func _draw_circular_hitbox(pos: Vector2, radius: float, color: Color, label: String):
+		# Draw filled circle
+		draw_circle(pos, radius, color)
+
+		# Draw outline
+		var outline_color = Color(color.r, color.g, color.b, 0.8)
+		draw_arc(pos, radius, 0, TAU, 64, outline_color, 2.0)
+
+		# Draw label
+		draw_string(ThemeDB.fallback_font, pos + Vector2(-40, -radius - 10), label, HORIZONTAL_ALIGNMENT_CENTER, -1, 12, outline_color)
+
+	func _get_skill_color(skill_name: String) -> Color:
+		if "fire" in skill_name or "volcano" in skill_name or "inferno" in skill_name:
+			return Color(1.0, 0.4, 0.1, 0.3)
+		elif "ice" in skill_name or "frost" in skill_name or "blizzard" in skill_name:
+			return Color(0.3, 0.7, 1.0, 0.3)
+		elif "void" in skill_name or "black" in skill_name or "dark" in skill_name:
+			return Color(0.5, 0.0, 0.8, 0.3)
+		elif "lightning" in skill_name or "electric" in skill_name or "chain" in skill_name:
+			return Color(1.0, 1.0, 0.3, 0.3)
+		elif "necro" in skill_name or "death" in skill_name:
+			return Color(0.4, 0.8, 0.3, 0.3)
+		else:
+			return Color(0.2, 1.0, 0.4, 0.3)

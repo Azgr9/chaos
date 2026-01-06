@@ -538,8 +538,8 @@ shape = SubResource("CircleShape2D_physics")
 [node name="VisualsPivot" type="Node2D" parent="."]
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="VisualsPivot"]
-position = Vector2(1, -46)
-scale = Vector2(4, 4)
+position = Vector2(1, -50)
+scale = Vector2(4.5, 4.5)
 sprite_frames = SubResource("SpriteFrames_slime")
 animation = &"attack_left"
 autoplay = "idle_down"

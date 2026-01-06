@@ -129,16 +129,16 @@ func _animate_slash(duration: float, _is_dash_attack: bool, reverse: bool):
 		# Right to left sweep - flip blade to face left
 		start_angle = base_angle + half_arc
 		end_angle = base_angle - half_arc
-		scale_x = 1.1  # Positive = blade faces left
+		scale_x = 1.0  # Positive = blade faces left
 	else:
 		# Left to right sweep - blade faces right
 		start_angle = base_angle - half_arc
 		end_angle = base_angle + half_arc
-		scale_x = -1.1  # Negative = blade faces right
+		scale_x = -1.0  # Negative = blade faces right
 
 	pivot.rotation = deg_to_rad(start_angle)
 	pivot.position = Vector2.ZERO
-	axe_sprite.scale = Vector2(scale_x, 1.1)
+	axe_sprite.scale = Vector2(scale_x * 1.5, 1.5)  # Keep axe at full size during attack
 
 	# Wind up - pull back slightly
 	var windup_angle = start_angle + (-15 if not reverse else 15)
@@ -177,7 +177,7 @@ func _animate_slam(duration: float, _is_dash_attack: bool):
 
 	pivot.rotation = deg_to_rad(raise_angle)
 	pivot.position = Vector2.ZERO
-	axe_sprite.scale = Vector2(-1.4, 1.4)  # -1 base * 1.4 finisher boost (flipped)
+	axe_sprite.scale = Vector2(-1.5, 1.5)  # Keep axe at full size during slam
 	axe_sprite.modulate = AXE_GLOW_COLOR  # Glow orange
 
 	# Intense charge glow
@@ -210,9 +210,9 @@ func _animate_slam(duration: float, _is_dash_attack: bool):
 	_tween_to_idle(active_attack_tween)
 
 func _reset_axe_sprite():
-	# Reset axe sprite to base scale and color after attack
+	# Reset axe sprite to idle scale and color after attack
 	if axe_sprite:
-		axe_sprite.scale = Vector2(-1, 1)  # Flipped horizontally (base scale)
+		axe_sprite.scale = Vector2(1.5, 1.5)  # Back to idle size
 		axe_sprite.modulate = Color.WHITE
 
 func _create_slam_impact():
