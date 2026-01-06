@@ -297,11 +297,11 @@ func _apply_walk_animation():
 	if not pivot:
 		return
 
-	# Simple bob and sway
-	var bob_offset = sin(_walk_anim_time * 2.0) * walk_bob_amount
-	var sway_rotation = sin(_walk_anim_time) * walk_sway_amount
+	# Simple bob and sway - snap to integers for crisp pixels
+	var bob_offset = int(sin(_walk_anim_time * 2.0) * walk_bob_amount)
+	var sway_rotation = int(sin(_walk_anim_time) * walk_sway_amount)
 
-	# Apply to pivot
+	# Apply to pivot - integer positions only
 	pivot.position = idle_position + Vector2(0, bob_offset)
 	pivot.rotation = deg_to_rad(idle_rotation + sway_rotation)
 

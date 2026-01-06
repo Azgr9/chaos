@@ -38,14 +38,16 @@ position = Vector2(0, -40)
 shape = SubResource("RectangleShape2D_uvnfx")
 
 [node name="WeaponPivot" type="Node2D" parent="."]
+position = Vector2(0, -40)
 
 [node name="WeaponHolder" type="Marker2D" parent="WeaponPivot"]
-position = Vector2(40, 24)
+position = Vector2(50, 10)
 
 [node name="StaffPivot" type="Node2D" parent="."]
+position = Vector2(0, -40)
 
 [node name="StaffHolder" type="Marker2D" parent="StaffPivot"]
-position = Vector2(-48, 0)
+position = Vector2(-50, 10)
 
 [node name="HurtBox" type="Area2D" parent="."]
 collision_layer = 2

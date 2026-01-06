@@ -35,9 +35,9 @@ func _weapon_ready():
 	idle_position = Vector2(3, -3)  # Slightly forward and up
 	idle_scale = Vector2(0.6, 0.6)
 
-	# Cone Hitbox - Now configured via @export in scene inspector
-	# attack_range = 120.0  # Medium range
-	# attack_cone_angle = 100.0  # 50 degrees each side - balanced arc
+	# Cone Hitbox - adjusted for new character size
+	attack_range = 180.0  # Extended range to match visual sword reach
+	attack_cone_angle = 100.0  # 50 degrees each side - balanced arc
 
 	# Attack Speed Limits (balanced)
 	max_attacks_per_second = 3.0  # ~3 attacks per second base

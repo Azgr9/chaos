@@ -265,9 +265,13 @@ func update_facing_direction():
 	if is_melee_attacking:
 		weapon_pivot.scale.x = 1  # Keep normal scale during attack
 		weapon_pivot.rotation = 0  # Animation controls pivot rotation
-		# Position weapon slightly away from player center in attack direction
-		# This makes the sword swing farther from the player body
-		weapon_holder.position = facing_direction * 55
+		# Position weapon - snap to integer pixels, extra offset for down attacks
+		var wpn_x = int(facing_direction.x * 70)
+		var wpn_y = int(facing_direction.y * 70)
+		# Push weapon further when attacking downward
+		if facing_direction.y > 0.3:
+			wpn_y += 15
+		weapon_holder.position = Vector2(wpn_x, wpn_y)
 	else:
 		# Normal idle/movement - weapon follows player facing
 		if facing_direction.x < 0:
@@ -275,8 +279,8 @@ func update_facing_direction():
 		else:
 			weapon_pivot.scale.x = 1
 		weapon_pivot.rotation = 0
-		# Return weapon to side position when not attacking
-		weapon_holder.position = Vector2(40, 24)
+		# Return weapon to side position when not attacking (adjusted for new character)
+		weapon_holder.position = Vector2(50, 10)
 
 	# Staff pivot always follows facing direction
 	if facing_direction.x < 0:
@@ -288,27 +292,35 @@ func update_facing_direction():
 		staff_pivot.rotation = 0
 
 func update_animation():
-	# Simple animation - pulse when moving, squash when attacking
+	# Keep visuals_pivot scale fixed for crisp pixels
+	var base_facing = sign(visuals_pivot.scale.x) if visuals_pivot.scale.x != 0 else 1.0
+	visuals_pivot.scale = Vector2(base_facing, 1.0)
+	visuals_pivot.rotation = 0.0
+	sprite.modulate.a = 1.0
+
+	# Base position
+	var base_pos = Vector2(0, -46)
+
 	if is_dashing:
-		# Dash stretch and fade
-		visuals_pivot.scale.y = 1.2
-		visuals_pivot.scale.x = abs(visuals_pivot.scale.x) * 0.7 * sign(visuals_pivot.scale.x)
-		sprite.modulate.a = 0.6
+		# Dash - transparency only
+		sprite.modulate.a = 0.5
+		sprite.position = base_pos
 	elif is_attacking:
-		# Attack squash and stretch
-		visuals_pivot.scale.y = 0.8
-		sprite.modulate.a = 1.0
+		# Attack - lean towards attack direction
+		# Flip lean_x when character is facing left (visuals_pivot.scale.x < 0)
+		var lean_x = int(facing_direction.x * 8)
+		if base_facing < 0:
+			lean_x = -lean_x
+		var lean_y = int(facing_direction.y * 8)
+		sprite.position = base_pos + Vector2(lean_x, lean_y)
 	elif is_moving:
-		# Walking bob
-		var bob = abs(sin(Time.get_ticks_msec() * 0.01)) * 0.1 + 0.9
-		visuals_pivot.scale.y = bob
-		visuals_pivot.scale.x = abs(visuals_pivot.scale.x) * sign(visuals_pivot.scale.x)
-		sprite.modulate.a = 1.0
+		# Walking - fixed 2-frame bob (no blur)
+		var frame = int(Time.get_ticks_msec() * 0.005) % 2
+		var bob_offset = frame * 4
+		sprite.position = base_pos + Vector2(0, -bob_offset)
 	else:
-		# Idle
-		visuals_pivot.scale.y = 1.0
-		visuals_pivot.scale.x = abs(visuals_pivot.scale.x) * sign(visuals_pivot.scale.x)
-		sprite.modulate.a = 1.0
+		# Idle - no animation
+		sprite.position = base_pos
 
 func perform_melee_attack():
 	# Make sure we're using current_weapon, NOT current_staff
@@ -805,14 +817,16 @@ func _create_dash_trail():
 
 		var ghost = Sprite2D.new()
 		ghost.texture = sprite.texture
-		ghost.global_position = global_position
-		ghost.scale = visuals_pivot.scale
-		ghost.modulate = Color(1, 1, 1, 0.3)
+		# Match the sprite's actual scale (0.35) and position offset
+		ghost.global_position = global_position + Vector2(0, -46)
+		ghost.scale = sprite.scale * visuals_pivot.scale
+		ghost.modulate = Color(0.5, 0.8, 1.0, 0.4)  # Slight blue tint for dash
+		ghost.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		get_parent().add_child(ghost)
 
 		# Fade out ghost
 		var tween = TweenHelper.new_tween()
-		tween.tween_property(ghost, "modulate:a", 0.0, 0.3)
+		tween.tween_property(ghost, "modulate:a", 0.0, 0.25)
 		tween.tween_callback(ghost.queue_free)
 
 func _handle_dash(_delta):
