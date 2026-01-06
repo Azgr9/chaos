@@ -1,10 +1,11 @@
-[gd_scene load_steps=9 format=3 uid="uid://dx7eaxlmhefb"]
+[gd_scene load_steps=10 format=3 uid="uid://dx7eaxlmhefb"]
 
 [ext_resource type="Script" uid="uid://dsmf6w5yegfc" path="res://Scripts/Player/Player.gd" id="1_ft8w5"]
-[ext_resource type="Texture2D" uid="uid://dq20hol0fbldv" path="res://icon.svg" id="1_uvnfx"]
+[ext_resource type="Texture2D" path="res://temp/anakarakter.png" id="1_uvnfx"]
 [ext_resource type="Script" uid="uid://qh02i550hrbk" path="res://Scripts/Player/PlayerStats.gd" id="2_ude3g"]
 [ext_resource type="PackedScene" uid="uid://8obk5qvsqmhk" path="res://Scenes/Weapons/BasicSword/BasicSword.tscn" id="3_jmcll"]
 [ext_resource type="PackedScene" uid="uid://dn16fj6ro42m1" path="res://Scenes/Weapons/BasicStaff/BasicStaff.tscn" id="4_jmcll"]
+[ext_resource type="Script" path="res://Scripts/Player/CameraShake.gd" id="6_camera"]
 
 [sub_resource type="Resource" id="Resource_h54ih"]
 script = ExtResource("2_ude3g")
@@ -28,6 +29,7 @@ starting_staff_scene = ExtResource("4_jmcll")
 
 [node name="Icon" type="Sprite2D" parent="VisualsPivot"]
 texture = ExtResource("1_uvnfx")
+scale = Vector2(0.25, 0.25)
 
 [node name="CollisionShape" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_uvnfx")
@@ -49,3 +51,6 @@ collision_mask = 128
 [node name="CollisionShape2D" type="CollisionShape2D" parent="HurtBox"]
 position = Vector2(1, 2)
 shape = SubResource("RectangleShape2D_a3d8c")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+script = ExtResource("6_camera")
