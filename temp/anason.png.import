@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://daqhr1j62ruin"
-path="res://.godot/imported/anakarakter.png-7220765bc61c5430726d016c713f8f8f.ctex"
+uid="uid://bv1vwom0flgow"
+path="res://.godot/imported/anason.png-300160cefc6a5de6ef1a7ae391cab492.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://temp/anakarakter.png"
-dest_files=["res://.godot/imported/anakarakter.png-7220765bc61c5430726d016c713f8f8f.ctex"]
+source_file="res://temp/anason.png"
+dest_files=["res://.godot/imported/anason.png-300160cefc6a5de6ef1a7ae391cab492.ctex"]
 
 [params]
 
