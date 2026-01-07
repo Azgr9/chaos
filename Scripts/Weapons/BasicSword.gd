@@ -64,7 +64,7 @@ func _get_attack_pattern(attack_index: int) -> String:
 		_: return "horizontal"
 
 func _perform_skill() -> bool:
-	# Sword Beam skill - energy wave that pierces enemies
+	# Giant Arc Slash - massive sweeping energy blade forward
 	var player = get_tree().get_first_node_in_group("player")
 	if not player:
 		return false
@@ -77,10 +77,9 @@ func _perform_skill() -> bool:
 	if direction == Vector2.ZERO:
 		direction = Vector2.RIGHT
 
-	var beam_damage = damage * 3.0 * damage_multiplier
-	# Start beam slightly in front of player
-	var start_pos = player.global_position + direction * 40
-	skill_instance.initialize(start_pos, direction, beam_damage, player)
+	var slash_damage = damage * 2.5 * damage_multiplier
+	# Pass weapon reference to hide it during skill and show sword sprite in effect
+	skill_instance.initialize(player.global_position, direction, slash_damage, player, self)
 
 	if skill_instance.has_signal("dealt_damage"):
 		var sword_ref = weakref(self)
@@ -90,12 +89,12 @@ func _perform_skill() -> bool:
 				sword.dealt_damage.emit(target, dmg)
 		)
 
-	# Visual feedback - sword flash
-	_create_beam_launch_effect(direction)
+	# Visual feedback - sword charge up
+	_create_slash_charge_effect(direction)
 
 	return true
 
-func _create_beam_launch_effect(direction: Vector2):
+func _create_slash_charge_effect(direction: Vector2):
 	if not player_reference:
 		return
 
@@ -103,19 +102,37 @@ func _create_beam_launch_effect(direction: Vector2):
 	if not scene:
 		return
 
-	# Flash at sword
+	# Charge flash at sword
 	var flash = ColorRect.new()
-	flash.size = Vector2(60, 60)
-	flash.color = Color(0.8, 0.9, 1.0, 0.8)
-	flash.pivot_offset = Vector2(30, 30)
+	flash.size = Vector2(80, 80)
+	flash.color = Color(0.7, 0.85, 1.0, 0.9)
+	flash.pivot_offset = Vector2(40, 40)
 	scene.add_child(flash)
-	flash.global_position = player_reference.global_position + direction * 30 - Vector2(30, 30)
+	flash.global_position = player_reference.global_position + direction * 20 - Vector2(40, 40)
 
 	var tween = TweenHelper.new_tween()
 	tween.set_parallel(true)
-	tween.tween_property(flash, "scale", Vector2(1.5, 1.5), 0.1)
-	tween.tween_property(flash, "modulate:a", 0.0, 0.1)
+	tween.tween_property(flash, "scale", Vector2(2.0, 2.0), 0.12)
+	tween.tween_property(flash, "modulate:a", 0.0, 0.12)
 	tween.tween_callback(flash.queue_free)
+
+	# Energy particles gathering
+	for i in range(8):
+		var particle = ColorRect.new()
+		particle.size = Vector2(12, 12)
+		particle.color = Color(0.9, 0.95, 1.0, 0.8)
+		particle.pivot_offset = Vector2(6, 6)
+		scene.add_child(particle)
+
+		var angle = (TAU / 8) * i
+		var start_pos = player_reference.global_position + Vector2.from_angle(angle) * 80
+		particle.global_position = start_pos
+
+		var p_tween = TweenHelper.new_tween()
+		p_tween.set_parallel(true)
+		p_tween.tween_property(particle, "global_position", player_reference.global_position + direction * 30, 0.1)
+		p_tween.tween_property(particle, "scale", Vector2(0.3, 0.3), 0.1)
+		p_tween.tween_callback(particle.queue_free)
 
 func _get_hit_color(combo_finisher: bool, dash_attack: bool, crit: bool) -> Color:
 	if crit:

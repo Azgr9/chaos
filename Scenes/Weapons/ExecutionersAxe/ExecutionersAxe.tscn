@@ -6,6 +6,7 @@
 [node name="ExecutionersAxe" type="Node2D"]
 z_index = -1
 script = ExtResource("1_axe")
+attack_range = 200.0
 attack_cone_angle = 120.0
 
 [node name="Pivot" type="Node2D" parent="."]

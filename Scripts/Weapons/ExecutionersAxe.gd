@@ -468,7 +468,8 @@ func _perform_skill() -> bool:
 
 	var skill_damage = damage * 3.0 * damage_multiplier
 	var direction = (player.get_global_mouse_position() - player.global_position).normalized()
-	skill_instance.initialize(player, direction, skill_damage)
+	# Pass weapon reference to hide it during skill and show axe sprite in effect
+	skill_instance.initialize(player, direction, skill_damage, self)
 
 	# Connect to skill completion to reset invulnerability
 	var axe_ref = weakref(self)

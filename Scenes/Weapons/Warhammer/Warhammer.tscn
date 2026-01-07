@@ -5,6 +5,7 @@
 [node name="Warhammer" type="Node2D"]
 z_index = -1
 script = ExtResource("1_warhammer")
+attack_range = 150.0
 attack_cone_angle = 120.0
 
 [node name="Pivot" type="Node2D" parent="."]

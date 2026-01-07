@@ -5,6 +5,7 @@
 [node name="Scythe" type="Node2D"]
 z_index = -1
 script = ExtResource("1_scythe")
+attack_range = 180.0
 attack_cone_angle = 160.0
 
 [node name="Pivot" type="Node2D" parent="."]

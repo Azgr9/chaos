@@ -14,9 +14,9 @@ extends MeleeWeapon
 const MAX_PIERCE_TARGETS: int = 3
 const PIERCE_DAMAGE_FALLOFF: float = 0.15  # 15% less damage per pierce
 
-# Thrust settings
-const THRUST_RANGE: float = 150.0
-const CHARGE_THRUST_RANGE: float = 280.0
+# Thrust settings - Increased range for longer reach
+const THRUST_RANGE: float = 220.0  # Extended forward thrust
+const CHARGE_THRUST_RANGE: float = 380.0  # Extended charge thrust
 const CHARGE_THRUST_DAMAGE_MULT: float = 2.0
 
 # Visual colors - Bronze/gold warrior theme

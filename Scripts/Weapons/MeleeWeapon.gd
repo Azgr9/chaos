@@ -289,7 +289,7 @@ func _update_walk_animation(delta: float):
 		return
 
 	# Update animation time
-	var anim_speed = 10.0 * walk_anim_speed
+	var anim_speed = 5.0 * walk_anim_speed
 	_walk_anim_time += delta * anim_speed
 	_apply_walk_animation()
 

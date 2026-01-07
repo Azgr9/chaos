@@ -23,6 +23,7 @@ const SPARK_COLOR: Color = Color(1.0, 0.8, 0.3)
 
 var hits_this_slam: Array = []
 var player_ref: Node2D = null
+var weapon_ref: WeakRef = null  # Reference to hide/show the weapon during skill
 var leap_direction: Vector2 = Vector2.RIGHT
 
 signal dealt_damage(target: Node2D, damage: float)
@@ -38,10 +39,15 @@ func _ready():
 	# Disable hitbox until impact
 	$HitBox/CollisionShape2D.disabled = true
 
-func initialize(player: Node2D, direction: Vector2, slam_damage: float):
+func initialize(player: Node2D, direction: Vector2, slam_damage: float, weapon: Node2D = null):
 	player_ref = player
 	damage = slam_damage
 	leap_direction = direction.normalized()
+
+	# Store weapon reference to hide/show it
+	if weapon:
+		weapon_ref = weakref(weapon)
+		weapon.visible = false  # Hide weapon during skill
 
 	# Start at player position
 	global_position = player.global_position
@@ -285,6 +291,12 @@ func _cleanup():
 	# Re-enable player vulnerability
 	if player_ref and player_ref.has_method("set_invulnerable"):
 		player_ref.set_invulnerable(false)
+
+	# Show weapon again before freeing
+	if weapon_ref:
+		var weapon = weapon_ref.get_ref()
+		if weapon and is_instance_valid(weapon):
+			weapon.visible = true
 
 	queue_free()
 
