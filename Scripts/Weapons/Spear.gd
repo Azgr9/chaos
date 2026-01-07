@@ -441,322 +441,465 @@ func _create_impale_shockwave():
 		DamageNumberManager.shake(0.35)
 
 # ============================================
-# SKILL - JAVELIN THROW (Throw spear, pierces, returns)
+# SKILL - VALKYRIE THROW (Throw spear, explosion at impact, teleport to location!)
 # ============================================
-const JAVELIN_RANGE: float = 500.0
-const JAVELIN_SPEED: float = 1200.0
-const JAVELIN_RETURN_SPEED: float = 800.0
-const JAVELIN_DAMAGE_MULT: float = 2.5
-const JAVELIN_RETURN_DAMAGE_MULT: float = 1.5
+const THROW_RANGE: float = 500.0  # Maximum throw distance
+const THROW_SPEED: float = 2000.0  # Very fast projectile (increased)
+const EXPLOSION_RADIUS: float = 150.0  # Explosion damage radius
+const THROW_DAMAGE_MULT: float = 3.0  # Damage multiplier
 
-var is_javelin_thrown: bool = false
-var javelin_visual: Node2D = null
-var javelin_hit_enemies: Array = []
+var is_throwing: bool = false
+var thrown_spear_target: Vector2 = Vector2.ZERO
 
 func _perform_skill() -> bool:
-	if not player_reference or is_javelin_thrown:
+	if not player_reference or is_throwing:
 		return false
 
-	is_javelin_thrown = true
-	_execute_javelin_throw()
+	is_throwing = true
+	_execute_valkyrie_throw()
 	return true
 
 func _is_async_skill() -> bool:
 	return true
 
-func _execute_javelin_throw():
+func _execute_valkyrie_throw():
 	var player = player_reference
 	if not is_instance_valid(player):
-		is_javelin_thrown = false
+		is_throwing = false
 		_end_skill_invulnerability()
 		return
 
-	var direction = (player.get_global_mouse_position() - player.global_position).normalized()
+	var self_ref = weakref(self)
+	var player_ref = weakref(player)
+
+	# Get target position (mouse position, clamped to max range)
+	var mouse_pos = player.get_global_mouse_position()
+	var direction = (mouse_pos - player.global_position).normalized()
+	var distance = min(player.global_position.distance_to(mouse_pos), THROW_RANGE)
+	var target_pos = player.global_position + direction * distance
+	thrown_spear_target = target_pos
+
 	if direction == Vector2.ZERO:
 		direction = Vector2.RIGHT
 
-	# Hide weapon during throw
-	visible = false
-
-	# Create thrown javelin visual
-	_create_javelin_projectile(player.global_position, direction)
-
-	# Launch effect
-	_create_throw_effect(player.global_position, direction)
-
-	if DamageNumberManager:
-		DamageNumberManager.shake(0.2)
-
-func _create_javelin_projectile(start_pos: Vector2, direction: Vector2):
 	var scene = get_tree().current_scene
 	if not scene:
-		is_javelin_thrown = false
-		visible = true
+		is_throwing = false
 		_end_skill_invulnerability()
 		return
 
-	javelin_hit_enemies.clear()
+	# Show skill name
+	_show_skill_text("VALKYRIE THROW!", player.global_position + Vector2(0, -80))
 
-	# Create javelin visual
-	javelin_visual = Node2D.new()
-	javelin_visual.global_position = start_pos
-	javelin_visual.rotation = direction.angle()
-	scene.add_child(javelin_visual)
+	# Wind-up animation - pull spear back
+	if sprite:
+		sprite.color = SPEAR_ACCENT_COLOR
+
+	var windup_tween = TweenHelper.new_tween()
+	windup_tween.tween_property(pivot, "rotation", direction.angle() + PI/2 - 0.5, 0.08)
+	windup_tween.parallel().tween_property(pivot, "position", -direction * 30, 0.08)
+
+	# Energy gathering effect
+	_create_throw_buildup(player.global_position, direction, scene)
+
+	await get_tree().create_timer(0.1).timeout
+
+	if not self_ref.get_ref() or not player_ref.get_ref():
+		is_throwing = false
+		return
+
+	# Hide weapon (it's being thrown)
+	visible = false
+
+	# Screen shake on throw
+	DamageNumberManager.shake(0.3)
+
+	# Create and throw the spear projectile
+	var start_pos = player.global_position
+	var spear_projectile = _create_thrown_spear(start_pos, direction, scene)
+
+	# Animate spear flying
+	var travel_time = distance / THROW_SPEED
+	var hit_enemies: Array = []
+
+	# Start damage checking during flight
+	_spear_flight_damage(spear_projectile, direction, travel_time, hit_enemies, player_ref)
+
+	# Tween spear to target
+	var throw_tween = TweenHelper.new_tween()
+	throw_tween.tween_property(spear_projectile, "global_position", target_pos, travel_time)\
+		.set_trans(Tween.TRANS_LINEAR)
+
+	await throw_tween.finished
+
+	if not self_ref.get_ref() or not player_ref.get_ref():
+		if is_instance_valid(spear_projectile):
+			spear_projectile.queue_free()
+		is_throwing = false
+		return
+
+	# EXPLOSION at impact!
+	_create_impact_explosion_effect(target_pos, scene, player_ref)
+
+	# Clean up spear projectile
+	if is_instance_valid(spear_projectile):
+		spear_projectile.queue_free()
+
+	# Brief pause before teleport
+	await get_tree().create_timer(0.05).timeout
+
+	if not self_ref.get_ref() or not player_ref.get_ref():
+		is_throwing = false
+		return
+
+	# TELEPORT player to spear location!
+	_teleport_player(player, target_pos, scene)
+
+	# Wait for teleport effect
+	await get_tree().create_timer(0.08).timeout
+
+	# Reset weapon
+	if self_ref.get_ref():
+		is_throwing = false
+		visible = true
+		if sprite:
+			sprite.color = weapon_color
+
+		pivot.rotation = 0
+		pivot.position = Vector2.ZERO
+		_setup_idle_state()
+
+		_end_skill_invulnerability()
+
+func _show_skill_text(text: String, pos: Vector2):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	var label = Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", 32)
+	label.add_theme_color_override("font_color", SPEAR_ACCENT_COLOR)
+	label.add_theme_color_override("font_outline_color", Color(0.3, 0.2, 0.1))
+	label.add_theme_constant_override("outline_size", 4)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.position = pos - Vector2(150, 0)
+	label.custom_minimum_size = Vector2(300, 50)
+	scene.add_child(label)
+
+	var tween = TweenHelper.new_tween()
+	tween.tween_property(label, "position:y", pos.y - 120, 0.7)
+	tween.parallel().tween_property(label, "scale", Vector2(1.3, 1.3), 0.2)
+	tween.tween_property(label, "modulate:a", 0.0, 0.4)
+	tween.tween_callback(label.queue_free)
+
+func _create_throw_buildup(pos: Vector2, direction: Vector2, scene: Node):
+	# Energy particles gathering at spear tip (faster)
+	for i in range(6):
+		var particle = ColorRect.new()
+		particle.size = Vector2(14, 14)
+		particle.pivot_offset = Vector2(7, 7)
+		particle.color = SPEAR_ACCENT_COLOR
+		scene.add_child(particle)
+
+		var angle = (TAU / 6) * i
+		var start = pos + Vector2.from_angle(angle) * 40
+		particle.position = start
+
+		var target = pos + direction * 30
+		var tween = TweenHelper.new_tween()
+		tween.tween_property(particle, "position", target, 0.08)
+		tween.parallel().tween_property(particle, "scale", Vector2(0.2, 0.2), 0.08)
+		tween.tween_callback(particle.queue_free)
+
+	# Glowing aura around player (faster)
+	var aura = ColorRect.new()
+	aura.size = Vector2(80, 80)
+	aura.pivot_offset = Vector2(40, 40)
+	aura.position = pos - Vector2(40, 40)
+	aura.color = Color(SPEAR_ACCENT_COLOR.r, SPEAR_ACCENT_COLOR.g, SPEAR_ACCENT_COLOR.b, 0.5)
+	scene.add_child(aura)
+
+	var a_tween = TweenHelper.new_tween()
+	a_tween.tween_property(aura, "scale", Vector2(1.5, 1.5), 0.08)
+	a_tween.parallel().tween_property(aura, "modulate:a", 0.0, 0.1)
+	a_tween.tween_callback(aura.queue_free)
+
+func _create_thrown_spear(start_pos: Vector2, direction: Vector2, scene: Node) -> Node2D:
+	var spear = Node2D.new()
+	spear.global_position = start_pos
+	spear.rotation = direction.angle() + PI/2  # Point in direction of travel
+	scene.add_child(spear)
 
 	# Spear shaft
 	var shaft = ColorRect.new()
-	shaft.size = Vector2(120, 8)
+	shaft.size = Vector2(12, weapon_length * 1.2)
+	shaft.pivot_offset = Vector2(6, weapon_length * 0.6)
+	shaft.position = Vector2(-6, -weapon_length * 0.6)
 	shaft.color = SPEAR_SHAFT_COLOR
-	shaft.position = Vector2(-60, -4)
-	javelin_visual.add_child(shaft)
+	spear.add_child(shaft)
 
-	# Spear tip
+	# Spear tip (glowing)
 	var tip = ColorRect.new()
-	tip.size = Vector2(20, 14)
-	tip.color = SPEAR_TIP_COLOR
-	tip.position = Vector2(60, -7)
-	javelin_visual.add_child(tip)
+	tip.size = Vector2(20, 40)
+	tip.pivot_offset = Vector2(10, 40)
+	tip.position = Vector2(-10, -weapon_length * 0.6 - 20)
+	tip.color = SPEAR_ACCENT_COLOR
+	spear.add_child(tip)
 
-	# Glowing trail
-	var glow = ColorRect.new()
-	glow.size = Vector2(80, 16)
-	glow.color = Color(SPEAR_ACCENT_COLOR.r, SPEAR_ACCENT_COLOR.g, SPEAR_ACCENT_COLOR.b, 0.4)
-	glow.position = Vector2(-80, -8)
-	glow.z_index = -1
-	javelin_visual.add_child(glow)
+	# Energy trail effect
+	_create_spear_flight_trail(spear, scene)
 
-	# Fly forward
-	var target_pos = start_pos + direction * JAVELIN_RANGE
-	var fly_time = JAVELIN_RANGE / JAVELIN_SPEED
+	return spear
 
-	# Damage during forward flight
-	_javelin_damage_loop(direction, fly_time, true)
+func _create_spear_flight_trail(spear: Node2D, scene: Node):
+	# Spawn trail particles during flight
+	for i in range(15):
+		_spawn_flight_trail_particle(spear, i * 0.02, scene)
 
-	# Forward flight tween
+func _spawn_flight_trail_particle(spear: Node2D, delay: float, scene: Node):
+	await get_tree().create_timer(delay).timeout
+
+	if not is_instance_valid(spear):
+		return
+
+	var trail = ColorRect.new()
+	trail.size = Vector2(8, 25)
+	trail.pivot_offset = Vector2(4, 12.5)
+	trail.global_position = spear.global_position
+	trail.rotation = spear.rotation
+	trail.color = Color(SPEAR_THRUST_COLOR.r, SPEAR_THRUST_COLOR.g, SPEAR_THRUST_COLOR.b, 0.7)
+	scene.add_child(trail)
+
 	var tween = TweenHelper.new_tween()
-	tween.tween_property(javelin_visual, "global_position", target_pos, fly_time)\
-		.set_trans(Tween.TRANS_LINEAR)
+	tween.tween_property(trail, "modulate:a", 0.0, 0.15)
+	tween.parallel().tween_property(trail, "scale", Vector2(0.3, 0.3), 0.15)
+	tween.tween_callback(trail.queue_free)
 
-	# Trail during flight
-	_create_javelin_trail(fly_time)
-
-	await tween.finished
-
-	if not is_instance_valid(self) or not is_instance_valid(javelin_visual):
-		_cleanup_javelin()
-		return
-
-	# Brief pause at max range
-	_create_impact_flash(javelin_visual.global_position)
-	await get_tree().create_timer(0.1).timeout
-
-	if not is_instance_valid(self) or not is_instance_valid(javelin_visual) or not is_instance_valid(player_reference):
-		_cleanup_javelin()
-		return
-
-	# Return to player
-	var return_pos = player_reference.global_position
-	var return_direction = (return_pos - javelin_visual.global_position).normalized()
-	javelin_visual.rotation = return_direction.angle()
-
-	var return_distance = javelin_visual.global_position.distance_to(return_pos)
-	var return_time = return_distance / JAVELIN_RETURN_SPEED
-
-	# Clear hit enemies so we can hit them again on return
-	javelin_hit_enemies.clear()
-
-	# Damage during return flight
-	_javelin_damage_loop(return_direction, return_time, false)
-
-	# Return trail
-	_create_javelin_trail(return_time)
-
-	var return_tween = TweenHelper.new_tween()
-	return_tween.tween_method(_update_javelin_return, 0.0, 1.0, return_time)
-
-	await return_tween.finished
-
-	_cleanup_javelin()
-
-func _update_javelin_return(_progress: float):
-	if not is_instance_valid(javelin_visual) or not is_instance_valid(player_reference):
-		return
-
-	var target = player_reference.global_position
-	var current = javelin_visual.global_position
-	var new_direction = (target - current).normalized()
-	javelin_visual.rotation = new_direction.angle()
-
-	# Move toward player
-	var distance = current.distance_to(target)
-	var move_amount = JAVELIN_RETURN_SPEED * get_process_delta_time()
-	if move_amount >= distance:
-		javelin_visual.global_position = target
-	else:
-		javelin_visual.global_position = current + new_direction * move_amount
-
-func _javelin_damage_loop(_direction: Vector2, total_time: float, is_outward: bool):
-	var checks = int(total_time * 20)  # Check ~20 times per second
-	var check_interval = total_time / checks
-	var damage_mult = JAVELIN_DAMAGE_MULT if is_outward else JAVELIN_RETURN_DAMAGE_MULT
+func _spear_flight_damage(spear: Node2D, _direction: Vector2, total_time: float, hit_enemies: Array, player_ref: WeakRef):
+	var checks = int(total_time * 40)
+	var check_interval = total_time / max(checks, 1)
 
 	for i in range(checks):
 		await get_tree().create_timer(check_interval).timeout
 
-		if not is_instance_valid(self) or not is_instance_valid(javelin_visual):
+		if not is_instance_valid(spear):
 			return
 
-		var javelin_pos = javelin_visual.global_position
+		var spear_pos = spear.global_position
 		var enemies = get_tree().get_nodes_in_group("enemies")
+		var player = player_ref.get_ref()
 
 		for enemy in enemies:
 			if not is_instance_valid(enemy):
 				continue
-			if enemy in javelin_hit_enemies:
+			if enemy in hit_enemies:
+				continue
+			if enemy.is_in_group("converted_minion") or enemy.is_in_group("player_minions"):
 				continue
 
-			var dist = enemy.global_position.distance_to(javelin_pos)
-			if dist < 60.0:  # Hit radius
-				javelin_hit_enemies.append(enemy)
+			var dist = enemy.global_position.distance_to(spear_pos)
+			if dist < 40.0:  # Hit radius during flight
+				hit_enemies.append(enemy)
 
-				var javelin_damage = damage * damage_mult * damage_multiplier
-				if enemy.has_method("take_damage"):
-					enemy.take_damage(javelin_damage, javelin_pos, 300.0, 0.15, player_reference)
-					dealt_damage.emit(enemy, javelin_damage)
+				var throw_damage = damage * THROW_DAMAGE_MULT * damage_multiplier
+				if enemy.has_method("take_damage") and player:
+					enemy.take_damage(throw_damage, spear_pos, 300.0, 0.15, player)
+					dealt_damage.emit(enemy, throw_damage)
 
-				# Pierce visual
-				_create_pierce_effect(enemy.global_position)
+				_create_pierce_hit_effect(enemy.global_position)
+				DamageNumberManager.shake(0.1)
 
-				# Slight screen shake on hit
-				if DamageNumberManager:
-					DamageNumberManager.shake(0.1)
-
-func _create_javelin_trail(duration: float):
-	var trail_count = int(duration * 15)
-
-	for i in range(trail_count):
-		_spawn_javelin_trail_segment(i * (duration / trail_count))
-
-func _spawn_javelin_trail_segment(delay: float):
-	await get_tree().create_timer(delay).timeout
-
-	if not is_instance_valid(self) or not is_instance_valid(javelin_visual):
-		return
-
+func _create_pierce_hit_effect(pos: Vector2):
 	var scene = get_tree().current_scene
 	if not scene:
 		return
 
-	# Shader-based javelin trail
-	var trail = ColorRect.new()
-	trail.size = Vector2(60, 14)
-	trail.pivot_offset = Vector2(0, 7)
-	scene.add_child(trail)
-	trail.global_position = javelin_visual.global_position
-	trail.rotation = javelin_visual.rotation
-
-	var mat = ShaderMaterial.new()
-	mat.shader = thrust_shader
-	mat.set_shader_parameter("thrust_color", SPEAR_THRUST_COLOR)
-	mat.set_shader_parameter("tip_color", SPEAR_ACCENT_COLOR)
-	mat.set_shader_parameter("glow_intensity", 2.5)
-	mat.set_shader_parameter("sharpness", 2.5)
-	mat.set_shader_parameter("progress", 0.0)
-	trail.material = mat
-
-	var tween = TweenHelper.new_tween()
-	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.18)
-	tween.tween_callback(trail.queue_free)
-
-func _create_throw_effect(pos: Vector2, direction: Vector2):
-	var scene = get_tree().current_scene
-	if not scene:
-		return
-
-	# Burst of particles in throw direction
-	for i in range(6):
-		var particle = ColorRect.new()
-		particle.size = Vector2(8, 8)
-		particle.color = SPEAR_ACCENT_COLOR
-		particle.pivot_offset = Vector2(4, 4)
-		scene.add_child(particle)
-		particle.global_position = pos
-
-		var angle = direction.angle() + randf_range(-0.4, 0.4)
-		var dir = Vector2.from_angle(angle)
-
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(particle, "global_position", pos + dir * 60, 0.15)
-		tween.tween_property(particle, "modulate:a", 0.0, 0.15)
-		tween.tween_callback(particle.queue_free)
-
-func _create_impact_flash(pos: Vector2):
-	var scene = get_tree().current_scene
-	if not scene:
-		return
-
-	# Shader-based flash at max range
 	var flash = ColorRect.new()
-	flash.size = Vector2(100, 100)
-	flash.pivot_offset = Vector2(50, 50)
-	flash.global_position = pos - Vector2(50, 50)
-
-	var mat = ShaderMaterial.new()
-	mat.shader = spark_shader
-	mat.set_shader_parameter("spark_color", SPEAR_ACCENT_COLOR)
-	mat.set_shader_parameter("hot_color", Color(1.0, 1.0, 0.9))
-	mat.set_shader_parameter("spark_count", 6.0)
-	mat.set_shader_parameter("rotation_speed", 8.0)
-	mat.set_shader_parameter("progress", 0.0)
-	flash.material = mat
-
+	flash.size = Vector2(30, 30)
+	flash.pivot_offset = Vector2(15, 15)
+	flash.global_position = pos - Vector2(15, 15)
+	flash.color = SPEAR_ACCENT_COLOR
 	scene.add_child(flash)
 
 	var tween = TweenHelper.new_tween()
-	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.2)
+	tween.tween_property(flash, "scale", Vector2(2.0, 2.0), 0.1)
+	tween.parallel().tween_property(flash, "modulate:a", 0.0, 0.12)
 	tween.tween_callback(flash.queue_free)
 
-	if DamageNumberManager:
-		DamageNumberManager.shake(0.2)
+func _create_impact_explosion_effect(pos: Vector2, scene: Node, player_ref: WeakRef):
+	# Big golden explosion
+	var explosion = ColorRect.new()
+	explosion.size = Vector2(120, 120)
+	explosion.pivot_offset = Vector2(60, 60)
+	explosion.position = pos - Vector2(60, 60)
+	explosion.color = SPEAR_ACCENT_COLOR
+	scene.add_child(explosion)
 
-func _cleanup_javelin():
-	if is_instance_valid(javelin_visual):
-		javelin_visual.queue_free()
-		javelin_visual = null
+	var exp_tween = TweenHelper.new_tween()
+	exp_tween.tween_property(explosion, "scale", Vector2(3.5, 3.5), 0.2)
+	exp_tween.parallel().tween_property(explosion, "modulate:a", 0.0, 0.25)
+	exp_tween.tween_callback(explosion.queue_free)
 
-	is_javelin_thrown = false
-	javelin_hit_enemies.clear()
-	visible = true
+	# Shockwave ring
+	var ring = ColorRect.new()
+	ring.size = Vector2(100, 100)
+	ring.pivot_offset = Vector2(50, 50)
+	ring.position = pos - Vector2(50, 50)
+	ring.color = Color(SPEAR_THRUST_COLOR.r, SPEAR_THRUST_COLOR.g, SPEAR_THRUST_COLOR.b, 0.6)
+	scene.add_child(ring)
 
-	_end_skill_invulnerability()
+	var ring_tween = TweenHelper.new_tween()
+	ring_tween.tween_property(ring, "scale", Vector2(5.0, 5.0), 0.3)
+	ring_tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.35)
+	ring_tween.tween_callback(ring.queue_free)
 
-	# Catch effect when spear returns
-	if player_reference and is_instance_valid(player_reference):
-		_create_catch_effect(player_reference.global_position)
+	# Energy sparks radiating out
+	for i in range(12):
+		var spark = ColorRect.new()
+		spark.size = Vector2(18, 6)
+		spark.pivot_offset = Vector2(9, 3)
+		spark.position = pos
+		spark.rotation = (TAU / 12) * i + randf_range(-0.2, 0.2)
+		spark.color = SPEAR_ACCENT_COLOR
+		scene.add_child(spark)
 
-func _create_catch_effect(pos: Vector2):
-	var scene = get_tree().current_scene
-	if not scene:
+		var dir = Vector2.from_angle(spark.rotation)
+		var s_tween = TweenHelper.new_tween()
+		s_tween.tween_property(spark, "position", pos + dir * randf_range(100, 180), 0.25)
+		s_tween.parallel().tween_property(spark, "modulate:a", 0.0, 0.3)
+		s_tween.tween_callback(spark.queue_free)
+
+	# Screen shake
+	DamageNumberManager.shake(0.5)
+
+	# Deal explosion damage to nearby enemies
+	var player = player_ref.get_ref()
+	if player:
+		var enemies = get_tree().get_nodes_in_group("enemies")
+		for enemy in enemies:
+			if not is_instance_valid(enemy):
+				continue
+			if enemy.is_in_group("converted_minion") or enemy.is_in_group("player_minions"):
+				continue
+
+			var dist = enemy.global_position.distance_to(pos)
+			if dist < EXPLOSION_RADIUS:
+				var explosion_damage = damage * THROW_DAMAGE_MULT * 1.5 * damage_multiplier
+				# Damage falloff based on distance
+				var falloff = 1.0 - (dist / EXPLOSION_RADIUS) * 0.5
+				explosion_damage *= falloff
+
+				if enemy.has_method("take_damage"):
+					enemy.take_damage(explosion_damage, pos, 450.0, 0.2, player)
+					dealt_damage.emit(enemy, explosion_damage)
+
+				_create_enemy_hit_flash(enemy.global_position, scene)
+
+func _create_enemy_hit_flash(pos: Vector2, scene: Node):
+	var flash = ColorRect.new()
+	flash.size = Vector2(40, 40)
+	flash.pivot_offset = Vector2(20, 20)
+	flash.global_position = pos - Vector2(20, 20)
+	flash.color = Color.WHITE
+	scene.add_child(flash)
+
+	var tween = TweenHelper.new_tween()
+	tween.tween_property(flash, "scale", Vector2(1.8, 1.8), 0.08)
+	tween.parallel().tween_property(flash, "modulate:a", 0.0, 0.1)
+	tween.tween_callback(flash.queue_free)
+
+func _teleport_player(player: Node2D, target_pos: Vector2, scene: Node):
+	if not is_instance_valid(player):
 		return
 
-	# Small flash on catch
-	for i in range(4):
-		var spark = ColorRect.new()
-		spark.size = Vector2(6, 6)
-		spark.color = SPEAR_ACCENT_COLOR
-		spark.pivot_offset = Vector2(3, 3)
-		scene.add_child(spark)
-		spark.global_position = pos
+	var old_pos = player.global_position
 
-		var angle = (TAU / 4) * i
+	# Disappear effect at old position
+	_create_teleport_vanish_effect(old_pos, scene)
+
+	# Teleport player
+	player.global_position = target_pos
+
+	# Appear effect at new position
+	_create_teleport_appear_effect(target_pos, scene)
+
+	# Screen shake
+	DamageNumberManager.shake(0.25)
+
+func _create_teleport_vanish_effect(pos: Vector2, scene: Node):
+	# Particles dispersing from old position
+	for i in range(10):
+		var particle = ColorRect.new()
+		particle.size = Vector2(12, 12)
+		particle.pivot_offset = Vector2(6, 6)
+		particle.global_position = pos + Vector2(randf_range(-15, 15), randf_range(-15, 15))
+		particle.color = SPEAR_ACCENT_COLOR
+		scene.add_child(particle)
+
+		var angle = randf() * TAU
 		var dir = Vector2.from_angle(angle)
+		var tween = TweenHelper.new_tween()
+		tween.tween_property(particle, "global_position", particle.global_position + dir * 50, 0.2)
+		tween.parallel().tween_property(particle, "modulate:a", 0.0, 0.25)
+		tween.parallel().tween_property(particle, "scale", Vector2(0.2, 0.2), 0.25)
+		tween.tween_callback(particle.queue_free)
+
+	# Flash at old position
+	var flash = ColorRect.new()
+	flash.size = Vector2(60, 60)
+	flash.pivot_offset = Vector2(30, 30)
+	flash.position = pos - Vector2(30, 30)
+	flash.color = Color.WHITE
+	scene.add_child(flash)
+
+	var f_tween = TweenHelper.new_tween()
+	f_tween.tween_property(flash, "scale", Vector2(2.0, 2.0), 0.1)
+	f_tween.parallel().tween_property(flash, "modulate:a", 0.0, 0.12)
+	f_tween.tween_callback(flash.queue_free)
+
+func _create_teleport_appear_effect(pos: Vector2, scene: Node):
+	# Particles converging to new position
+	for i in range(10):
+		var particle = ColorRect.new()
+		particle.size = Vector2(12, 12)
+		particle.pivot_offset = Vector2(6, 6)
+		var angle = (TAU / 10) * i
+		particle.global_position = pos + Vector2.from_angle(angle) * 60
+		particle.color = SPEAR_ACCENT_COLOR
+		scene.add_child(particle)
 
 		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(spark, "global_position", pos + dir * 25, 0.1)
-		tween.tween_property(spark, "modulate:a", 0.0, 0.1)
-		tween.tween_callback(spark.queue_free)
+		tween.tween_property(particle, "global_position", pos, 0.15)
+		tween.parallel().tween_property(particle, "scale", Vector2(0.3, 0.3), 0.15)
+		tween.tween_callback(particle.queue_free)
+
+	# Bright flash at new position
+	var flash = ColorRect.new()
+	flash.size = Vector2(80, 80)
+	flash.pivot_offset = Vector2(40, 40)
+	flash.position = pos - Vector2(40, 40)
+	flash.color = SPEAR_ACCENT_COLOR
+	scene.add_child(flash)
+
+	var f_tween = TweenHelper.new_tween()
+	f_tween.tween_property(flash, "scale", Vector2(0.2, 0.2), 0.0)
+	f_tween.tween_property(flash, "scale", Vector2(2.5, 2.5), 0.15)
+	f_tween.parallel().tween_property(flash, "modulate:a", 0.0, 0.18)
+	f_tween.tween_callback(flash.queue_free)
+
+	# Ground impact ring
+	var ring = ColorRect.new()
+	ring.size = Vector2(50, 50)
+	ring.pivot_offset = Vector2(25, 25)
+	ring.position = pos - Vector2(25, 25)
+	ring.color = Color(SPEAR_THRUST_COLOR.r, SPEAR_THRUST_COLOR.g, SPEAR_THRUST_COLOR.b, 0.7)
+	scene.add_child(ring)
+
+	var r_tween = TweenHelper.new_tween()
+	r_tween.tween_property(ring, "scale", Vector2(3.0, 3.0), 0.2)
+	r_tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.25)
+	r_tween.tween_callback(ring.queue_free)
 
 func _on_combo_finisher_hit(_target: Node2D):
 	if DamageNumberManager:

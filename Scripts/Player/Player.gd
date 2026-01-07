@@ -154,8 +154,15 @@ func _physics_process(delta):
 
 	if is_dashing:
 		_handle_dash(delta)
-	elif not is_attacking and not is_movement_locked:  # Don't move while attacking or locked
-		move_player_pixel_perfect(delta)
+	elif not is_movement_locked:  # Don't move while locked
+		# Allow movement during attack if weapon allows it (e.g., Dagger)
+		var can_move_during_attack = false
+		if is_attacking and current_weapon and is_instance_valid(current_weapon):
+			if current_weapon.has_method("is_blocking_movement"):
+				can_move_during_attack = not current_weapon.is_blocking_movement()
+
+		if not is_attacking or can_move_during_attack:
+			move_player_pixel_perfect(delta)
 
 	update_facing_direction()
 	update_animation()
@@ -164,7 +171,13 @@ func handle_input():
 	# Movement input
 	input_vector = Vector2.ZERO
 
-	if not is_attacking and not is_movement_locked:  # Can't change movement during attack or locked
+	# Check if weapon allows movement during attack
+	var can_move_during_attack = false
+	if is_attacking and current_weapon and is_instance_valid(current_weapon):
+		if current_weapon.has_method("is_blocking_movement"):
+			can_move_during_attack = not current_weapon.is_blocking_movement()
+
+	if (not is_attacking or can_move_during_attack) and not is_movement_locked:
 		input_vector.x = Input.get_axis("move_left", "move_right")
 		input_vector.y = Input.get_axis("move_up", "move_down")
 		

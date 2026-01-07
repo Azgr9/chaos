@@ -67,46 +67,238 @@ func _spawn_dust_particle():
 	tween.tween_callback(dust.queue_free)
 
 func _perform_skill() -> bool:
-	# Earthquake - ring of rock spikes erupting from the ground
+	# METEOR STRIKE - summon a giant meteor from the sky
 	if not player_reference:
 		return false
 
-	_execute_earthquake()
+	_execute_meteor_strike()
 	_play_skill_animation()
 	return true
 
-func _execute_earthquake():
+func _execute_meteor_strike():
 	var player = player_reference
 	if not is_instance_valid(player):
 		return
 
-	var center = player.global_position
+	var target_pos = player.get_global_mouse_position()
 
-	# Create ground crack effect first
-	_create_ground_crack(center)
+	# Show skill text
+	_create_meteor_text(player.global_position)
 
-	# Spawn spikes in a ring pattern
-	for i in range(EARTHQUAKE_SPIKES):
-		var delay = i * SPIKE_DELAY
-		var angle = (TAU / EARTHQUAKE_SPIKES) * i + randf_range(-0.1, 0.1)
-		var distance = randf_range(EARTHQUAKE_RADIUS * 0.4, EARTHQUAKE_RADIUS)
-		var spike_pos = center + Vector2.from_angle(angle) * distance
+	# Warning circle on ground
+	_create_meteor_warning(target_pos)
 
-		# Delayed spike spawn
-		var timer = get_tree().create_timer(delay)
-		var staff_ref = weakref(self)
-		var player_ref = weakref(player)
+	# Wait for warning
+	await get_tree().create_timer(0.5).timeout
 
-		timer.timeout.connect(func():
-			var s = staff_ref.get_ref()
-			var p = player_ref.get_ref()
-			if s and is_instance_valid(s):
-				s._spawn_rock_spike(spike_pos, p)
-		)
+	if not is_instance_valid(self) or not is_instance_valid(player):
+		return
+
+	# METEOR FALLS!
+	_create_falling_meteor(target_pos)
+
+	# Wait for impact
+	await get_tree().create_timer(0.4).timeout
+
+	if not is_instance_valid(self) or not is_instance_valid(player):
+		return
+
+	# IMPACT!
+	_meteor_impact(target_pos, player)
 
 	# Screen shake
 	if DamageNumberManager:
-		DamageNumberManager.shake(0.5)
+		DamageNumberManager.shake(1.0)
+
+func _create_meteor_text(pos: Vector2):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	var label = Label.new()
+	label.text = "METEOR STRIKE!"
+	label.add_theme_font_size_override("font_size", 32)
+	label.modulate = EARTH_GLOW
+	scene.add_child(label)
+	label.global_position = pos + Vector2(-110, -80)
+
+	var tween = TweenHelper.new_tween()
+	tween.tween_property(label, "global_position:y", pos.y - 140, 0.6)
+	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.6)
+	tween.tween_callback(label.queue_free)
+
+func _create_meteor_warning(pos: Vector2):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Pulsing warning circle
+	var warning = ColorRect.new()
+	warning.size = Vector2(200, 200)
+	warning.color = Color(EARTH_GLOW.r, EARTH_GLOW.g, EARTH_GLOW.b, 0.3)
+	warning.pivot_offset = Vector2(100, 100)
+	warning.global_position = pos - Vector2(100, 100)
+	scene.add_child(warning)
+
+	# Pulsing animation
+	var tween = TweenHelper.new_tween()
+	tween.tween_property(warning, "scale", Vector2(1.2, 1.2), 0.2)
+	tween.tween_property(warning, "scale", Vector2(1.0, 1.0), 0.2)
+	tween.tween_property(warning, "modulate:a", 0.8, 0.1)
+	tween.tween_callback(warning.queue_free)
+
+func _create_falling_meteor(target_pos: Vector2):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Start position (top right of target)
+	var start_pos = target_pos + Vector2(400, -500)
+
+	# Create meteor
+	var meteor = Node2D.new()
+	meteor.global_position = start_pos
+	scene.add_child(meteor)
+
+	# Meteor core
+	var core = ColorRect.new()
+	core.size = Vector2(80, 80)
+	core.color = EARTH_CORE
+	core.pivot_offset = Vector2(40, 40)
+	core.position = Vector2(-40, -40)
+	meteor.add_child(core)
+
+	# Hot glow
+	var glow = ColorRect.new()
+	glow.size = Vector2(100, 100)
+	glow.color = Color(1.0, 0.5, 0.2, 0.7)
+	glow.pivot_offset = Vector2(50, 50)
+	glow.position = Vector2(-50, -50)
+	glow.z_index = -1
+	meteor.add_child(glow)
+
+	# Fire trail
+	_create_meteor_trail(meteor, target_pos)
+
+	# Meteor falls
+	var tween = TweenHelper.new_tween()
+	tween.set_parallel(true)
+	tween.tween_property(meteor, "global_position", target_pos, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(meteor, "rotation", TAU, 0.4)
+	tween.tween_property(meteor, "scale", Vector2(1.5, 1.5), 0.4)
+
+	await tween.finished
+
+	if is_instance_valid(meteor):
+		meteor.queue_free()
+
+func _create_meteor_trail(meteor: Node2D, _target: Vector2):
+	# Spawn trail particles while falling
+	for i in range(15):
+		var delay = i * 0.025
+		var meteor_ref = weakref(meteor)
+		var staff_ref = weakref(self)
+
+		var timer = get_tree().create_timer(delay)
+		timer.timeout.connect(func():
+			var m = meteor_ref.get_ref()
+			var s = staff_ref.get_ref()
+			if m and is_instance_valid(m) and s and is_instance_valid(s):
+				s._spawn_trail_particle(m.global_position)
+		)
+
+func _spawn_trail_particle(pos: Vector2):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	var particle = ColorRect.new()
+	particle.size = Vector2(randf_range(15, 30), randf_range(15, 30))
+	particle.color = Color(1.0, randf_range(0.3, 0.6), 0.1, 0.9)
+	particle.pivot_offset = particle.size / 2
+	scene.add_child(particle)
+	particle.global_position = pos + Vector2(randf_range(-20, 20), randf_range(-20, 20))
+
+	var tween = TweenHelper.new_tween()
+	tween.set_parallel(true)
+	tween.tween_property(particle, "scale", Vector2(0.2, 0.2), 0.3)
+	tween.tween_property(particle, "modulate:a", 0.0, 0.3)
+	tween.tween_callback(particle.queue_free)
+
+func _meteor_impact(pos: Vector2, player: Node2D):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Giant explosion flash
+	var flash = ColorRect.new()
+	flash.size = Vector2(300, 300)
+	flash.color = Color(1.0, 0.8, 0.4, 0.9)
+	flash.pivot_offset = Vector2(150, 150)
+	flash.global_position = pos - Vector2(150, 150)
+	flash.z_index = 100
+	scene.add_child(flash)
+
+	var flash_tween = TweenHelper.new_tween()
+	flash_tween.tween_property(flash, "scale", Vector2(2.0, 2.0), 0.15)
+	flash_tween.parallel().tween_property(flash, "modulate:a", 0.0, 0.15)
+	flash_tween.tween_callback(flash.queue_free)
+
+	# Debris explosion
+	for i in range(20):
+		var debris = ColorRect.new()
+		debris.size = Vector2(randf_range(15, 35), randf_range(15, 35))
+		debris.color = EARTH_CORE if randf() > 0.5 else Color(1.0, 0.5, 0.2)
+		debris.pivot_offset = debris.size / 2
+		scene.add_child(debris)
+		debris.global_position = pos
+
+		var angle = randf() * TAU
+		var dir = Vector2.from_angle(angle)
+		var dist = randf_range(100, 250)
+		var end_pos = pos + dir * dist
+
+		var d_tween = TweenHelper.new_tween()
+		d_tween.set_parallel(true)
+		d_tween.tween_property(debris, "global_position", end_pos, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		d_tween.tween_property(debris, "global_position:y", end_pos.y + 100, 0.5).set_delay(0.25)
+		d_tween.tween_property(debris, "rotation", randf_range(-TAU, TAU), 0.5)
+		d_tween.tween_property(debris, "modulate:a", 0.0, 0.5)
+		d_tween.tween_callback(debris.queue_free)
+
+	# Crater ring effect
+	for ring in range(3):
+		var crater = ColorRect.new()
+		crater.size = Vector2(100, 100)
+		crater.color = Color(EARTH_DARK.r, EARTH_DARK.g, EARTH_DARK.b, 0.6 - ring * 0.15)
+		crater.pivot_offset = Vector2(50, 50)
+		crater.global_position = pos - Vector2(50, 50)
+		scene.add_child(crater)
+
+		var c_tween = TweenHelper.new_tween()
+		c_tween.tween_property(crater, "scale", Vector2(3.0 + ring, 3.0 + ring), 0.4).set_delay(ring * 0.1)
+		c_tween.tween_property(crater, "modulate:a", 0.0, 0.3)
+		c_tween.tween_callback(crater.queue_free)
+
+	# Damage enemies
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+		if enemy.is_in_group("converted_minion") or enemy.is_in_group("player_minions"):
+			continue
+
+		var dist = enemy.global_position.distance_to(pos)
+		if dist < 200.0:
+			var meteor_damage = 80.0 * damage_multiplier
+			if is_instance_valid(player) and player.stats:
+				meteor_damage *= player.stats.magic_damage_multiplier
+
+			var falloff = 1.0 - (dist / 200.0) * 0.5
+			meteor_damage *= falloff
+
+			if enemy.has_method("take_damage"):
+				enemy.take_damage(meteor_damage, pos, 700.0, 0.4, player, damage_type)
 
 func _spawn_rock_spike(pos: Vector2, player: Node2D):
 	var scene = get_tree().current_scene

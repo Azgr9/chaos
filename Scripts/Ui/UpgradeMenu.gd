@@ -24,7 +24,6 @@ extends CanvasLayer
 @onready var scythe_shop_button: Button = $Control/ScytheShopButton
 @onready var spear_shop_button: Button = $Control/SpearShopButton
 @onready var dagger_shop_button: Button = $Control/DaggerShopButton
-@onready var flail_shop_button: Button = $Control/FlailShopButton
 @onready var earth_staff_button: Button = $Control/EarthStaffButton
 @onready var holy_staff_button: Button = $Control/HolyStaffButton
 @onready var skip_button: Button = $Control/SkipButton
@@ -52,8 +51,6 @@ const SPEAR_SCENE = preload("res://Scenes/Weapons/Spear/Spear.tscn")
 const SPEAR_PRICE = 16
 const DAGGER_SCENE = preload("res://Scenes/Weapons/Dagger/Dagger.tscn")
 const DAGGER_PRICE = 8
-const FLAIL_SCENE = preload("res://Scenes/Weapons/Flail/Flail.tscn")
-const FLAIL_PRICE = 14
 
 # STAFFS
 const LIGHTNING_STAFF_SCENE = preload("res://Scenes/Weapons/LightningStaff/LightningStaff.tscn")
@@ -88,7 +85,6 @@ var necro_staff_purchased: bool = false
 var scythe_purchased: bool = false
 var spear_purchased: bool = false
 var dagger_purchased: bool = false
-var flail_purchased: bool = false
 var earth_staff_purchased: bool = false
 var holy_staff_purchased: bool = false
 
@@ -150,8 +146,6 @@ func _ready():
 		spear_shop_button.pressed.connect(_on_spear_shop_pressed)
 	if dagger_shop_button:
 		dagger_shop_button.pressed.connect(_on_dagger_shop_pressed)
-	if flail_shop_button:
-		flail_shop_button.pressed.connect(_on_flail_shop_pressed)
 
 	# Connect new staff shop buttons
 	if earth_staff_button:
@@ -176,7 +170,6 @@ func show_upgrades(player: Node2D):
 	_update_scythe_shop_button()
 	_update_spear_shop_button()
 	_update_dagger_shop_button()
-	_update_flail_shop_button()
 	_update_staff_shop_button()
 	_update_inferno_staff_button()
 	_update_frost_staff_button()
@@ -1270,63 +1263,6 @@ func _swap_weapon_to_dagger():
 	dagger_purchased = true
 
 	var new_weapon = DAGGER_SCENE.instantiate()
-	weapon_holder.add_child(new_weapon)
-	new_weapon.position = Vector2.ZERO
-
-	player_reference.weapon_inventory.append(new_weapon)
-
-	if new_weapon.has_signal("attack_finished"):
-		new_weapon.attack_finished.connect(player_reference._on_attack_finished)
-
-	new_weapon.visible = false
-	player_reference.switch_to_weapon(player_reference.weapon_inventory.size() - 1)
-
-# ============================================
-# NEW WEAPONS - FLAIL
-# ============================================
-func _on_flail_shop_pressed():
-	var game_manager = get_tree().get_first_node_in_group("game_manager")
-	if not game_manager:
-		return
-
-	if game_manager.get_gold() >= FLAIL_PRICE:
-		if game_manager.spend_gold(FLAIL_PRICE):
-			_swap_weapon_to_flail()
-			_update_flail_shop_button()
-
-func _update_flail_shop_button():
-	if not flail_shop_button:
-		return
-
-	if flail_purchased:
-		flail_shop_button.visible = false
-		return
-
-	flail_shop_button.visible = true
-	var game_manager = get_tree().get_first_node_in_group("game_manager")
-	if not game_manager:
-		return
-
-	var current_gold = game_manager.get_gold()
-	if current_gold >= FLAIL_PRICE:
-		flail_shop_button.disabled = false
-		flail_shop_button.text = "Flail (%d Gold)" % FLAIL_PRICE
-	else:
-		flail_shop_button.disabled = true
-		flail_shop_button.text = "Flail - Need %d" % FLAIL_PRICE
-
-func _swap_weapon_to_flail():
-	if not player_reference:
-		return
-
-	var weapon_holder = player_reference.get_node_or_null("WeaponPivot/WeaponHolder")
-	if not weapon_holder:
-		push_warning("UpgradeMenu: WeaponHolder not found on player")
-		return
-
-	flail_purchased = true
-
-	var new_weapon = FLAIL_SCENE.instantiate()
 	weapon_holder.add_child(new_weapon)
 	new_weapon.position = Vector2.ZERO
 

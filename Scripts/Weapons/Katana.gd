@@ -34,10 +34,7 @@ func _weapon_ready():
 	attack_duration = 0.16  # Very fast swings
 	attack_cooldown = 0.24  # Quick recovery for combos
 	weapon_color = KATANA_BLADE_COLOR
-
-	# Idle - Katana sheathed position (ready to draw)
-	idle_rotation = -75.0  # Angled down at hip, ready to draw
-	idle_position = Vector2(-3, 5)  # At hip level
+	idle_rotation = 45.0
 	idle_scale = Vector2(0.6, 0.6)
 
 	# Cone Hitbox - Now configured via @export in scene inspector
@@ -59,14 +56,6 @@ func _weapon_ready():
 
 	# Skill settings
 	skill_cooldown = 6.0
-
-	# Walk animation - light, fast weapon = quick, subtle movement
-	walk_bob_amount = 6.0  # Light but visible bob
-	walk_sway_amount = 10.0  # Noticeable sway
-	walk_anim_speed = 1.3  # Faster animation
-
-	# Apply idle state after setting custom values
-	_setup_idle_state()
 
 func _get_attack_pattern(attack_index: int) -> String:
 	# Katana: quick slash -> reverse slash -> overhead slash

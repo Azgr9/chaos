@@ -20,12 +20,11 @@ const HALO_COLOR: Color = Color(1.0, 1.0, 0.85, 0.5)  # Halo effect
 # ============================================
 const PROJECTILE_SCENE_PATH = preload("res://Scenes/Spells/BasicProjectile.tscn")
 
-# Divine Judgement skill settings
-const JUDGEMENT_PILLARS: int = 5
-const PILLAR_DAMAGE: float = 35.0
-const PILLAR_RADIUS: float = 60.0
-const PILLAR_DELAY: float = 0.15
-const JUDGEMENT_RANGE: float = 300.0
+# DIVINE STORM skill settings
+const STORM_RADIUS: float = 250.0  # Total area of divine storm
+const STORM_DAMAGE: float = 40.0  # Damage per lightning strike
+const LIGHTNING_COUNT: int = 12  # Number of lightning bolts
+const STORM_DURATION: float = 1.5  # How long the storm lasts
 
 # Healing aura (passive)
 var heal_timer: float = 0.0
@@ -115,186 +114,343 @@ func _create_heal_effect():
 		tween.tween_callback(sparkle.queue_free)
 
 func _perform_skill() -> bool:
-	# Divine Judgement - pillars of light from above
+	# DIVINE STORM - Massive holy storm from the heavens!
 	if not player_reference:
 		return false
 
-	_execute_divine_judgement()
+	_execute_divine_storm()
 	_play_skill_animation()
 	return true
 
-func _execute_divine_judgement():
+func _execute_divine_storm():
 	var player = player_reference
 	if not is_instance_valid(player):
 		return
 
-	# Get direction toward mouse
-	var direction = (player.get_global_mouse_position() - player.global_position).normalized()
-	if direction == Vector2.ZERO:
-		direction = Vector2.RIGHT
+	var self_ref = weakref(self)
+	var player_ref = weakref(player)
+	var target_pos = player.get_global_mouse_position()
 
-	# Calculate pillar positions in a line toward mouse
-	var base_pos = player.global_position
-
-	for i in range(JUDGEMENT_PILLARS):
-		var delay = i * PILLAR_DELAY
-		var distance = (i + 1) * (JUDGEMENT_RANGE / JUDGEMENT_PILLARS)
-		var pillar_pos = base_pos + direction * distance
-
-		# Add slight spread
-		pillar_pos += Vector2(randf_range(-30, 30), randf_range(-30, 30))
-
-		var timer = get_tree().create_timer(delay)
-		var staff_ref = weakref(self)
-		var player_ref = weakref(player)
-
-		timer.timeout.connect(func():
-			var s = staff_ref.get_ref()
-			var p = player_ref.get_ref()
-			if s and is_instance_valid(s):
-				s._spawn_light_pillar(pillar_pos, p)
-		)
-
-	# Screen shake
-	if DamageNumberManager:
-		DamageNumberManager.shake(0.4)
-
-func _spawn_light_pillar(pos: Vector2, player: Node2D):
 	var scene = get_tree().current_scene
 	if not scene:
 		return
 
-	# Warning indicator first
-	_create_pillar_warning(pos)
+	# Show skill name
+	_show_skill_text("DIVINE STORM!", target_pos + Vector2(0, -120))
 
-	# Delay then spawn pillar
-	await get_tree().create_timer(0.2).timeout
+	# Create massive holy circle on ground
+	_create_storm_circle(target_pos, scene)
 
-	if not is_instance_valid(self):
+	# Build-up - light gathering from above
+	_create_storm_buildup(target_pos, scene)
+
+	# Screen shake
+	DamageNumberManager.shake(0.5)
+
+	var tree = get_tree()
+	if not tree:
+		return
+	await tree.create_timer(0.4).timeout
+
+	if not self_ref.get_ref() or not player_ref.get_ref():
 		return
 
-	# Create pillar visual
-	var pillar = Node2D.new()
-	pillar.global_position = pos
-	scene.add_child(pillar)
+	# INITIAL BLAST - massive light explosion from sky
+	_create_divine_blast(target_pos, scene, player_ref)
 
-	# Main light beam (vertical rectangle going up)
-	var beam = ColorRect.new()
-	beam.size = Vector2(40, 400)
-	beam.color = HOLY_CORE
-	beam.pivot_offset = Vector2(20, 400)  # Pivot at bottom
-	beam.position = Vector2(-20, 0)
-	pillar.add_child(beam)
+	# Rain down lightning bolts
+	var interval = STORM_DURATION / LIGHTNING_COUNT
+	for i in range(LIGHTNING_COUNT):
+		if not self_ref.get_ref():
+			break
 
-	# Outer glow
-	var glow = ColorRect.new()
-	glow.size = Vector2(60, 400)
-	glow.color = Color(HOLY_GLOW.r, HOLY_GLOW.g, HOLY_GLOW.b, 0.5)
-	glow.pivot_offset = Vector2(30, 400)
-	glow.position = Vector2(-30, 0)
-	glow.z_index = -1
-	pillar.add_child(glow)
+		# Random position within storm radius
+		var offset = Vector2(
+			randf_range(-STORM_RADIUS, STORM_RADIUS),
+			randf_range(-STORM_RADIUS, STORM_RADIUS)
+		)
+		var bolt_pos = target_pos + offset
 
-	# Ground circle
-	var circle = ColorRect.new()
-	circle.size = Vector2(80, 80)
-	circle.color = Color(DIVINE_COLOR.r, DIVINE_COLOR.g, DIVINE_COLOR.b, 0.6)
-	circle.pivot_offset = Vector2(40, 40)
-	circle.position = Vector2(-40, -40)
-	pillar.add_child(circle)
+		_spawn_lightning_bolt(bolt_pos, scene, player_ref)
 
-	# Animation - pillar descends and expands
-	pillar.scale = Vector2(0.3, 0.0)
-	pillar.modulate.a = 0.0
+		tree = get_tree()
+		if not tree:
+			break
+		await tree.create_timer(interval).timeout
+
+	# Final divine explosion
+	if self_ref.get_ref() and player_ref.get_ref():
+		_create_final_divine_explosion(target_pos, scene, player_ref)
+
+func _show_skill_text(text: String, pos: Vector2):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	var label = Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", 36)
+	label.add_theme_color_override("font_color", DIVINE_COLOR)
+	label.add_theme_color_override("font_outline_color", Color.WHITE)
+	label.add_theme_constant_override("outline_size", 4)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.position = pos - Vector2(150, 0)
+	label.custom_minimum_size = Vector2(300, 50)
+	scene.add_child(label)
 
 	var tween = TweenHelper.new_tween()
-	tween.set_parallel(true)
-	tween.tween_property(pillar, "scale", Vector2(1.2, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(pillar, "modulate:a", 1.0, 0.1)
+	tween.tween_property(label, "position:y", pos.y - 160, 0.7)
+	tween.parallel().tween_property(label, "scale", Vector2(1.4, 1.4), 0.2)
+	tween.tween_property(label, "modulate:a", 0.0, 0.4)
+	tween.tween_callback(label.queue_free)
 
-	tween.set_parallel(false)
+func _create_storm_circle(pos: Vector2, scene: Node):
+	# Large holy circle on ground
+	var circle = ColorRect.new()
+	circle.size = Vector2(STORM_RADIUS * 2, STORM_RADIUS * 2)
+	circle.pivot_offset = Vector2(STORM_RADIUS, STORM_RADIUS)
+	circle.position = pos - Vector2(STORM_RADIUS, STORM_RADIUS)
+	circle.color = Color(DIVINE_COLOR.r, DIVINE_COLOR.g, DIVINE_COLOR.b, 0.3)
+	scene.add_child(circle)
 
-	# Damage enemies
+	var tween = TweenHelper.new_tween()
+	tween.tween_property(circle, "modulate:a", 0.6, 0.2)
+	tween.tween_property(circle, "modulate:a", 0.2, 0.2)
+	tween.set_loops(int(STORM_DURATION / 0.4))
+	tween.tween_callback(circle.queue_free)
+
+	# Rotating runes
+	for i in range(8):
+		var rune = ColorRect.new()
+		rune.size = Vector2(30, 30)
+		rune.pivot_offset = Vector2(15, 15)
+		rune.color = HOLY_GLOW
+		scene.add_child(rune)
+
+		var angle = (TAU / 8) * i
+		rune.position = pos + Vector2.from_angle(angle) * (STORM_RADIUS * 0.7)
+		rune.rotation = angle
+
+		var r_tween = TweenHelper.new_tween()
+		r_tween.tween_property(rune, "rotation", angle + TAU, STORM_DURATION)
+		r_tween.parallel().tween_property(rune, "modulate:a", 0.0, STORM_DURATION)
+		r_tween.tween_callback(rune.queue_free)
+
+func _create_storm_buildup(pos: Vector2, scene: Node):
+	# Light rays descending from above
+	for i in range(6):
+		var ray = ColorRect.new()
+		ray.size = Vector2(15, 300)
+		ray.pivot_offset = Vector2(7.5, 0)
+		ray.color = Color(HOLY_CORE.r, HOLY_CORE.g, HOLY_CORE.b, 0.6)
+		scene.add_child(ray)
+
+		var _angle = (TAU / 6) * i  # Used for distribution
+		var start = pos + Vector2(randf_range(-100, 100), -400)
+		ray.position = start
+		ray.rotation = randf_range(-0.3, 0.3)
+
+		var tween = TweenHelper.new_tween()
+		tween.tween_property(ray, "position:y", pos.y - 50, 0.35)
+		tween.parallel().tween_property(ray, "modulate:a", 0.0, 0.4)
+		tween.tween_callback(ray.queue_free)
+
+func _create_divine_blast(pos: Vector2, scene: Node, player_ref: WeakRef):
+	# Massive central explosion
+	var blast = ColorRect.new()
+	blast.size = Vector2(150, 150)
+	blast.pivot_offset = Vector2(75, 75)
+	blast.position = pos - Vector2(75, 75)
+	blast.color = HOLY_CORE
+	scene.add_child(blast)
+
+	var tween = TweenHelper.new_tween()
+	tween.tween_property(blast, "scale", Vector2(4.0, 4.0), 0.2)
+	tween.parallel().tween_property(blast, "modulate:a", 0.0, 0.25)
+	tween.tween_callback(blast.queue_free)
+
+	# Light pillars shooting up
+	for i in range(8):
+		var pillar = ColorRect.new()
+		pillar.size = Vector2(20, 200)
+		pillar.pivot_offset = Vector2(10, 200)
+		pillar.color = HOLY_GLOW
+
+		var angle = (TAU / 8) * i
+		var pillar_pos = pos + Vector2.from_angle(angle) * 60
+		pillar.position = pillar_pos - Vector2(10, 0)
+		scene.add_child(pillar)
+
+		var p_tween = TweenHelper.new_tween()
+		p_tween.tween_property(pillar, "position:y", pillar.position.y - 150, 0.2)
+		p_tween.parallel().tween_property(pillar, "scale:y", 0.0, 0.3)
+		p_tween.tween_property(pillar, "modulate:a", 0.0, 0.1)
+		p_tween.tween_callback(pillar.queue_free)
+
+	# Deal damage at center
+	var player = player_ref.get_ref()
+	if player:
+		_damage_enemies_in_radius(pos, STORM_RADIUS * 0.5, STORM_DAMAGE * 1.5, player)
+
+	DamageNumberManager.shake(0.6)
+
+func _spawn_lightning_bolt(pos: Vector2, scene: Node, player_ref: WeakRef):
+	# Lightning bolt from sky
+	var bolt = Node2D.new()
+	bolt.position = pos
+	scene.add_child(bolt)
+
+	# Main bolt (jagged line simulated with multiple segments)
+	var bolt_height = 350.0
+	var segment_count = 8
+	var segment_height = bolt_height / segment_count
+
+	var prev_offset = 0.0
+	for i in range(segment_count):
+		var segment = ColorRect.new()
+		var width = 8.0 if i < segment_count - 1 else 15.0
+		segment.size = Vector2(width, segment_height + 10)
+		segment.pivot_offset = Vector2(width / 2, 0)
+		segment.color = HOLY_CORE
+
+		var offset = randf_range(-25, 25) if i < segment_count - 1 else 0.0
+		segment.position = Vector2(prev_offset - width / 2, -bolt_height + i * segment_height)
+		segment.rotation = atan2(offset - prev_offset, segment_height)
+		bolt.add_child(segment)
+
+		prev_offset = offset
+
+	# Glow around bolt
+	var glow = ColorRect.new()
+	glow.size = Vector2(50, bolt_height)
+	glow.pivot_offset = Vector2(25, 0)
+	glow.position = Vector2(-25, -bolt_height)
+	glow.color = Color(HOLY_GLOW.r, HOLY_GLOW.g, HOLY_GLOW.b, 0.4)
+	glow.z_index = -1
+	bolt.add_child(glow)
+
+	# Ground impact
+	var impact = ColorRect.new()
+	impact.size = Vector2(60, 60)
+	impact.pivot_offset = Vector2(30, 30)
+	impact.position = Vector2(-30, -30)
+	impact.color = HOLY_CORE
+	bolt.add_child(impact)
+
+	# Animation
+	bolt.modulate.a = 0.0
+	bolt.scale = Vector2(1.0, 0.0)
+
+	var tween = TweenHelper.new_tween()
+	tween.tween_property(bolt, "modulate:a", 1.0, 0.02)
+	tween.parallel().tween_property(bolt, "scale:y", 1.0, 0.04)
+
+	# Deal damage
 	tween.tween_callback(func():
-		_damage_enemies_at_pillar(pos, player)
+		var player = player_ref.get_ref()
+		if player:
+			_damage_enemies_in_radius(pos, 40.0, STORM_DAMAGE, player)
+		_create_lightning_impact(pos, scene)
+		DamageNumberManager.shake(0.15)
 	)
 
 	# Flash brighter
-	tween.tween_property(pillar, "modulate", Color(1.5, 1.5, 1.5, 1.0), 0.1)
-	tween.tween_property(pillar, "modulate", Color.WHITE, 0.1)
+	tween.tween_property(bolt, "modulate", Color(1.5, 1.5, 1.5, 1.0), 0.05)
 
-	# Hold briefly
-	tween.tween_interval(0.2)
+	# Fade
+	tween.tween_property(bolt, "modulate:a", 0.0, 0.15)
+	tween.tween_callback(bolt.queue_free)
 
-	# Fade out
-	tween.tween_property(pillar, "modulate:a", 0.0, 0.3)
-	tween.parallel().tween_property(pillar, "scale:x", 0.1, 0.3)
-	tween.tween_callback(pillar.queue_free)
+func _create_lightning_impact(pos: Vector2, scene: Node):
+	# Small impact burst
+	for i in range(4):
+		var spark = ColorRect.new()
+		spark.size = Vector2(10, 10)
+		spark.pivot_offset = Vector2(5, 5)
+		spark.color = HOLY_GLOW
+		scene.add_child(spark)
+		spark.position = pos
 
-func _create_pillar_warning(pos: Vector2):
-	var scene = get_tree().current_scene
-	if not scene:
-		return
+		var angle = (TAU / 4) * i + randf_range(-0.3, 0.3)
+		var dir = Vector2.from_angle(angle)
 
-	# Circular warning indicator
-	var warning = ColorRect.new()
-	warning.size = Vector2(60, 60)
-	warning.color = Color(DIVINE_COLOR.r, DIVINE_COLOR.g, DIVINE_COLOR.b, 0.3)
-	warning.pivot_offset = Vector2(30, 30)
-	warning.global_position = pos - Vector2(30, 30)
-	scene.add_child(warning)
+		var tween = TweenHelper.new_tween()
+		tween.tween_property(spark, "position", pos + dir * 40, 0.1)
+		tween.parallel().tween_property(spark, "modulate:a", 0.0, 0.12)
+		tween.tween_callback(spark.queue_free)
+
+func _create_final_divine_explosion(pos: Vector2, scene: Node, player_ref: WeakRef):
+	# Giant final explosion
+	var explosion = ColorRect.new()
+	explosion.size = Vector2(200, 200)
+	explosion.pivot_offset = Vector2(100, 100)
+	explosion.position = pos - Vector2(100, 100)
+	explosion.color = DIVINE_COLOR
+	scene.add_child(explosion)
 
 	var tween = TweenHelper.new_tween()
-	tween.tween_property(warning, "scale", Vector2(1.5, 1.5), 0.2)
-	tween.parallel().tween_property(warning, "modulate:a", 0.8, 0.1)
-	tween.tween_property(warning, "modulate:a", 0.0, 0.1)
-	tween.tween_callback(warning.queue_free)
+	tween.tween_property(explosion, "scale", Vector2(5.0, 5.0), 0.3)
+	tween.parallel().tween_property(explosion, "modulate:a", 0.0, 0.35)
+	tween.tween_callback(explosion.queue_free)
 
-func _damage_enemies_at_pillar(pos: Vector2, player: Node2D):
+	# Holy rings expanding
+	for i in range(3):
+		var ring = ColorRect.new()
+		ring.size = Vector2(100, 100)
+		ring.pivot_offset = Vector2(50, 50)
+		ring.position = pos - Vector2(50, 50)
+		ring.color = Color(HOLY_GLOW.r, HOLY_GLOW.g, HOLY_GLOW.b, 0.6 - i * 0.15)
+		scene.add_child(ring)
+
+		var r_tween = TweenHelper.new_tween()
+		r_tween.set_parallel(true)
+		r_tween.tween_property(ring, "scale", Vector2(4.0 + i, 4.0 + i), 0.25 + i * 0.08)
+		r_tween.tween_property(ring, "modulate:a", 0.0, 0.3 + i * 0.08)
+		r_tween.tween_callback(ring.queue_free)
+
+	# Final damage
+	var player = player_ref.get_ref()
+	if player:
+		_damage_enemies_in_radius(pos, STORM_RADIUS, STORM_DAMAGE * 2.0, player)
+
+	DamageNumberManager.shake(0.8)
+
+func _damage_enemies_in_radius(pos: Vector2, radius: float, dmg: float, player: Node2D):
 	var enemies = get_tree().get_nodes_in_group("enemies")
 
 	for enemy in enemies:
 		if not is_instance_valid(enemy):
 			continue
-		if enemy.is_in_group("converted_minion"):
+		if enemy.is_in_group("converted_minion") or enemy.is_in_group("player_minions"):
 			continue
 
 		var dist = enemy.global_position.distance_to(pos)
-		if dist <= PILLAR_RADIUS:
-			var final_damage = PILLAR_DAMAGE * damage_multiplier
+		if dist <= radius:
+			var final_damage = dmg * damage_multiplier
 			if is_instance_valid(player) and player.stats:
 				final_damage *= player.stats.magic_damage_multiplier
 
 			if enemy.has_method("take_damage"):
-				enemy.take_damage(final_damage, pos, 350.0, 0.2, player, damage_type)
-				_create_pillar_hit_effect(enemy.global_position)
+				enemy.take_damage(final_damage, pos, 400.0, 0.2, player, damage_type)
+				_create_lightning_hit_effect(enemy.global_position)
 
-func _create_pillar_hit_effect(pos: Vector2):
+func _create_lightning_hit_effect(pos: Vector2):
 	var scene = get_tree().current_scene
 	if not scene:
 		return
 
-	# Holy burst
-	for i in range(6):
-		var spark = ColorRect.new()
-		spark.size = Vector2(8, 16)
-		spark.color = HOLY_GLOW
-		spark.pivot_offset = Vector2(4, 8)
-		scene.add_child(spark)
-		spark.global_position = pos
+	var flash = ColorRect.new()
+	flash.size = Vector2(40, 40)
+	flash.color = HOLY_CORE
+	flash.pivot_offset = Vector2(20, 20)
+	scene.add_child(flash)
+	flash.global_position = pos - Vector2(20, 20)
 
-		var angle = (TAU / 6) * i
-		var dir = Vector2.from_angle(angle)
-		spark.rotation = angle + PI / 2
-
-		var end_pos = pos + dir * randf_range(40, 70)
-
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(spark, "global_position", end_pos, 0.15)
-		tween.tween_property(spark, "scale", Vector2(0.3, 0.3), 0.15)
-		tween.tween_property(spark, "modulate:a", 0.0, 0.15)
-		tween.tween_callback(spark.queue_free)
+	var tween = TweenHelper.new_tween()
+	tween.set_parallel(true)
+	tween.tween_property(flash, "scale", Vector2(2.5, 2.5), 0.1)
+	tween.tween_property(flash, "modulate:a", 0.0, 0.12)
+	tween.tween_callback(flash.queue_free)
 
 func _play_skill_animation():
 	# Staff glow bright during skill

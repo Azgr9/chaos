@@ -22,6 +22,7 @@ var energy_shader: Shader = preload("res://Shaders/Weapons/EnergyGlow.gdshader")
 # Colors
 const HAMMER_GLOW_COLOR: Color = Color(1.0, 0.5, 0.1)  # Orange impact
 const HAMMER_EARTH_COLOR: Color = Color(0.5, 0.4, 0.25)  # Earth brown
+const WARHAMMER_HEAD_COLOR: Color = Color(0.4, 0.35, 0.3)  # Dark iron hammer head
 
 func _weapon_ready():
 	# Warhammer: extremely slow but devastating
@@ -249,8 +250,11 @@ func _create_ground_crack():
 		dtween.tween_callback(debris.queue_free)
 
 # ============================================
-# EARTHQUAKE SKILL - AoE ground pound (stays in place)
+# MJOLNIR STRIKE - Throw hammer to sky, returns with lightning
 # ============================================
+const MJOLNIR_RADIUS: float = 300.0
+const MJOLNIR_DAMAGE_MULT: float = 4.0
+const LIGHTNING_CHAINS: int = 3
 
 ## This is an async skill - it uses await and manages its own invulnerability
 func _is_async_skill() -> bool:
@@ -261,155 +265,297 @@ func _perform_skill() -> bool:
 		return false
 
 	is_earthquaking = true
-	_execute_earthquake()
+	_execute_mjolnir_strike()
 	return true
 
-func _execute_earthquake():
+func _execute_mjolnir_strike():
 	if not is_instance_valid(player_reference):
 		is_earthquaking = false
 		_end_skill_invulnerability()
 		return
 
-	# Visual: hammer glows and raises
-	sprite.color = Color(1.0, 0.5, 0.0)
-	sprite.scale = Vector2(1.5, 1.5)
+	var player = player_reference
+	var target_pos = player.get_global_mouse_position()
 
-	# Raise hammer high animation
-	var raise_tween = TweenHelper.new_tween()
-	raise_tween.tween_property(pivot, "rotation", deg_to_rad(-120), 0.25)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	raise_tween.parallel().tween_property(pivot, "position:y", -30, 0.25)
+	# Show skill text
+	_create_mjolnir_text(player.global_position)
 
-	await raise_tween.finished
+	# Hide weapon - it's being thrown!
+	visible = false
 
-	# Check validity after await
-	if not is_instance_valid(self) or not is_instance_valid(player_reference):
+	# Create flying hammer visual
+	_create_flying_hammer(player.global_position, target_pos)
+
+	# Player reaches up pose
+	player.modulate = Color(0.8, 0.9, 1.0)
+
+	# Wait for hammer to fly up and come down
+	await get_tree().create_timer(0.8).timeout
+
+	if not is_instance_valid(self) or not is_instance_valid(player):
+		visible = true
 		is_earthquaking = false
 		_end_skill_invulnerability()
 		return
 
-	# Brief pause at top
-	await get_tree().create_timer(0.1).timeout
-
-	if not is_instance_valid(self) or not is_instance_valid(player_reference):
-		is_earthquaking = false
-		_end_skill_invulnerability()
-		return
-
-	# Slam down animation
-	var slam_tween = TweenHelper.new_tween()
-	slam_tween.tween_property(pivot, "rotation", deg_to_rad(45), 0.12)\
-		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
-	slam_tween.parallel().tween_property(pivot, "position:y", 0, 0.12)
-
-	await slam_tween.finished
-
-	# Check validity after await
-	if not is_instance_valid(self) or not is_instance_valid(player_reference):
-		is_earthquaking = false
-		_end_skill_invulnerability()
-		return
-
-	# Earthquake impact!
-	_earthquake_impact()
-
-	# Reset hammer to idle
-	var reset_tween = TweenHelper.new_tween()
-	reset_tween.tween_property(sprite, "color", weapon_color, 0.2)
-	reset_tween.parallel().tween_property(sprite, "scale", idle_scale, 0.2)
-	reset_tween.parallel().tween_property(pivot, "rotation", deg_to_rad(idle_rotation), 0.2)
-
-	await reset_tween.finished
-
-	is_earthquaking = false
-	# End invulnerability when skill is complete
-	_end_skill_invulnerability()
-
-func _earthquake_impact():
-	if not player_reference:
-		return
-
-	var impact_pos = player_reference.global_position
+	# LIGHTNING STRIKE!
+	_create_lightning_strike(target_pos)
 
 	# Massive screen shake
 	if DamageNumberManager:
-		DamageNumberManager.shake(0.8)
+		DamageNumberManager.shake(1.0)
 
-	# Damage all enemies in radius
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	for enemy in enemies:
-		if not is_instance_valid(enemy):
-			continue
+	# Damage enemies at impact
+	_mjolnir_impact(target_pos, player)
 
-		var distance = enemy.global_position.distance_to(impact_pos)
-		if distance < EARTHQUAKE_RADIUS:
-			var eq_damage = damage * damage_multiplier * EARTHQUAKE_DAMAGE_MULTIPLIER
-			# Damage falls off with distance
-			var falloff = 1.0 - (distance / EARTHQUAKE_RADIUS) * 0.5
-			eq_damage *= falloff
+	# Chain lightning to nearby enemies
+	_chain_lightning(target_pos, player)
 
-			if enemy.has_method("take_damage"):
-				var attacker = player_reference if is_instance_valid(player_reference) else null
-				enemy.take_damage(eq_damage, impact_pos, 800.0, EARTHQUAKE_STUN, attacker)
-				dealt_damage.emit(enemy, eq_damage)
+	# Show weapon again
+	visible = true
+	player.modulate = Color.WHITE
 
-	# Visual effects - multiple shockwave rings
-	for i in range(3):
-		_create_shockwave_ring(impact_pos, i * 0.1)
+	# Brief recovery
+	await get_tree().create_timer(0.3).timeout
 
-	# Ground crack particles
-	_create_earthquake_debris(impact_pos)
+	is_earthquaking = false
+	_end_skill_invulnerability()
 
-func _create_shockwave_ring(pos: Vector2, delay: float):
-	await get_tree().create_timer(delay).timeout
-
-	# Check validity after await
-	if not is_instance_valid(self):
-		return
-
+func _create_mjolnir_text(pos: Vector2):
 	var scene = get_tree().current_scene
 	if not scene:
 		return
 
-	# Massive shader-based shockwave for earthquake
-	var ring = ColorRect.new()
-	ring.size = Vector2(EARTHQUAKE_RADIUS * 2, EARTHQUAKE_RADIUS * 2)
-	ring.pivot_offset = Vector2(EARTHQUAKE_RADIUS, EARTHQUAKE_RADIUS)
-	ring.global_position = pos - Vector2(EARTHQUAKE_RADIUS, EARTHQUAKE_RADIUS)
-
-	var mat = ShaderMaterial.new()
-	mat.shader = shockwave_shader
-	mat.set_shader_parameter("wave_color", Color(0.7, 0.5, 0.2, 0.9))
-	mat.set_shader_parameter("ring_thickness", 0.1)
-	mat.set_shader_parameter("inner_glow", 2.0)
-	mat.set_shader_parameter("distortion", 0.03)
-	mat.set_shader_parameter("progress", 0.0)
-	ring.material = mat
-
-	scene.add_child(ring)
+	var label = Label.new()
+	label.text = "MJOLNIR STRIKE!"
+	label.add_theme_font_size_override("font_size", 32)
+	label.modulate = Color(0.5, 0.7, 1.0)
+	scene.add_child(label)
+	label.global_position = pos + Vector2(-120, -80)
 
 	var tween = TweenHelper.new_tween()
-	tween.tween_method(func(p): mat.set_shader_parameter("progress", p), 0.0, 1.0, 0.5)
-	tween.tween_callback(ring.queue_free)
+	tween.tween_property(label, "global_position:y", pos.y - 140, 0.6)
+	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.6)
+	tween.tween_callback(label.queue_free)
 
-func _create_earthquake_debris(pos: Vector2):
-	for i in range(16):
-		var debris = ColorRect.new()
-		debris.size = Vector2(randf_range(10, 25), randf_range(10, 25))
-		debris.color = Color(0.5, 0.4, 0.3, 1.0)
-		get_tree().current_scene.add_child(debris)
-		debris.global_position = pos
+func _create_flying_hammer(start_pos: Vector2, target_pos: Vector2):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
 
-		var angle = (TAU / 16) * i + randf_range(-0.2, 0.2)
+	# Create hammer visual
+	var hammer = ColorRect.new()
+	hammer.size = Vector2(25, 50)
+	hammer.color = WARHAMMER_HEAD_COLOR
+	hammer.pivot_offset = Vector2(12.5, 25)
+	scene.add_child(hammer)
+	hammer.global_position = start_pos - Vector2(12.5, 25)
+	hammer.z_index = 100
+
+	# Hammer glow
+	var glow = ColorRect.new()
+	glow.size = Vector2(40, 60)
+	glow.color = Color(0.5, 0.7, 1.0, 0.5)
+	glow.pivot_offset = Vector2(20, 30)
+	glow.position = Vector2(-7.5, -5)
+	glow.z_index = -1
+	hammer.add_child(glow)
+
+	# Fly up off screen
+	var sky_pos = start_pos + Vector2(0, -600)
+
+	var up_tween = TweenHelper.new_tween()
+	up_tween.set_parallel(true)
+	up_tween.tween_property(hammer, "global_position", sky_pos, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	up_tween.tween_property(hammer, "rotation", TAU * 2, 0.3)
+	up_tween.tween_property(hammer, "scale", Vector2(0.5, 0.5), 0.3)
+
+	await up_tween.finished
+
+	if not is_instance_valid(hammer):
+		return
+
+	# Brief pause in "sky"
+	await get_tree().create_timer(0.2).timeout
+
+	if not is_instance_valid(hammer):
+		return
+
+	# CRASH DOWN with lightning!
+	hammer.global_position = target_pos + Vector2(-12.5, -400)
+	hammer.scale = Vector2(2.0, 2.0)
+	hammer.modulate = Color(1.5, 1.5, 2.0)
+
+	var down_tween = TweenHelper.new_tween()
+	down_tween.set_parallel(true)
+	down_tween.tween_property(hammer, "global_position", target_pos - Vector2(12.5, 25), 0.15).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	down_tween.tween_property(hammer, "rotation", -TAU, 0.15)
+
+	await down_tween.finished
+
+	if is_instance_valid(hammer):
+		hammer.queue_free()
+
+func _create_lightning_strike(pos: Vector2):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Main lightning bolt from sky
+	var bolt = ColorRect.new()
+	bolt.size = Vector2(20, 600)
+	bolt.color = Color(0.7, 0.85, 1.0, 0.95)
+	bolt.pivot_offset = Vector2(10, 600)
+	bolt.global_position = pos - Vector2(10, 0)
+	bolt.z_index = 100
+	scene.add_child(bolt)
+
+	# Core bright line
+	var core = ColorRect.new()
+	core.size = Vector2(6, 600)
+	core.color = Color(1.0, 1.0, 1.0, 1.0)
+	core.pivot_offset = Vector2(3, 600)
+	core.position = Vector2(7, 0)
+	bolt.add_child(core)
+
+	# Lightning branches
+	for i in range(8):
+		var branch = ColorRect.new()
+		branch.size = Vector2(randf_range(60, 120), 4)
+		branch.color = Color(0.6, 0.8, 1.0, 0.8)
+		branch.pivot_offset = Vector2(0, 2)
+		var y_pos = randf_range(100, 500)
+		branch.position = Vector2(10, -y_pos)
+		branch.rotation = randf_range(-0.5, 0.5) + (PI/2 if randf() > 0.5 else -PI/2)
+		bolt.add_child(branch)
+
+	# Impact flash
+	var flash = ColorRect.new()
+	flash.size = Vector2(200, 200)
+	flash.color = Color(1.0, 1.0, 1.0, 0.9)
+	flash.pivot_offset = Vector2(100, 100)
+	flash.global_position = pos - Vector2(100, 100)
+	flash.z_index = 99
+	scene.add_child(flash)
+
+	# Shockwave
+	var wave = ColorRect.new()
+	wave.size = Vector2(100, 100)
+	wave.color = Color(0.5, 0.7, 1.0, 0.6)
+	wave.pivot_offset = Vector2(50, 50)
+	wave.global_position = pos - Vector2(50, 50)
+	scene.add_child(wave)
+
+	# Animations
+	var tween = TweenHelper.new_tween()
+	tween.set_parallel(true)
+	tween.tween_property(bolt, "modulate:a", 0.0, 0.2)
+	tween.tween_property(flash, "scale", Vector2(3.0, 3.0), 0.15)
+	tween.tween_property(flash, "modulate:a", 0.0, 0.15)
+	tween.tween_property(wave, "scale", Vector2(6.0, 6.0), 0.3)
+	tween.tween_property(wave, "modulate:a", 0.0, 0.3)
+
+	tween.set_parallel(false)
+	tween.tween_callback(bolt.queue_free)
+	tween.tween_callback(flash.queue_free)
+	tween.tween_callback(wave.queue_free)
+
+	# Electric sparks
+	for i in range(12):
+		var spark = ColorRect.new()
+		spark.size = Vector2(4, 15)
+		spark.color = Color(0.8, 0.9, 1.0)
+		spark.pivot_offset = Vector2(2, 7.5)
+		scene.add_child(spark)
+		spark.global_position = pos
+
+		var angle = randf() * TAU
 		var dir = Vector2.from_angle(angle)
-		var dist = randf_range(80, EARTHQUAKE_RADIUS)
+		var end_pos = pos + dir * randf_range(80, 180)
 
-		var tween = TweenHelper.new_tween()
-		tween.set_parallel(true)
-		tween.tween_property(debris, "global_position", pos + dir * dist, 0.5)
-		tween.tween_property(debris, "rotation", randf_range(-PI, PI), 0.5)
-		tween.tween_property(debris, "modulate:a", 0.0, 0.5)
-		tween.tween_callback(debris.queue_free)
+		var s_tween = TweenHelper.new_tween()
+		s_tween.set_parallel(true)
+		s_tween.tween_property(spark, "global_position", end_pos, 0.25)
+		s_tween.tween_property(spark, "rotation", randf() * TAU, 0.25)
+		s_tween.tween_property(spark, "modulate:a", 0.0, 0.25)
+		s_tween.tween_callback(spark.queue_free)
+
+func _mjolnir_impact(pos: Vector2, player: Node2D):
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+		if enemy.is_in_group("converted_minion") or enemy.is_in_group("player_minions"):
+			continue
+
+		var dist = enemy.global_position.distance_to(pos)
+		if dist < MJOLNIR_RADIUS:
+			var mjolnir_damage = damage * damage_multiplier * MJOLNIR_DAMAGE_MULT
+			var falloff = 1.0 - (dist / MJOLNIR_RADIUS) * 0.4
+			mjolnir_damage *= falloff
+
+			if enemy.has_method("take_damage"):
+				enemy.take_damage(mjolnir_damage, pos, 900.0, 0.5, player)
+				dealt_damage.emit(enemy, mjolnir_damage)
+
+func _chain_lightning(start_pos: Vector2, player: Node2D):
+	var hit_enemies: Array = []
+	var current_pos = start_pos
+
+	for _chain in range(LIGHTNING_CHAINS):
+		var nearest: Node2D = null
+		var nearest_dist: float = 250.0
+
+		var enemies = get_tree().get_nodes_in_group("enemies")
+		for enemy in enemies:
+			if not is_instance_valid(enemy):
+				continue
+			if enemy in hit_enemies:
+				continue
+			if enemy.is_in_group("converted_minion") or enemy.is_in_group("player_minions"):
+				continue
+
+			var dist = enemy.global_position.distance_to(current_pos)
+			if dist < nearest_dist:
+				nearest_dist = dist
+				nearest = enemy
+
+		if nearest:
+			hit_enemies.append(nearest)
+			_create_chain_bolt(current_pos, nearest.global_position)
+
+			# Chain damage (reduced)
+			var chain_damage = damage * damage_multiplier * 1.5
+			if nearest.has_method("take_damage"):
+				nearest.take_damage(chain_damage, current_pos, 200.0, 0.2, player)
+				dealt_damage.emit(nearest, chain_damage)
+
+			current_pos = nearest.global_position
+		else:
+			break
+
+		await get_tree().create_timer(0.08).timeout
+
+func _create_chain_bolt(from_pos: Vector2, to_pos: Vector2):
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	var direction = (to_pos - from_pos)
+	var length = direction.length()
+	var angle = direction.angle()
+
+	var bolt = ColorRect.new()
+	bolt.size = Vector2(length, 6)
+	bolt.color = Color(0.6, 0.8, 1.0, 0.9)
+	bolt.pivot_offset = Vector2(0, 3)
+	bolt.global_position = from_pos
+	bolt.rotation = angle
+	scene.add_child(bolt)
+
+	var tween = TweenHelper.new_tween()
+	tween.tween_property(bolt, "modulate:a", 0.0, 0.15)
+	tween.tween_callback(bolt.queue_free)
 
 func _on_combo_finisher_hit(_target: Node2D):
 	# Extra massive shake on finisher
