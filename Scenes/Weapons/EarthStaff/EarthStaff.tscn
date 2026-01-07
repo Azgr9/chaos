@@ -1,0 +1,40 @@
+[gd_scene load_steps=3 format=3 uid="uid://earthstaff_weapon"]
+
+[ext_resource type="Script" uid="uid://bvrlpxi6yktre" path="res://Scripts/Weapons/EarthStaff.gd" id="1_earth"]
+[ext_resource type="PackedScene" uid="uid://dej7hxr2yknk" path="res://Scenes/Spells/BasicProjectile.tscn" id="2_proj"]
+
+[node name="EarthStaff" type="Node2D"]
+z_index = -1
+script = ExtResource("1_earth")
+projectile_scene = ExtResource("2_proj")
+
+[node name="Sprite" type="ColorRect" parent="."]
+offset_left = -10.0
+offset_right = 54.0
+offset_bottom = 18.0
+rotation = -1.5707964
+color = Color(0.45, 0.35, 0.2, 1)
+
+[node name="Crystal" type="ColorRect" parent="."]
+offset_left = -8.0
+offset_top = -75.0
+offset_right = 8.0
+offset_bottom = -55.0
+rotation = 0.785398
+pivot_offset = Vector2(8, 10)
+color = Color(0.4, 0.6, 0.35, 1)
+
+[node name="ProjectileSpawn" type="Marker2D" parent="."]
+position = Vector2(0, -70)
+
+[node name="AttackCooldown" type="Timer" parent="."]
+wait_time = 0.45
+one_shot = true
+
+[node name="MuzzleFlash" type="ColorRect" parent="."]
+visible = false
+offset_left = -20.0
+offset_top = -90.0
+offset_right = 20.0
+offset_bottom = -50.0
+color = Color(0.7, 0.55, 0.3, 1)

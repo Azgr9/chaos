@@ -1,0 +1,52 @@
+[gd_scene load_steps=2 format=3 uid="uid://dagger_weapon"]
+
+[ext_resource type="Script" uid="uid://b28miip7fsuci" path="res://Scripts/Weapons/Dagger.gd" id="1_dagger"]
+
+[node name="Dagger" type="Node2D"]
+z_index = -1
+script = ExtResource("1_dagger")
+attack_range = 110.0
+attack_cone_angle = 75.0
+
+[node name="Pivot" type="Node2D" parent="."]
+
+[node name="Sprite" type="ColorRect" parent="Pivot"]
+visible = false
+offset_left = -5.0
+offset_top = -55.0
+offset_right = 5.0
+pivot_offset = Vector2(0, 5)
+color = Color(0.6, 0.55, 0.7, 1)
+
+[node name="DaggerBlade" type="ColorRect" parent="Pivot"]
+offset_left = -4.0
+offset_top = -50.0
+offset_right = 4.0
+offset_bottom = -5.0
+pivot_offset = Vector2(4, 45)
+color = Color(0.65, 0.6, 0.75, 1)
+
+[node name="DaggerEdge" type="ColorRect" parent="Pivot"]
+offset_left = -2.0
+offset_top = -48.0
+offset_right = 0.0
+offset_bottom = -8.0
+color = Color(0.8, 0.75, 0.9, 1)
+
+[node name="DaggerGuard" type="ColorRect" parent="Pivot"]
+offset_left = -6.0
+offset_top = -6.0
+offset_right = 6.0
+offset_bottom = 0.0
+color = Color(0.4, 0.3, 0.35, 1)
+
+[node name="DaggerHandle" type="ColorRect" parent="Pivot"]
+offset_left = -3.0
+offset_top = 0.0
+offset_right = 3.0
+offset_bottom = 18.0
+color = Color(0.3, 0.2, 0.25, 1)
+
+[node name="AttackTimer" type="Timer" parent="."]
+wait_time = 0.16
+one_shot = true

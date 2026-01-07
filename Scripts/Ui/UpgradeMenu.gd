@@ -23,6 +23,10 @@ extends CanvasLayer
 @onready var necro_staff_button: Button = $Control/NecroStaffButton
 @onready var scythe_shop_button: Button = $Control/ScytheShopButton
 @onready var spear_shop_button: Button = $Control/SpearShopButton
+@onready var dagger_shop_button: Button = $Control/DaggerShopButton
+@onready var flail_shop_button: Button = $Control/FlailShopButton
+@onready var earth_staff_button: Button = $Control/EarthStaffButton
+@onready var holy_staff_button: Button = $Control/HolyStaffButton
 @onready var skip_button: Button = $Control/SkipButton
 @onready var healer_container: VBoxContainer = $Control/HealerContainer
 
@@ -46,6 +50,10 @@ const SCYTHE_SCENE = preload("res://Scenes/Weapons/Scythe/Scythe.tscn")
 const SCYTHE_PRICE = 20
 const SPEAR_SCENE = preload("res://Scenes/Weapons/Spear/Spear.tscn")
 const SPEAR_PRICE = 16
+const DAGGER_SCENE = preload("res://Scenes/Weapons/Dagger/Dagger.tscn")
+const DAGGER_PRICE = 8
+const FLAIL_SCENE = preload("res://Scenes/Weapons/Flail/Flail.tscn")
+const FLAIL_PRICE = 14
 
 # STAFFS
 const LIGHTNING_STAFF_SCENE = preload("res://Scenes/Weapons/LightningStaff/LightningStaff.tscn")
@@ -58,6 +66,10 @@ const VOID_STAFF_SCENE = preload("res://Scenes/Weapons/VoidStaff/VoidStaff.tscn"
 const VOID_STAFF_PRICE = 16
 const NECRO_STAFF_SCENE = preload("res://Scenes/Weapons/NecroStaff/NecroStaff.tscn")
 const NECRO_STAFF_PRICE = 22
+const EARTH_STAFF_SCENE = preload("res://Scenes/Weapons/EarthStaff/EarthStaff.tscn")
+const EARTH_STAFF_PRICE = 13
+const HOLY_STAFF_SCENE = preload("res://Scenes/Weapons/HolyStaff/HolyStaff.tscn")
+const HOLY_STAFF_PRICE = 15
 
 # Card references
 var card_panels: Array = []
@@ -75,6 +87,10 @@ var void_staff_purchased: bool = false
 var necro_staff_purchased: bool = false
 var scythe_purchased: bool = false
 var spear_purchased: bool = false
+var dagger_purchased: bool = false
+var flail_purchased: bool = false
+var earth_staff_purchased: bool = false
+var holy_staff_purchased: bool = false
 
 # Signals
 signal upgrade_selected(upgrade: Dictionary)
@@ -132,6 +148,16 @@ func _ready():
 		scythe_shop_button.pressed.connect(_on_scythe_shop_pressed)
 	if spear_shop_button:
 		spear_shop_button.pressed.connect(_on_spear_shop_pressed)
+	if dagger_shop_button:
+		dagger_shop_button.pressed.connect(_on_dagger_shop_pressed)
+	if flail_shop_button:
+		flail_shop_button.pressed.connect(_on_flail_shop_pressed)
+
+	# Connect new staff shop buttons
+	if earth_staff_button:
+		earth_staff_button.pressed.connect(_on_earth_staff_pressed)
+	if holy_staff_button:
+		holy_staff_button.pressed.connect(_on_holy_staff_pressed)
 
 	# Setup healer section
 	_setup_healer_section()
@@ -149,11 +175,15 @@ func show_upgrades(player: Node2D):
 	_update_warhammer_shop_button()
 	_update_scythe_shop_button()
 	_update_spear_shop_button()
+	_update_dagger_shop_button()
+	_update_flail_shop_button()
 	_update_staff_shop_button()
 	_update_inferno_staff_button()
 	_update_frost_staff_button()
 	_update_void_staff_button()
 	_update_necro_staff_button()
+	_update_earth_staff_button()
+	_update_holy_staff_button()
 
 	# Update healer section
 	_update_healer_section()
@@ -1187,6 +1217,226 @@ func _swap_weapon_to_necro_staff():
 	necro_staff_purchased = true
 
 	var new_staff = NECRO_STAFF_SCENE.instantiate()
+	staff_holder.add_child(new_staff)
+	new_staff.position = Vector2.ZERO
+
+	player_reference.staff_inventory.append(new_staff)
+	new_staff.visible = false
+	player_reference.switch_to_staff(player_reference.staff_inventory.size() - 1)
+
+# ============================================
+# NEW WEAPONS - DAGGER
+# ============================================
+func _on_dagger_shop_pressed():
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	if game_manager.get_gold() >= DAGGER_PRICE:
+		if game_manager.spend_gold(DAGGER_PRICE):
+			_swap_weapon_to_dagger()
+			_update_dagger_shop_button()
+
+func _update_dagger_shop_button():
+	if not dagger_shop_button:
+		return
+
+	if dagger_purchased:
+		dagger_shop_button.visible = false
+		return
+
+	dagger_shop_button.visible = true
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	var current_gold = game_manager.get_gold()
+	if current_gold >= DAGGER_PRICE:
+		dagger_shop_button.disabled = false
+		dagger_shop_button.text = "Dagger (%d Gold)" % DAGGER_PRICE
+	else:
+		dagger_shop_button.disabled = true
+		dagger_shop_button.text = "Dagger - Need %d" % DAGGER_PRICE
+
+func _swap_weapon_to_dagger():
+	if not player_reference:
+		return
+
+	var weapon_holder = player_reference.get_node_or_null("WeaponPivot/WeaponHolder")
+	if not weapon_holder:
+		push_warning("UpgradeMenu: WeaponHolder not found on player")
+		return
+
+	dagger_purchased = true
+
+	var new_weapon = DAGGER_SCENE.instantiate()
+	weapon_holder.add_child(new_weapon)
+	new_weapon.position = Vector2.ZERO
+
+	player_reference.weapon_inventory.append(new_weapon)
+
+	if new_weapon.has_signal("attack_finished"):
+		new_weapon.attack_finished.connect(player_reference._on_attack_finished)
+
+	new_weapon.visible = false
+	player_reference.switch_to_weapon(player_reference.weapon_inventory.size() - 1)
+
+# ============================================
+# NEW WEAPONS - FLAIL
+# ============================================
+func _on_flail_shop_pressed():
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	if game_manager.get_gold() >= FLAIL_PRICE:
+		if game_manager.spend_gold(FLAIL_PRICE):
+			_swap_weapon_to_flail()
+			_update_flail_shop_button()
+
+func _update_flail_shop_button():
+	if not flail_shop_button:
+		return
+
+	if flail_purchased:
+		flail_shop_button.visible = false
+		return
+
+	flail_shop_button.visible = true
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	var current_gold = game_manager.get_gold()
+	if current_gold >= FLAIL_PRICE:
+		flail_shop_button.disabled = false
+		flail_shop_button.text = "Flail (%d Gold)" % FLAIL_PRICE
+	else:
+		flail_shop_button.disabled = true
+		flail_shop_button.text = "Flail - Need %d" % FLAIL_PRICE
+
+func _swap_weapon_to_flail():
+	if not player_reference:
+		return
+
+	var weapon_holder = player_reference.get_node_or_null("WeaponPivot/WeaponHolder")
+	if not weapon_holder:
+		push_warning("UpgradeMenu: WeaponHolder not found on player")
+		return
+
+	flail_purchased = true
+
+	var new_weapon = FLAIL_SCENE.instantiate()
+	weapon_holder.add_child(new_weapon)
+	new_weapon.position = Vector2.ZERO
+
+	player_reference.weapon_inventory.append(new_weapon)
+
+	if new_weapon.has_signal("attack_finished"):
+		new_weapon.attack_finished.connect(player_reference._on_attack_finished)
+
+	new_weapon.visible = false
+	player_reference.switch_to_weapon(player_reference.weapon_inventory.size() - 1)
+
+# ============================================
+# NEW STAFFS - EARTH STAFF
+# ============================================
+func _on_earth_staff_pressed():
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	if game_manager.get_gold() >= EARTH_STAFF_PRICE:
+		if game_manager.spend_gold(EARTH_STAFF_PRICE):
+			_swap_weapon_to_earth_staff()
+			_update_earth_staff_button()
+
+func _update_earth_staff_button():
+	if not earth_staff_button:
+		return
+
+	if earth_staff_purchased:
+		earth_staff_button.visible = false
+		return
+
+	earth_staff_button.visible = true
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	var current_gold = game_manager.get_gold()
+	if current_gold >= EARTH_STAFF_PRICE:
+		earth_staff_button.disabled = false
+		earth_staff_button.text = "Earth Staff (%d Gold)" % EARTH_STAFF_PRICE
+	else:
+		earth_staff_button.disabled = true
+		earth_staff_button.text = "Earth Staff - Need %d" % EARTH_STAFF_PRICE
+
+func _swap_weapon_to_earth_staff():
+	if not player_reference:
+		return
+
+	var staff_holder = player_reference.get_node_or_null("StaffPivot/StaffHolder")
+	if not staff_holder:
+		push_warning("UpgradeMenu: StaffHolder not found on player")
+		return
+
+	earth_staff_purchased = true
+
+	var new_staff = EARTH_STAFF_SCENE.instantiate()
+	staff_holder.add_child(new_staff)
+	new_staff.position = Vector2.ZERO
+
+	player_reference.staff_inventory.append(new_staff)
+	new_staff.visible = false
+	player_reference.switch_to_staff(player_reference.staff_inventory.size() - 1)
+
+# ============================================
+# NEW STAFFS - HOLY STAFF
+# ============================================
+func _on_holy_staff_pressed():
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	if game_manager.get_gold() >= HOLY_STAFF_PRICE:
+		if game_manager.spend_gold(HOLY_STAFF_PRICE):
+			_swap_weapon_to_holy_staff()
+			_update_holy_staff_button()
+
+func _update_holy_staff_button():
+	if not holy_staff_button:
+		return
+
+	if holy_staff_purchased:
+		holy_staff_button.visible = false
+		return
+
+	holy_staff_button.visible = true
+	var game_manager = get_tree().get_first_node_in_group("game_manager")
+	if not game_manager:
+		return
+
+	var current_gold = game_manager.get_gold()
+	if current_gold >= HOLY_STAFF_PRICE:
+		holy_staff_button.disabled = false
+		holy_staff_button.text = "Holy Staff (%d Gold)" % HOLY_STAFF_PRICE
+	else:
+		holy_staff_button.disabled = true
+		holy_staff_button.text = "Holy Staff - Need %d" % HOLY_STAFF_PRICE
+
+func _swap_weapon_to_holy_staff():
+	if not player_reference:
+		return
+
+	var staff_holder = player_reference.get_node_or_null("StaffPivot/StaffHolder")
+	if not staff_holder:
+		push_warning("UpgradeMenu: StaffHolder not found on player")
+		return
+
+	holy_staff_purchased = true
+
+	var new_staff = HOLY_STAFF_SCENE.instantiate()
 	staff_holder.add_child(new_staff)
 	new_staff.position = Vector2.ZERO
 

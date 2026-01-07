@@ -64,7 +64,7 @@ func _get_attack_pattern(attack_index: int) -> String:
 		_: return "horizontal"
 
 func _perform_skill() -> bool:
-	# Spin Slash skill
+	# Sword Beam skill - energy wave that pierces enemies
 	var player = get_tree().get_first_node_in_group("player")
 	if not player:
 		return false
@@ -72,8 +72,15 @@ func _perform_skill() -> bool:
 	var skill_instance = SKILL_SCENE.instantiate()
 	get_tree().current_scene.add_child(skill_instance)
 
-	var slash_damage = damage * 2.0 * damage_multiplier
-	skill_instance.initialize(player.global_position, slash_damage, player)
+	# Calculate direction toward mouse
+	var direction = (player.get_global_mouse_position() - player.global_position).normalized()
+	if direction == Vector2.ZERO:
+		direction = Vector2.RIGHT
+
+	var beam_damage = damage * 3.0 * damage_multiplier
+	# Start beam slightly in front of player
+	var start_pos = player.global_position + direction * 40
+	skill_instance.initialize(start_pos, direction, beam_damage, player)
 
 	if skill_instance.has_signal("dealt_damage"):
 		var sword_ref = weakref(self)
@@ -83,7 +90,32 @@ func _perform_skill() -> bool:
 				sword.dealt_damage.emit(target, dmg)
 		)
 
+	# Visual feedback - sword flash
+	_create_beam_launch_effect(direction)
+
 	return true
+
+func _create_beam_launch_effect(direction: Vector2):
+	if not player_reference:
+		return
+
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Flash at sword
+	var flash = ColorRect.new()
+	flash.size = Vector2(60, 60)
+	flash.color = Color(0.8, 0.9, 1.0, 0.8)
+	flash.pivot_offset = Vector2(30, 30)
+	scene.add_child(flash)
+	flash.global_position = player_reference.global_position + direction * 30 - Vector2(30, 30)
+
+	var tween = TweenHelper.new_tween()
+	tween.set_parallel(true)
+	tween.tween_property(flash, "scale", Vector2(1.5, 1.5), 0.1)
+	tween.tween_property(flash, "modulate:a", 0.0, 0.1)
+	tween.tween_callback(flash.queue_free)
 
 func _get_hit_color(combo_finisher: bool, dash_attack: bool, crit: bool) -> Color:
 	if crit:

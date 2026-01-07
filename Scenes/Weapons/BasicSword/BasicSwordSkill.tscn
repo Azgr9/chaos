@@ -2,65 +2,49 @@
 
 [ext_resource type="Script" path="res://Scenes/Weapons/BasicSword/BasicSwordSkill.gd" id="1_skill"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_spin"]
-radius = 120.0
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_beam"]
+size = Vector2(80, 24)
 
 [node name="BasicSwordSkill" type="Node2D"]
 script = ExtResource("1_skill")
-damage = 20.0
-spin_duration = 0.6
+damage = 30.0
+beam_speed = 900.0
+beam_range = 500.0
 knockback_force = 400.0
-knockback_stun = 0.2
+knockback_stun = 0.15
 
 [node name="HitBox" type="Area2D" parent="."]
 collision_layer = 64
-collision_mask = 20
+collision_mask = 28
 monitoring = true
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="HitBox"]
-shape = SubResource("CircleShape2D_spin")
+shape = SubResource("RectangleShape2D_beam")
 
 [node name="Visual" type="Node2D" parent="."]
 
-[node name="Blade1" type="ColorRect" parent="Visual"]
-offset_left = 100.0
-offset_top = -12.0
-offset_right = 140.0
-offset_bottom = 12.0
-pivot_offset = Vector2(-100, 12)
-color = Color(1, 0.843137, 0, 1)
+[node name="BeamCore" type="ColorRect" parent="Visual"]
+offset_left = -40.0
+offset_top = -8.0
+offset_right = 40.0
+offset_bottom = 8.0
+pivot_offset = Vector2(40, 8)
+color = Color(1, 1, 1, 1)
 
-[node name="Blade2" type="ColorRect" parent="Visual"]
-offset_left = 100.0
+[node name="BeamGlow" type="ColorRect" parent="Visual"]
+z_index = -1
+offset_left = -45.0
 offset_top = -12.0
-offset_right = 140.0
+offset_right = 45.0
 offset_bottom = 12.0
-pivot_offset = Vector2(-100, 12)
-rotation = 1.5708
-color = Color(1, 0.843137, 0, 1)
+pivot_offset = Vector2(45, 12)
+color = Color(0.7, 0.85, 1, 0.7)
 
-[node name="Blade3" type="ColorRect" parent="Visual"]
-offset_left = 100.0
-offset_top = -12.0
-offset_right = 140.0
-offset_bottom = 12.0
-pivot_offset = Vector2(-100, 12)
-rotation = 3.14159
-color = Color(1, 0.843137, 0, 1)
-
-[node name="Blade4" type="ColorRect" parent="Visual"]
-offset_left = 100.0
-offset_top = -12.0
-offset_right = 140.0
-offset_bottom = 12.0
-pivot_offset = Vector2(-100, 12)
-rotation = -1.5708
-color = Color(1, 0.843137, 0, 1)
-
-[node name="Center" type="ColorRect" parent="Visual"]
-offset_left = -20.0
-offset_top = -20.0
-offset_right = 20.0
-offset_bottom = 20.0
-color = Color(1, 0.843137, 0, 0.5)
+[node name="BeamTip" type="ColorRect" parent="Visual"]
+offset_left = 35.0
+offset_top = -10.0
+offset_right = 55.0
+offset_bottom = 10.0
+pivot_offset = Vector2(0, 10)
+color = Color(0.9, 0.95, 1, 0.9)

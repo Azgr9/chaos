@@ -27,7 +27,8 @@
       "Bash(dir \"C:\\Users\\alizg\\OneDrive\\Desktop\\chaos\" /s /b /ad)",
       "Bash(dir /s C:UsersalizgOneDriveDesktopchaos)",
       "Bash(powershell -Command \"Get-ChildItem -Path . -Recurse -File | Select-Object -Property FullName | head -200\")",
-      "Bash(powershell -Command \"Get-ChildItem -Path . -Recurse | Where-Object {$_PSIsContainer} | Select-Object -Property FullName\")"
+      "Bash(powershell -Command \"Get-ChildItem -Path . -Recurse | Where-Object {$_PSIsContainer} | Select-Object -Property FullName\")",
+      "Bash(git -C \"C:/Users/alizg/OneDrive/Desktop/chaos\" status)"
     ],
     "deny": [],
     "ask": []
