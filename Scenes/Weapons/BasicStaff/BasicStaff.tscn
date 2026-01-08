@@ -1,22 +1,22 @@
-[gd_scene load_steps=3 format=3 uid="uid://dn16fj6ro42m1"]
+[gd_scene load_steps=4 format=3 uid="uid://dn16fj6ro42m1"]
 
 [ext_resource type="Script" uid="uid://cq73vimtkgj0y" path="res://Scripts/Weapons/BasicStaff.gd" id="1_33077"]
 [ext_resource type="PackedScene" uid="uid://dej7hxr2yknk" path="res://Scenes/Spells/BasicProjectile.tscn" id="2_oaq23"]
+[ext_resource type="Texture2D" uid="uid://ds13aixny6nwn" path="res://temp/basicstaff.png" id="3_staff"]
 
 [node name="BasicStaff" type="Node2D"]
 z_index = -1
 script = ExtResource("1_33077")
 projectile_scene = ExtResource("2_oaq23")
 
-[node name="Sprite" type="ColorRect" parent="."]
-offset_left = -8.0
-offset_right = 56.0
-offset_bottom = 16.0
-rotation = -1.5707964
-color = Color(0.54509807, 0.27058825, 0.07450981, 1)
+[node name="Sprite" type="Sprite2D" parent="."]
+texture_filter = 1
+position = Vector2(0, 10)
+scale = Vector2(0.35, 0.35)
+texture = ExtResource("3_staff")
 
 [node name="ProjectileSpawn" type="Marker2D" parent="."]
-position = Vector2(0, -64)
+position = Vector2(0, -32)
 
 [node name="AttackCooldown" type="Timer" parent="."]
 wait_time = 0.3

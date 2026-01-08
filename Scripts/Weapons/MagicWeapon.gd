@@ -42,6 +42,16 @@ const DEFAULT_BEAM_RANGE: float = 800.0
 ## Enable hit-stop on skill impact
 @export var enable_skill_hit_stop: bool = true
 
+@export_group("Walk Animation")
+## Enable weapon bob/sway while walking
+@export var enable_walk_animation: bool = true
+## How much the weapon bobs up/down (pixels)
+@export var walk_bob_amount: float = 4.0
+## How much the weapon sways (degrees)
+@export var walk_sway_amount: float = 6.0
+## Walk animation speed multiplier (higher = faster bob)
+@export var walk_anim_speed: float = 1.0
+
 @export_group("Trail Settings")
 ## Enable casting trail effect
 @export var enable_cast_trail: bool = true
@@ -51,7 +61,7 @@ const DEFAULT_BEAM_RANGE: float = 800.0
 # ============================================
 # NODES - Expected in scene tree
 # ============================================
-@onready var sprite: ColorRect = $Sprite
+@onready var sprite: Node2D = $Sprite  # Can be ColorRect or Sprite2D
 @onready var projectile_spawn: Marker2D = $ProjectileSpawn
 @onready var cooldown_timer: Timer = $AttackCooldown
 @onready var muzzle_flash: ColorRect = $MuzzleFlash
@@ -76,6 +86,13 @@ var _is_casting: bool = false
 const TRAIL_MAX_POINTS: int = 16
 const TRAIL_FADE_SPEED: float = 5.0
 var _magic_trail_shader: Shader = preload("res://Shaders/Weapons/MagicTrail.gdshader")
+
+# Walk animation state
+var _walk_anim_time: float = 0.0
+var _last_player_pos: Vector2 = Vector2.ZERO
+var _is_player_moving: bool = false
+var _base_sprite_position: Vector2 = Vector2.ZERO
+var _base_sprite_rotation: float = 0.0
 
 # Cached enemy group for efficiency
 var _cached_enemies: Array = []
@@ -112,6 +129,14 @@ func _ready():
 	if CombatAnimationSystem:
 		CombatAnimationSystem.register_weapon(self)
 
+	# Store base sprite position/rotation for walk animation
+	if sprite:
+		_base_sprite_position = sprite.position
+		_base_sprite_rotation = sprite.rotation
+
+	if player_reference:
+		_last_player_pos = player_reference.global_position
+
 	_weapon_ready()
 
 func _exit_tree():
@@ -122,6 +147,7 @@ func _exit_tree():
 func _process(delta):
 	_update_skill_cooldown(delta)
 	_update_cast_trail()
+	_update_walk_animation(delta)
 	_weapon_process(delta)
 
 # ============================================
@@ -356,11 +382,11 @@ func _play_attack_animation():
 	recoil_tween.tween_property(self, "position:x", 0, 0.1)
 
 	# Staff glow
-	var original_color = sprite.color
-	sprite.color = staff_color.lightened(0.3)
+	var original_modulate = sprite.modulate
+	sprite.modulate = staff_color.lightened(0.3)
 	await get_tree().create_timer(0.15).timeout
 	if is_instance_valid(self) and sprite:
-		sprite.color = original_color
+		sprite.modulate = original_modulate
 
 	# End cast trail after animation
 	_end_cast_trail()
@@ -601,3 +627,59 @@ func _get_trail_pulse_speed() -> float:
 
 func _get_trail_sparkle_amount() -> float:
 	return 0.3
+
+# ============================================
+# WALK ANIMATION SYSTEM
+# ============================================
+func _update_walk_animation(delta: float):
+	# Skip if disabled or using skill
+	if not enable_walk_animation or is_using_skill or not sprite:
+		if _walk_anim_time != 0.0:
+			_walk_anim_time = 0.0
+			_reset_walk_animation()
+		return
+
+	if not player_reference or not is_instance_valid(player_reference):
+		return
+
+	var current_pos = player_reference.global_position
+	var velocity = (current_pos - _last_player_pos) / max(delta, 0.001)
+	_last_player_pos = current_pos
+
+	var speed = velocity.length()
+	_is_player_moving = speed > 5.0
+
+	if not _is_player_moving:
+		# Smoothly return to idle
+		if _walk_anim_time != 0.0:
+			_walk_anim_time = lerpf(_walk_anim_time, 0.0, delta * 6.0)
+			if abs(_walk_anim_time) < 0.01:
+				_walk_anim_time = 0.0
+				_reset_walk_animation()
+			else:
+				_apply_walk_animation()
+		return
+
+	# Update animation time
+	var anim_speed = 5.0 * walk_anim_speed
+	_walk_anim_time += delta * anim_speed
+	_apply_walk_animation()
+
+func _apply_walk_animation():
+	if not sprite:
+		return
+
+	# Simple bob and sway - snap to integers for crisp pixels
+	var bob_offset = int(sin(_walk_anim_time * 2.0) * walk_bob_amount)
+	var sway_rotation = sin(_walk_anim_time) * deg_to_rad(walk_sway_amount)
+
+	# Apply to sprite
+	sprite.position = _base_sprite_position + Vector2(0, bob_offset)
+	sprite.rotation = _base_sprite_rotation + sway_rotation
+
+func _reset_walk_animation():
+	if not sprite:
+		return
+	# Reset to base state
+	sprite.position = _base_sprite_position
+	sprite.rotation = _base_sprite_rotation

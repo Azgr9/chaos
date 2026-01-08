@@ -34,15 +34,27 @@ var base_scale: Vector2 = Vector2.ONE
 var time_alive: float = 0.0
 var current_direction: String = "down"  # down, up, left, right
 
+# Continuous damage tracking
+var targets_in_attack_box: Array = []
+var attack_tick_timer: float = 0.0
+const ATTACK_TICK_INTERVAL: float = 0.5  # Damage every 0.5 seconds
+
+# Frame-based damage
+var pending_damage_targets: Array = []  # Targets waiting for damage on hit frame
+var has_dealt_damage_this_attack: bool = false
+const DAMAGE_FRAME: int = 3  # Frame where damage is dealt (0-indexed, 4th frame)
+
 func _setup_enemy():
 	# Stats loaded from scene file
 	current_health = max_health
 
 	# Connect attack box
 	attack_box.area_entered.connect(_on_attack_box_area_entered)
+	attack_box.area_exited.connect(_on_attack_box_area_exited)
 
 	# Connect animation finished signal for attack animation
 	animated_sprite.animation_finished.connect(_on_animation_finished)
+	animated_sprite.frame_changed.connect(_on_frame_changed)
 
 	# Random scale variation
 	var scale_variation = randf_range(0.9, 1.1)
@@ -59,6 +71,9 @@ func _physics_process(delta):
 	time_alive += delta
 	hop_cooldown -= delta
 
+	# Handle continuous damage to targets in attack box
+	_process_continuous_damage(delta)
+
 	# Handle animation pause during hitstun
 	if is_stunned:
 		animated_sprite.pause()
@@ -72,6 +87,46 @@ func _physics_process(delta):
 		visuals_pivot.scale.x = base_scale.x * (2.0 - idle_bounce)
 
 	super._physics_process(delta)
+
+func _process_continuous_damage(delta):
+	if targets_in_attack_box.is_empty():
+		attack_tick_timer = 0.0
+		return
+
+	attack_tick_timer += delta
+	if attack_tick_timer >= ATTACK_TICK_INTERVAL:
+		attack_tick_timer = 0.0
+		# Start attack animation - damage will be dealt on DAMAGE_FRAME
+		_start_attack(targets_in_attack_box.duplicate())
+
+func _start_attack(targets: Array):
+	# Queue targets for damage and start attack animation
+	pending_damage_targets = targets
+	has_dealt_damage_this_attack = false
+	_play_directional_animation("attack")
+
+func _deal_pending_damage():
+	if has_dealt_damage_this_attack:
+		return
+	has_dealt_damage_this_attack = true
+
+	for target in pending_damage_targets:
+		if is_instance_valid(target):
+			var parent = target.get_parent()
+			if parent and parent.has_method("take_damage"):
+				var damage_applied = parent.take_damage(damage, global_position)
+				if damage_applied:
+					damage_dealt.emit(damage)
+					# Flash effect when hitting
+					animated_sprite.modulate = Color(1.5, 1.5, 0.5)
+					var tween = TweenHelper.new_tween()
+					tween.tween_property(animated_sprite, "modulate", Color(1, 1, 1, 1), 0.1)
+	pending_damage_targets.clear()
+
+func _on_frame_changed():
+	# Deal damage on the hit frame of attack animation
+	if animated_sprite.animation.begins_with("attack_") and animated_sprite.frame == DAMAGE_FRAME:
+		_deal_pending_damage()
 
 func _update_movement(_delta):
 	if knockback_velocity.length() > 0:
@@ -196,13 +251,12 @@ func _on_attack_box_area_entered(area: Area2D):
 
 	var parent = area.get_parent()
 	if parent and parent.has_method("take_damage"):
-		# Play attack animation in current direction
-		_play_directional_animation("attack")
+		# Add to tracking list for continuous damage
+		if not targets_in_attack_box.has(area):
+			targets_in_attack_box.append(area)
 
-		var damage_applied = parent.take_damage(damage, global_position)
-		if damage_applied:
-			damage_dealt.emit(damage)
-			# Flash effect when hitting
-			animated_sprite.modulate = Color(1.5, 1.5, 0.5)  # Yellow tint
-			var tween = TweenHelper.new_tween()
-			tween.tween_property(animated_sprite, "modulate", Color(1, 1, 1, 1), 0.1)
+		# Start attack animation - damage will be dealt on hit frame
+		_start_attack([area])
+
+func _on_attack_box_area_exited(area: Area2D):
+	targets_in_attack_box.erase(area)

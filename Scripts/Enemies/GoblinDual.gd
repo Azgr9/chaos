@@ -40,6 +40,7 @@ var can_attack: bool = true
 var attack_timer: float = 0.0
 var player_in_attack_range: bool = false
 var direction_locked: bool = false  # Lock direction during/after attack to prevent jitter
+var post_attack_idle: bool = false  # Prevents idle animation restart after attack
 
 # Dash state
 var can_dash: bool = true
@@ -129,12 +130,12 @@ func _update_movement(_delta):
 	if distance_to_target <= ATTACK_RANGE:
 		# In attack range - stop moving
 		velocity = Vector2.ZERO
-		if not is_attacking_anim:
+		if not is_attacking_anim and not post_attack_idle:
 			_play_directional_animation("idle")
 	else:
 		# Not in range - move toward target
 		velocity = direction_to_target * move_speed
-		if not is_attacking_anim:
+		if not is_attacking_anim and not post_attack_idle:
 			_play_directional_animation("move")
 
 func _update_direction(direction: Vector2):
@@ -178,16 +179,18 @@ func _on_animation_finished():
 	# When attack animation finishes, return to idle
 	if animated_sprite.animation.begins_with("attack_"):
 		is_attacking_anim = false
-		# Lock direction briefly after attack to prevent jitter from diagonal boundary flipping
+		# Lock direction and mark as post-attack to prevent jitter
 		direction_locked = true
+		post_attack_idle = true
 		_play_directional_animation("idle")
-		# Unlock direction after a short delay
-		_unlock_direction_delayed()
+		# Delay unlocking to prevent jitter
+		_unlock_after_attack()
 
-func _unlock_direction_delayed():
-	await get_tree().create_timer(0.1).timeout
+func _unlock_after_attack():
+	await get_tree().create_timer(0.15).timeout
 	if is_instance_valid(self):
 		direction_locked = false
+		post_attack_idle = false
 
 func _on_damage_taken():
 	# Call base class flash
