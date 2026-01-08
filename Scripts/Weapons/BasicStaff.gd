@@ -39,12 +39,14 @@ func _perform_skill() -> bool:
 	if not player_reference:
 		return false
 
+	var skill_origin = get_skill_spawn_position()
 	var mouse_pos = player_reference.get_global_mouse_position()
-	var direction = (mouse_pos - player_reference.global_position).normalized()
+	var direction = (mouse_pos - skill_origin).normalized()
 
-	# Spawn skill scene
+	# Spawn skill scene at skill spawn point
 	var skill = SKILL_SCENE.instantiate()
 	get_tree().current_scene.add_child(skill)
+	skill.global_position = skill_origin
 	skill.initialize(player_reference, direction, player_reference.stats.magic_damage_multiplier, damage_type)
 
 	return true

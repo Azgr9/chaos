@@ -18,6 +18,9 @@ color = Color(0.15, 0.2, 0.15, 1)
 [node name="ProjectileSpawn" type="Marker2D" parent="."]
 position = Vector2(0, -80)
 
+[node name="SkillSpawn" type="Marker2D" parent="."]
+position = Vector2(0, -80)
+
 [node name="AttackCooldown" type="Timer" parent="."]
 wait_time = 0.4
 one_shot = true

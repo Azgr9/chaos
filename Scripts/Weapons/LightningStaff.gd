@@ -261,8 +261,9 @@ func _draw_lightning_chain(targets: Array):
 	if targets.is_empty() or not player_reference:
 		return
 
-	# Lightning from player to first target
-	_create_lightning_bolt(player_reference.global_position, targets[0].global_position)
+	# Lightning from skill spawn point to first target
+	var skill_origin = get_skill_spawn_position()
+	_create_lightning_bolt(skill_origin, targets[0].global_position)
 
 	# Lightning between subsequent targets
 	for i in range(targets.size() - 1):

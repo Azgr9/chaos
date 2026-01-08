@@ -63,6 +63,7 @@ const DEFAULT_BEAM_RANGE: float = 800.0
 # ============================================
 @onready var sprite: Node2D = $Sprite  # Can be ColorRect or Sprite2D
 @onready var projectile_spawn: Marker2D = $ProjectileSpawn
+@onready var skill_spawn: Marker2D = $SkillSpawn if has_node("SkillSpawn") else null  # Optional skill effect spawn point
 @onready var cooldown_timer: Timer = $AttackCooldown
 @onready var muzzle_flash: ColorRect = $MuzzleFlash
 
@@ -164,13 +165,14 @@ func _weapon_process(_delta):
 
 func _perform_skill() -> bool:
 	# Override for weapon-specific skill
-	# Default: fire beam
+	# Default: fire beam from skill spawn point
 	if not player_reference:
 		return false
 
+	var skill_origin = get_skill_spawn_position()
 	var mouse_pos = player_reference.get_global_mouse_position()
-	var direction = (mouse_pos - player_reference.global_position).normalized()
-	_fire_beam(player_reference.global_position, direction, player_reference.stats.magic_damage_multiplier)
+	var direction = (mouse_pos - skill_origin).normalized()
+	_fire_beam(skill_origin, direction, player_reference.stats.magic_damage_multiplier)
 	return true
 
 func _get_projectile_color() -> Color:
@@ -181,6 +183,15 @@ func _get_beam_color() -> Color:
 
 func _get_beam_glow_color() -> Color:
 	return Color(0.4, 0.8, 1.0, 0.6)
+
+## Returns the global position for skill effects
+## Uses SkillSpawn marker if available, otherwise falls back to ProjectileSpawn
+func get_skill_spawn_position() -> Vector2:
+	if skill_spawn and is_instance_valid(skill_spawn):
+		return skill_spawn.global_position
+	elif projectile_spawn and is_instance_valid(projectile_spawn):
+		return projectile_spawn.global_position
+	return global_position
 
 # ============================================
 # ENEMY CACHING - Performance optimization
@@ -372,25 +383,91 @@ func _play_attack_animation():
 	# Start cast trail
 	_create_cast_trail()
 
-	# Muzzle flash
-	muzzle_flash.modulate.a = 1.0
-	var flash_tween = TweenHelper.new_tween()
-	flash_tween.tween_property(muzzle_flash, "modulate:a", 0.0, 0.1)
+	# Get attack direction for directional effects
+	var attack_dir = Vector2.RIGHT
+	if player_reference and is_instance_valid(player_reference):
+		var mouse_pos = player_reference.get_global_mouse_position()
+		attack_dir = (mouse_pos - player_reference.global_position).normalized()
 
-	# Staff recoil
+	# ========== ORB GLOW BURST ==========
+	# Create glowing orb effect at staff tip
+	_create_orb_burst(attack_dir)
+
+	# ========== STAFF TILT TOWARDS TARGET ==========
+	# Tilt staff towards attack direction (local rotation)
+	var tilt_angle = attack_dir.y * deg_to_rad(15.0)  # Tilt up/down based on aim
+	var tilt_tween = TweenHelper.new_tween()
+	tilt_tween.tween_property(sprite, "rotation", tilt_angle, 0.05).set_ease(Tween.EASE_OUT)
+	tilt_tween.tween_property(sprite, "rotation", 0.0, 0.15).set_ease(Tween.EASE_IN_OUT)
+
+	# ========== RECOIL ==========
+	# Simple recoil backwards then return
 	var recoil_tween = TweenHelper.new_tween()
 	recoil_tween.tween_property(self, "position:x", -12, 0.05)
 	recoil_tween.tween_property(self, "position:x", 0, 0.1)
 
-	# Staff glow
+	# ========== STAFF GLOW ==========
+	# Bright flash then fade
 	var original_modulate = sprite.modulate
-	sprite.modulate = staff_color.lightened(0.3)
-	await get_tree().create_timer(0.15).timeout
-	if is_instance_valid(self) and sprite:
-		sprite.modulate = original_modulate
+	var glow_color = _get_projectile_color().lightened(0.5)
+	sprite.modulate = glow_color
+
+	var glow_tween = TweenHelper.new_tween()
+	glow_tween.tween_property(sprite, "modulate", original_modulate, 0.2).set_ease(Tween.EASE_OUT)
+
+	# ========== MUZZLE FLASH ==========
+	muzzle_flash.modulate = _get_projectile_color()
+	muzzle_flash.modulate.a = 1.0
+	var flash_tween = TweenHelper.new_tween()
+	flash_tween.tween_property(muzzle_flash, "modulate:a", 0.0, 0.15)
+
+	await get_tree().create_timer(0.2).timeout
+	if not is_instance_valid(self):
+		return
 
 	# End cast trail after animation
 	_end_cast_trail()
+
+func _create_orb_burst(direction: Vector2):
+	# Create expanding ring at projectile spawn point
+	var spawn_pos = projectile_spawn.global_position
+	var color = _get_projectile_color()
+
+	# Ring effect
+	var ring = ColorRect.new()
+	ring.color = color
+	ring.color.a = 0.8
+	ring.size = Vector2(8, 8)
+	ring.pivot_offset = Vector2(4, 4)
+	ring.global_position = spawn_pos - Vector2(4, 4)
+	get_tree().root.add_child(ring)
+
+	var ring_tween = TweenHelper.new_tween()
+	ring_tween.set_parallel(true)
+	ring_tween.tween_property(ring, "scale", Vector2(4, 4), 0.15).set_ease(Tween.EASE_OUT)
+	ring_tween.tween_property(ring, "modulate:a", 0.0, 0.15)
+	ring_tween.chain().tween_callback(ring.queue_free)
+
+	# Spawn small particles flying outward
+	for i in range(4):
+		var particle = ColorRect.new()
+		particle.color = color.lightened(0.3)
+		particle.size = Vector2(3, 3)
+		particle.pivot_offset = Vector2(1.5, 1.5)
+		particle.global_position = spawn_pos - Vector2(1.5, 1.5)
+		get_tree().root.add_child(particle)
+
+		# Random direction biased towards attack direction
+		var angle = direction.angle() + randf_range(-0.5, 0.5)
+		var particle_dir = Vector2.from_angle(angle)
+		var end_pos = spawn_pos + particle_dir * randf_range(20, 40)
+
+		var p_tween = TweenHelper.new_tween()
+		p_tween.set_parallel(true)
+		p_tween.tween_property(particle, "global_position", end_pos, 0.2).set_ease(Tween.EASE_OUT)
+		p_tween.tween_property(particle, "modulate:a", 0.0, 0.2)
+		p_tween.tween_property(particle, "scale", Vector2(0.3, 0.3), 0.2)
+		p_tween.chain().tween_callback(particle.queue_free)
 
 func _on_cooldown_finished():
 	can_attack = true

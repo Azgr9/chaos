@@ -25,8 +25,8 @@ func initialize(player: Node2D, direction: Vector2, magic_multiplier: float = 1.
 	damage_multiplier = magic_multiplier
 	damage_type = dmg_type
 
-	# Position at player
-	global_position = player.global_position
+	# Position is already set by the spawner (skill_spawn point)
+	# Do NOT override global_position here
 
 	# Make sure skill is visible above everything
 	z_index = 100

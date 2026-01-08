@@ -18,6 +18,9 @@ texture = ExtResource("3_staff")
 [node name="ProjectileSpawn" type="Marker2D" parent="."]
 position = Vector2(0, -32)
 
+[node name="SkillSpawn" type="Marker2D" parent="."]
+position = Vector2(0, -32)
+
 [node name="AttackCooldown" type="Timer" parent="."]
 wait_time = 0.3
 one_shot = true
