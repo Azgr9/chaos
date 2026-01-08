@@ -93,9 +93,9 @@ func _execute_arc_slash():
 
 	# Fade out the trail
 	if slash_trail and is_instance_valid(slash_trail):
-		var fade_tween = TweenHelper.new_tween()
-		fade_tween.tween_property(slash_trail, "modulate:a", 0.0, 0.2)
-		fade_tween.tween_callback(slash_trail.queue_free)
+		var trail_fade_tween = TweenHelper.new_tween()
+		trail_fade_tween.tween_property(slash_trail, "modulate:a", 0.0, 0.2)
+		trail_fade_tween.tween_callback(slash_trail.queue_free)
 
 	# Fade out and cleanup
 	var fade_tween = TweenHelper.new_tween()

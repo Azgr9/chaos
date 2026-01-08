@@ -275,9 +275,6 @@ func _execute_dagger_storm():
 		_end_skill_invulnerability()
 		return
 
-	# Show skill name
-	_show_skill_text("DAGGER STORM!", player.global_position + Vector2(0, -80))
-
 	# Weapon glow
 	if sprite:
 		sprite.color = DAGGER_GLOW_COLOR
@@ -423,28 +420,6 @@ func _create_dagger_hit_effect(pos: Vector2):
 	var c_tween = TweenHelper.new_tween()
 	c_tween.tween_property(center, "modulate:a", 0.0, 0.08)
 	c_tween.tween_callback(center.queue_free)
-
-func _show_skill_text(text: String, pos: Vector2):
-	var scene = get_tree().current_scene
-	if not scene:
-		return
-
-	var label = Label.new()
-	label.text = text
-	label.add_theme_font_size_override("font_size", 28)
-	label.add_theme_color_override("font_color", DAGGER_GLOW_COLOR)
-	label.add_theme_color_override("font_outline_color", DAGGER_SHADOW_COLOR)
-	label.add_theme_constant_override("outline_size", 3)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.position = pos - Vector2(120, 0)
-	label.custom_minimum_size = Vector2(240, 50)
-	scene.add_child(label)
-
-	var tween = TweenHelper.new_tween()
-	tween.tween_property(label, "position:y", pos.y - 120, 0.6)
-	tween.parallel().tween_property(label, "scale", Vector2(1.2, 1.2), 0.15)
-	tween.tween_property(label, "modulate:a", 0.0, 0.4)
-	tween.tween_callback(label.queue_free)
 
 # Dagger allows movement while attacking - override player movement block
 func is_blocking_movement() -> bool:

@@ -277,9 +277,6 @@ func _execute_mjolnir_strike():
 	var player = player_reference
 	var target_pos = player.get_global_mouse_position()
 
-	# Show skill text
-	_create_mjolnir_text(player.global_position)
-
 	# Hide weapon - it's being thrown!
 	visible = false
 
@@ -320,23 +317,6 @@ func _execute_mjolnir_strike():
 
 	is_earthquaking = false
 	_end_skill_invulnerability()
-
-func _create_mjolnir_text(pos: Vector2):
-	var scene = get_tree().current_scene
-	if not scene:
-		return
-
-	var label = Label.new()
-	label.text = "MJOLNIR STRIKE!"
-	label.add_theme_font_size_override("font_size", 32)
-	label.modulate = Color(0.5, 0.7, 1.0)
-	scene.add_child(label)
-	label.global_position = pos + Vector2(-120, -80)
-
-	var tween = TweenHelper.new_tween()
-	tween.tween_property(label, "global_position:y", pos.y - 140, 0.6)
-	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.6)
-	tween.tween_callback(label.queue_free)
 
 func _create_flying_hammer(start_pos: Vector2, target_pos: Vector2):
 	var scene = get_tree().current_scene

@@ -82,9 +82,6 @@ func _execute_meteor_strike():
 
 	var target_pos = player.get_global_mouse_position()
 
-	# Show skill text
-	_create_meteor_text(player.global_position)
-
 	# Warning circle on ground
 	_create_meteor_warning(target_pos)
 
@@ -109,23 +106,6 @@ func _execute_meteor_strike():
 	# Screen shake
 	if DamageNumberManager:
 		DamageNumberManager.shake(1.0)
-
-func _create_meteor_text(pos: Vector2):
-	var scene = get_tree().current_scene
-	if not scene:
-		return
-
-	var label = Label.new()
-	label.text = "METEOR STRIKE!"
-	label.add_theme_font_size_override("font_size", 32)
-	label.modulate = EARTH_GLOW
-	scene.add_child(label)
-	label.global_position = pos + Vector2(-110, -80)
-
-	var tween = TweenHelper.new_tween()
-	tween.tween_property(label, "global_position:y", pos.y - 140, 0.6)
-	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.6)
-	tween.tween_callback(label.queue_free)
 
 func _create_meteor_warning(pos: Vector2):
 	var scene = get_tree().current_scene

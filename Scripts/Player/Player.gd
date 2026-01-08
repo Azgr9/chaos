@@ -48,8 +48,15 @@ var is_dashing: bool = false
 var dash_direction: Vector2 = Vector2.ZERO
 @export var dash_speed: float = 1600.0
 @export var dash_duration: float = 0.2
-@export var dash_cooldown: float = 0.5
+@export var dash_cooldown: float = 2.0
 var dash_cooldown_timer: float = 0.0
+
+# Dash cooldown UI
+var dash_bar_bg: ColorRect = null
+var dash_bar_fill: ColorRect = null
+const DASH_BAR_WIDTH: float = 40.0
+const DASH_BAR_HEIGHT: float = 4.0
+const DASH_BAR_OFFSET_Y: float = 20.0
 
 # Invulnerability (for katana dash and i-frames)
 var is_invulnerable: bool = false
@@ -128,6 +135,9 @@ func _ready():
 	stats.reset_health()
 	health_changed.emit(stats.current_health, stats.max_health)
 
+	# Create dash cooldown bar
+	_create_dash_bar()
+
 	# Ensure pixel-perfect positioning
 	position = position.round()
 
@@ -143,6 +153,7 @@ func _physics_process(delta):
 	# Update dash cooldown
 	if dash_cooldown_timer > 0:
 		dash_cooldown_timer -= delta
+		_update_dash_bar()
 
 	# Update i-frames timer
 	if iframes_timer > 0:
@@ -907,3 +918,42 @@ func _on_relic_stats_changed():
 		stats.current_health = min(stats.current_health + health_gained, stats.max_health)
 
 	health_changed.emit(stats.current_health, stats.max_health)
+
+# ============================================
+# DASH COOLDOWN BAR
+# ============================================
+
+func _create_dash_bar():
+	# Background (dark)
+	dash_bar_bg = ColorRect.new()
+	dash_bar_bg.size = Vector2(DASH_BAR_WIDTH, DASH_BAR_HEIGHT)
+	dash_bar_bg.color = Color(0.15, 0.15, 0.15, 0.8)
+	dash_bar_bg.position = Vector2(-DASH_BAR_WIDTH / 2, DASH_BAR_OFFSET_Y)
+	add_child(dash_bar_bg)
+
+	# Fill (cyan for dash)
+	dash_bar_fill = ColorRect.new()
+	dash_bar_fill.size = Vector2(DASH_BAR_WIDTH, DASH_BAR_HEIGHT)
+	dash_bar_fill.color = Color(0.2, 0.8, 1.0, 0.9)
+	dash_bar_fill.position = Vector2(-DASH_BAR_WIDTH / 2, DASH_BAR_OFFSET_Y)
+	add_child(dash_bar_fill)
+
+	# Start hidden (full = ready)
+	dash_bar_bg.visible = false
+	dash_bar_fill.visible = false
+
+func _update_dash_bar():
+	if not dash_bar_bg or not dash_bar_fill:
+		return
+
+	if dash_cooldown_timer <= 0:
+		# Cooldown done - hide bar
+		dash_bar_bg.visible = false
+		dash_bar_fill.visible = false
+	else:
+		# Show bar and update fill
+		dash_bar_bg.visible = true
+		dash_bar_fill.visible = true
+
+		var progress = 1.0 - (dash_cooldown_timer / dash_cooldown)
+		dash_bar_fill.size.x = DASH_BAR_WIDTH * progress

@@ -488,9 +488,6 @@ func _execute_valkyrie_throw():
 		_end_skill_invulnerability()
 		return
 
-	# Show skill name
-	_show_skill_text("VALKYRIE THROW!", player.global_position + Vector2(0, -80))
-
 	# Wind-up animation - pull spear back
 	if sprite:
 		sprite.color = SPEAR_ACCENT_COLOR
@@ -570,28 +567,6 @@ func _execute_valkyrie_throw():
 		_setup_idle_state()
 
 		_end_skill_invulnerability()
-
-func _show_skill_text(text: String, pos: Vector2):
-	var scene = get_tree().current_scene
-	if not scene:
-		return
-
-	var label = Label.new()
-	label.text = text
-	label.add_theme_font_size_override("font_size", 32)
-	label.add_theme_color_override("font_color", SPEAR_ACCENT_COLOR)
-	label.add_theme_color_override("font_outline_color", Color(0.3, 0.2, 0.1))
-	label.add_theme_constant_override("outline_size", 4)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.position = pos - Vector2(150, 0)
-	label.custom_minimum_size = Vector2(300, 50)
-	scene.add_child(label)
-
-	var tween = TweenHelper.new_tween()
-	tween.tween_property(label, "position:y", pos.y - 120, 0.7)
-	tween.parallel().tween_property(label, "scale", Vector2(1.3, 1.3), 0.2)
-	tween.tween_property(label, "modulate:a", 0.0, 0.4)
-	tween.tween_callback(label.queue_free)
 
 func _create_throw_buildup(pos: Vector2, direction: Vector2, scene: Node):
 	# Energy particles gathering at spear tip (faster)

@@ -135,9 +135,6 @@ func _execute_divine_storm():
 	if not scene:
 		return
 
-	# Show skill name
-	_show_skill_text("DIVINE STORM!", target_pos + Vector2(0, -120))
-
 	# Create massive holy circle on ground
 	_create_storm_circle(target_pos, scene)
 
@@ -181,28 +178,6 @@ func _execute_divine_storm():
 	# Final divine explosion
 	if self_ref.get_ref() and player_ref.get_ref():
 		_create_final_divine_explosion(target_pos, scene, player_ref)
-
-func _show_skill_text(text: String, pos: Vector2):
-	var scene = get_tree().current_scene
-	if not scene:
-		return
-
-	var label = Label.new()
-	label.text = text
-	label.add_theme_font_size_override("font_size", 36)
-	label.add_theme_color_override("font_color", DIVINE_COLOR)
-	label.add_theme_color_override("font_outline_color", Color.WHITE)
-	label.add_theme_constant_override("outline_size", 4)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.position = pos - Vector2(150, 0)
-	label.custom_minimum_size = Vector2(300, 50)
-	scene.add_child(label)
-
-	var tween = TweenHelper.new_tween()
-	tween.tween_property(label, "position:y", pos.y - 160, 0.7)
-	tween.parallel().tween_property(label, "scale", Vector2(1.4, 1.4), 0.2)
-	tween.tween_property(label, "modulate:a", 0.0, 0.4)
-	tween.tween_callback(label.queue_free)
 
 func _create_storm_circle(pos: Vector2, scene: Node):
 	# Large holy circle on ground

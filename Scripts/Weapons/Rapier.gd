@@ -252,9 +252,6 @@ func _execute_riposte():
 		_end_skill_invulnerability()
 		return
 
-	# Show skill name
-	_show_skill_text("RIPOSTE!", player.global_position + Vector2(0, -80))
-
 	# Visual - transparency during dash
 	player.modulate = Color(1, 1, 1, 0.5)
 
@@ -465,28 +462,6 @@ func _create_hit_flash(pos: Vector2):
 	var c_tween = TweenHelper.new_tween()
 	c_tween.tween_property(center, "modulate:a", 0.0, 0.06)
 	c_tween.tween_callback(center.queue_free)
-
-func _show_skill_text(text: String, pos: Vector2):
-	var scene = get_tree().current_scene
-	if not scene:
-		return
-
-	var label = Label.new()
-	label.text = text
-	label.add_theme_font_size_override("font_size", 28)
-	label.add_theme_color_override("font_color", RAPIER_THRUST_COLOR)
-	label.add_theme_color_override("font_outline_color", Color.WHITE)
-	label.add_theme_constant_override("outline_size", 3)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.position = pos - Vector2(100, 0)
-	label.custom_minimum_size = Vector2(200, 50)
-	scene.add_child(label)
-
-	var tween = TweenHelper.new_tween()
-	tween.tween_property(label, "position:y", pos.y - 100, 0.5)
-	tween.parallel().tween_property(label, "scale", Vector2(1.2, 1.2), 0.15)
-	tween.tween_property(label, "modulate:a", 0.0, 0.3)
-	tween.tween_callback(label.queue_free)
 
 func _on_combo_finisher_hit(_target: Node2D):
 	DamageNumberManager.shake(0.3)
