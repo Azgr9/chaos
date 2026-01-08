@@ -683,3 +683,4 @@ func _reset_walk_animation():
 	# Reset to base state
 	sprite.position = _base_sprite_position
 	sprite.rotation = _base_sprite_rotation
+
