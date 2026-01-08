@@ -17,7 +17,7 @@ const DEFAULT_BEAM_RANGE: float = 800.0
 @export_group("Weapon Stats")
 @export var projectile_scene: PackedScene
 @export var attack_cooldown: float = 0.3
-@export var projectile_spread: float = 5.0  # Degrees of random spread
+@export var projectile_spread: float = 0.0  # Degrees of random spread (0 = no spread)
 @export var multi_shot: int = 1
 @export var damage: float = 10.0
 @export var damage_type: DamageTypes.Type = DamageTypes.Type.PHYSICAL
@@ -148,6 +148,7 @@ func _process(delta):
 	_update_skill_cooldown(delta)
 	_update_cast_trail()
 	_update_walk_animation(delta)
+	_correct_projectile_spawn()
 	_weapon_process(delta)
 
 # ============================================
@@ -683,4 +684,13 @@ func _reset_walk_animation():
 	# Reset to base state
 	sprite.position = _base_sprite_position
 	sprite.rotation = _base_sprite_rotation
+
+# ============================================
+# PROJECTILE SPAWN CORRECTION
+# ============================================
+func _correct_projectile_spawn():
+	# No correction needed - staff pivot only uses scale.x flip, no rotation
+	# This keeps projectile_spawn.global_position calculations correct
+	pass
+
 

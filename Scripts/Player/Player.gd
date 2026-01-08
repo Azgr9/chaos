@@ -268,10 +268,8 @@ func update_facing_direction():
 	# During attack, face mouse direction
 	if is_attacking:
 		facing_direction = to_mouse
-		# Only rotate staff pivot during magic attacks - melee weapon handles its own animation
-		if is_magic_attacking:
-			var target_angle = facing_direction.angle()
-			staff_pivot.rotation = clamp(target_angle, -PI/4, PI/4)
+		# Staff pivot rotation is NOT modified - only scale.x flip is used
+		# This keeps projectile spawn calculations correct
 		# Don't touch weapon_pivot during melee attack - animation handles direction
 	# While moving, face movement direction
 	elif is_moving:
@@ -306,14 +304,14 @@ func update_facing_direction():
 		# Return weapon to side position when not attacking (adjusted for new character)
 		weapon_holder.position = Vector2(50, 10)
 
-	# Staff pivot always follows facing direction
+	# Staff pivot always follows facing direction (only scale flip, never rotation)
 	if facing_direction.x < 0:
 		staff_pivot.scale.x = -1
 	else:
 		staff_pivot.scale.x = 1
 
-	if not is_magic_attacking:
-		staff_pivot.rotation = 0
+	# Always keep rotation at 0 - only use scale.x for flipping
+	staff_pivot.rotation = 0
 
 func update_animation():
 	# Keep visuals_pivot scale fixed for crisp pixels
@@ -420,7 +418,8 @@ func perform_magic_attack():
 
 		# Face the attack direction
 		facing_direction = attack_direction
-		staff_pivot.rotation = attack_direction.angle()
+		# Staff pivot uses only scale.x flip, no rotation
+		# This keeps projectile spawn position correct
 
 		# Perform the STAFF attack
 		current_staff.attack(attack_direction, stats.magic_damage_multiplier)

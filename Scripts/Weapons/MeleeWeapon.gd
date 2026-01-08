@@ -136,6 +136,10 @@ var _walk_anim_time: float = 0.0
 var _last_player_pos: Vector2 = Vector2.ZERO
 var _is_player_moving: bool = false
 
+# Sprite flip correction state
+var _last_flip_state: bool = false
+var _flip_initialized: bool = false
+
 # ============================================
 # SIGNALS
 # ============================================
@@ -193,6 +197,7 @@ func _process(delta):
 	_scan_cone_hitbox()  # Active cone scanning each frame when attacking
 	_update_swing_trail()  # Update weapon trail
 	_update_walk_animation(delta)  # Weapon bob/sway while walking
+	_correct_sprite_flip()  # Fix sprite orientation when pivot is flipped
 	_weapon_process(delta)
 
 # ============================================
@@ -1037,3 +1042,33 @@ func _update_swing_trail():
 	_active_trail.clear_points()
 	for point in _trail_points:
 		_active_trail.add_point(point)
+
+# ============================================
+# SPRITE FLIP CORRECTION
+# ============================================
+func _correct_sprite_flip():
+	if not pivot:
+		return
+
+	# Find WeaponPivot - hierarchy is: Player -> WeaponPivot -> WeaponHolder -> BasicSword
+	var weapon_pivot: Node2D = null
+	var current = get_parent()
+	while current:
+		if current.name == "WeaponPivot":
+			weapon_pivot = current
+			break
+		current = current.get_parent()
+
+	if not weapon_pivot:
+		return
+
+	var is_flipped = weapon_pivot.scale.x < 0
+
+	# Only update when flip state changes
+	if is_flipped != _last_flip_state:
+		_last_flip_state = is_flipped
+
+		# Find all Sprite2D children in pivot and flip them
+		for child in pivot.get_children():
+			if child is Sprite2D:
+				child.flip_h = is_flipped
