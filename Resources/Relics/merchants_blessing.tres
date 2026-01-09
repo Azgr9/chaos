@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = "thiefs_anklet"
-relic_name = "Thief's Anklet"
-emoji = "👟"
-rarity = 0
-flavor_text = "Previous owner didn't run fast enough."
-effect_description = "+12% Movement Speed"
+id = "merchants_blessing"
+relic_name = "Merchant's Blessing"
+emoji = "🏪"
+rarity = 3
+flavor_text = "A favor owed."
+effect_description = "All shop prices reduced by 1 ticket"
 unlock_cost = 0
-speed_percent = 0.12
+special_effect = "shop_discount"

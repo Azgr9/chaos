@@ -26,12 +26,32 @@ var save_data: Dictionary = {
 		"strength": 0,
 		"agility": 0,
 		"reflexes": 0,
-		"fortune": 0
+		"fortune": 0,
+		# New scaling upgrades
+		"arsenal_mastery": 0,   # +2% damage per weapon owned
+		"relic_attunement": 0,  # +3% stats per relic owned
+		"ticket_pouch": 0,      # +15% bonus ticket chance per level
+		"bargain_hunter": 0     # -1 ticket cost per level (applied in shop)
 	},
-	"unlocked_relics": [],
+	"unlocked_relics": [],  # Legacy - kept for compatibility
+	# Relic Bestiary - discovered relics during runs
+	"relic_bestiary": {},   # {relic_id: {discovered: true, times_collected: int}}
 	# Bestiary - total kills per enemy type (permanent)
-	"bestiary": {}
+	"bestiary": {},
+	# Settings
+	"settings": {
+		"master_volume": 1.0,
+		"music_volume": 0.8,
+		"sfx_volume": 1.0,
+		"fullscreen": false,
+		"vsync": true,
+		"screen_shake": true,
+		"damage_numbers": true
+	}
 }
+
+# Settings changed signal
+signal settings_changed()
 
 # Enemy display names for bestiary UI
 const ENEMY_DISPLAY_NAMES = {
@@ -45,7 +65,7 @@ const ENEMY_DISPLAY_NAMES = {
 }
 
 # Training cost per level (index = level, value = cost)
-# Balanced for ~210-250 gold per full 5-wave run:
+# Balanced for ~420-500 gold per full 10-wave run:
 # Level 1: ~half of early wave earnings (accessible after 1 run)
 # Level 5: requires saving from multiple runs
 const TRAINING_COSTS = [15, 35, 75, 150, 300]
@@ -57,8 +77,16 @@ const TRAINING_BONUSES = {
 	"strength": 0.06,    # +6% damage per level (30% at max)
 	"agility": 0.05,     # +5% speed per level (25% at max)
 	"reflexes": 0.04,    # -4% cooldown per level (20% at max)
-	"fortune": 10        # +10 starting gold per level (50 at max, ~20% head start)
+	"fortune": 10,       # +10 starting gold per level (50 at max)
+	# Scaling upgrades (applied via RunManager)
+	"arsenal_mastery": 0.02,   # +2% damage per weapon owned, per level
+	"relic_attunement": 0.03,  # +3% all stats per relic owned, per level
+	"ticket_pouch": 0.15,      # +15% bonus ticket chance per level
+	"bargain_hunter": 1        # -1 ticket cost per level (min 1)
 }
+
+# Fortune also gives +5% gold drop bonus per level (25% at max)
+const FORTUNE_GOLD_BONUS_PER_LEVEL: float = 0.05
 
 func _ready():
 	load_game()
@@ -127,6 +155,14 @@ func _merge_save_data(loaded: Dictionary):
 	if loaded.has("bestiary"):
 		save_data.bestiary = loaded.bestiary
 
+	if loaded.has("relic_bestiary"):
+		save_data.relic_bestiary = loaded.relic_bestiary
+
+	if loaded.has("settings"):
+		for key in loaded.settings:
+			if save_data.settings.has(key):
+				save_data.settings[key] = loaded.settings[key]
+
 func _ensure_starter_items_unlocked():
 	# Ensure free starter items are always unlocked
 	var starter_relics = ["iron_ring", "chipped_fang", "trolls_heart", "thiefs_anklet"]
@@ -193,6 +229,11 @@ func get_training_bonus(stat_name: String) -> float:
 		return TRAINING_BONUSES[stat_name] * level
 	return 0.0
 
+## Returns the gold drop multiplier from fortune training (1.0 = no bonus)
+func get_fortune_gold_multiplier() -> float:
+	var level = get_training_level("fortune")
+	return 1.0 + (FORTUNE_GOLD_BONUS_PER_LEVEL * level)
+
 # ============================================
 # UNLOCKS
 # ============================================
@@ -256,6 +297,66 @@ func get_total_bestiary_kills() -> int:
 	return total
 
 # ============================================
+# RELIC BESTIARY
+# ============================================
+
+## Discover a relic (called when player collects a relic during a run)
+func discover_relic(relic_id: String) -> bool:
+	var is_new = false
+	if not save_data.relic_bestiary.has(relic_id):
+		save_data.relic_bestiary[relic_id] = {
+			"discovered": true,
+			"times_collected": 0
+		}
+		is_new = true
+
+	save_data.relic_bestiary[relic_id].times_collected += 1
+	# Don't save on every discovery, save happens at run end
+	return is_new
+
+## Check if a relic has been discovered
+func is_relic_discovered(relic_id: String) -> bool:
+	return save_data.relic_bestiary.has(relic_id)
+
+## Get the full relic bestiary
+func get_relic_bestiary() -> Dictionary:
+	return save_data.relic_bestiary.duplicate(true)
+
+## Get how many times a relic has been collected
+func get_relic_times_collected(relic_id: String) -> int:
+	if save_data.relic_bestiary.has(relic_id):
+		return save_data.relic_bestiary[relic_id].times_collected
+	return 0
+
+## Get total number of discovered relics
+func get_discovered_relic_count() -> int:
+	return save_data.relic_bestiary.size()
+
+# ============================================
+# SCALING UPGRADES (for RunManager)
+# ============================================
+
+## Get arsenal mastery bonus (damage % per weapon owned)
+func get_arsenal_mastery_bonus() -> float:
+	var level = get_training_level("arsenal_mastery")
+	return TRAINING_BONUSES.arsenal_mastery * level
+
+## Get relic attunement bonus (stat % per relic owned)
+func get_relic_attunement_bonus() -> float:
+	var level = get_training_level("relic_attunement")
+	return TRAINING_BONUSES.relic_attunement * level
+
+## Get ticket pouch bonus (bonus ticket chance %)
+func get_ticket_pouch_bonus() -> float:
+	var level = get_training_level("ticket_pouch")
+	return TRAINING_BONUSES.ticket_pouch * level
+
+## Get bargain hunter discount (ticket cost reduction)
+func get_bargain_hunter_discount() -> int:
+	var level = get_training_level("bargain_hunter")
+	return int(TRAINING_BONUSES.bargain_hunter * level)
+
+# ============================================
 # RESET (for testing)
 # ============================================
 
@@ -290,11 +391,71 @@ func reset_save():
 			"strength": 0,
 			"agility": 0,
 			"reflexes": 0,
-			"fortune": 0
+			"fortune": 0,
+			"arsenal_mastery": 0,
+			"relic_attunement": 0,
+			"ticket_pouch": 0,
+			"bargain_hunter": 0
 		},
 		"unlocked_relics": [],
-		"bestiary": {}
+		"relic_bestiary": {},
+		"bestiary": {},
+		"settings": {
+			"master_volume": 1.0,
+			"music_volume": 0.8,
+			"sfx_volume": 1.0,
+			"fullscreen": false,
+			"vsync": true,
+			"screen_shake": true,
+			"damage_numbers": true
+		}
 	}
 	_ensure_starter_items_unlocked()
 	save_game()
 	gold_changed.emit(0)
+
+# ============================================
+# SETTINGS
+# ============================================
+
+func get_setting(key: String):
+	if save_data.settings.has(key):
+		return save_data.settings[key]
+	return null
+
+func set_setting(key: String, value) -> void:
+	if save_data.settings.has(key):
+		save_data.settings[key] = value
+		_apply_setting(key, value)
+		save_game()
+		settings_changed.emit()
+
+func get_all_settings() -> Dictionary:
+	return save_data.settings.duplicate()
+
+func _apply_setting(key: String, value) -> void:
+	match key:
+		"master_volume":
+			AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), linear_to_db(value))
+		"music_volume":
+			var music_bus = AudioServer.get_bus_index("Music")
+			if music_bus >= 0:
+				AudioServer.set_bus_volume_db(music_bus, linear_to_db(value))
+		"sfx_volume":
+			var sfx_bus = AudioServer.get_bus_index("SFX")
+			if sfx_bus >= 0:
+				AudioServer.set_bus_volume_db(sfx_bus, linear_to_db(value))
+		"fullscreen":
+			if value:
+				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+			else:
+				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		"vsync":
+			if value:
+				DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
+			else:
+				DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+
+func apply_all_settings() -> void:
+	for key in save_data.settings:
+		_apply_setting(key, save_data.settings[key])

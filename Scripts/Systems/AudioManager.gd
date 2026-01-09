@@ -246,7 +246,7 @@ func _on_player_damaged(_amount: float, _source: Node2D):
 	play("player_hurt")
 
 func _on_wave_started(wave_number: int):
-	if wave_number == 5:  # Boss wave
+	if wave_number == 10:  # Boss wave
 		play("boss_intro")
 	else:
 		play("wave_start")

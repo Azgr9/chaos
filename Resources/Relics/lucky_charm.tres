@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = "shield_emblem"
-relic_name = "Shield Emblem"
-emoji = "🛡️"
-rarity = 1
-flavor_text = "Stand your ground."
-effect_description = "+20% Damage Reduction"
-unlock_cost = 100
-damage_reduction = 0.2
+id = "lucky_charm"
+relic_name = "Lucky Charm"
+emoji = "🍀"
+rarity = 3
+flavor_text = "Fortune favors the bold."
+effect_description = "Free shop rerolls"
+unlock_cost = 0
+special_effect = "free_reroll"

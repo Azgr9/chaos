@@ -63,7 +63,7 @@ func _spawn_staff_ember():
 
 func _perform_skill() -> bool:
 	# Volcano Eruption - explosion at player position with fire immunity
-	if not player_reference:
+	if not player_reference or not player_reference.stats:
 		return false
 
 	# Spawn VolcanoSkill scene

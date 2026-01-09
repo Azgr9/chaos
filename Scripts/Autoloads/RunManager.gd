@@ -11,9 +11,11 @@ signal run_ended(gold_earned: int)
 signal relic_collected(relic: Resource)
 signal stats_changed
 signal gold_changed(new_amount: int)
+signal tickets_changed(new_amount: int)
 signal wave_completed(wave_number: int)
 signal bloodlust_activated(stack_count: int)
 signal bloodlust_cleared
+signal shop_entered(ticket_count: int)
 
 # Run data structure - resets each run
 var run_data: Dictionary = {
@@ -25,11 +27,19 @@ var run_data: Dictionary = {
 
 	"collected_relics": [],
 
+	# Coliseum Tickets - shop currency earned per wave
+	"coliseum_tickets": 0,
+	"tickets_earned_this_wave": false,  # Prevents double ticket gain
+	"portal_destroyed": false,  # If true, no tickets this wave
+
 	# Bestiary - kills by enemy type this run
 	"kills_by_type": {},
 
 	# Bloodlust system - skip portal for stacking bonuses
 	"bloodlust_stacks": 0,
+
+	# Weapon count for scaling bonuses
+	"weapons_collected": 0,
 
 	"calculated_stats": {
 		"max_health": 100.0,
@@ -41,7 +51,8 @@ var run_data: Dictionary = {
 		"lifesteal": 0.0,
 		"damage_reduction": 0.0,
 		"gold_multiplier": 1.0,
-		"durability_multiplier": 1.0
+		"durability_multiplier": 1.0,
+		"ticket_bonus": 0.0  # Bonus tickets from relics/upgrades
 	}
 }
 
@@ -56,8 +67,20 @@ const BASE_STATS = {
 	"lifesteal": 0.0,
 	"damage_reduction": 0.0,
 	"gold_multiplier": 1.0,
-	"durability_multiplier": 1.0
+	"durability_multiplier": 1.0,
+	"ticket_bonus": 0.0
 }
+
+# Coliseum Ticket costs by rarity
+const TICKET_COSTS = {
+	"common": 1,
+	"uncommon": 2,
+	"rare": 3,
+	"legendary": 4
+}
+
+const TICKETS_PER_WAVE := 1
+const TICKETS_PER_BOSS := 2
 
 func _ready():
 	pass
@@ -76,6 +99,10 @@ func start_new_run():
 	run_data.collected_relics.clear()
 	run_data.kills_by_type.clear()
 	run_data.bloodlust_stacks = 0
+	run_data.coliseum_tickets = 0
+	run_data.tickets_earned_this_wave = false
+	run_data.portal_destroyed = false
+	run_data.weapons_collected = 2  # Start with 2 weapons (sword + staff)
 
 	# Apply training bonuses from SaveManager
 	_apply_training_bonuses()
@@ -87,6 +114,7 @@ func start_new_run():
 	recalculate_stats()
 	run_started.emit()
 	gold_changed.emit(run_data.current_gold)
+	tickets_changed.emit(run_data.coliseum_tickets)
 
 	print("[RunManager] New run started with %d starting gold" % run_data.current_gold)
 
@@ -154,6 +182,80 @@ func spend_gold(amount: int) -> bool:
 	return false
 
 # ============================================
+# COLISEUM TICKETS
+# ============================================
+
+func get_tickets() -> int:
+	return run_data.coliseum_tickets
+
+func add_tickets(amount: int):
+	run_data.coliseum_tickets += amount
+	tickets_changed.emit(run_data.coliseum_tickets)
+	print("[RunManager] +%d Coliseum Tickets (Total: %d)" % [amount, run_data.coliseum_tickets])
+
+func spend_tickets(amount: int) -> bool:
+	if run_data.coliseum_tickets >= amount:
+		run_data.coliseum_tickets -= amount
+		tickets_changed.emit(run_data.coliseum_tickets)
+		return true
+	return false
+
+func get_ticket_cost(rarity: String) -> int:
+	var base_cost = TICKET_COSTS.get(rarity, 2)
+	# Apply bargain hunter discount from SaveManager
+	var discount = SaveManager.get_training_bonus("bargain_hunter") if SaveManager else 0.0
+	var final_cost = max(1, base_cost - int(discount))
+	return final_cost
+
+## Called when wave is completed - awards tickets if portal wasn't destroyed
+func award_wave_tickets(is_boss_wave: bool = false):
+	if run_data.tickets_earned_this_wave:
+		return  # Already earned tickets this wave
+
+	if run_data.portal_destroyed:
+		print("[RunManager] Portal destroyed - no tickets earned this wave")
+		run_data.portal_destroyed = false  # Reset for next wave
+		run_data.tickets_earned_this_wave = true
+		return
+
+	# Calculate tickets to award
+	var tickets = TICKETS_PER_BOSS if is_boss_wave else TICKETS_PER_WAVE
+
+	# Apply ticket bonus from relics/training
+	var bonus_chance = run_data.calculated_stats.ticket_bonus
+	if bonus_chance > 0 and randf() < bonus_chance:
+		tickets += 1
+		print("[RunManager] Bonus ticket from luck!")
+
+	add_tickets(tickets)
+	run_data.tickets_earned_this_wave = true
+
+## Called when entering the shop - awards bonus tickets from relics
+func on_shop_entered():
+	# Reset wave ticket tracking for next wave
+	run_data.tickets_earned_this_wave = false
+	run_data.portal_destroyed = false
+
+	# Check for Ticket Collector relic (+1 ticket on shop entry)
+	if has_special_effect("ticket_collector"):
+		add_tickets(1)
+		print("[RunManager] Ticket Collector bonus!")
+
+	shop_entered.emit(run_data.coliseum_tickets)
+
+## Called when portal is destroyed (bloodlust) - prevents ticket gain
+func mark_portal_destroyed():
+	run_data.portal_destroyed = true
+	print("[RunManager] Portal destroyed - will not earn tickets this wave")
+
+func add_weapon_collected():
+	run_data.weapons_collected += 1
+	recalculate_stats()  # Recalc for weapon scaling bonuses
+
+func get_weapons_collected() -> int:
+	return run_data.weapons_collected
+
+# ============================================
 # ITEMS
 # ============================================
 
@@ -162,6 +264,14 @@ func add_relic(relic: Resource):
 		run_data.collected_relics.append(relic)
 		relic_collected.emit(relic)
 		recalculate_stats()
+
+		# Track in relic bestiary (permanent discovery)
+		var relic_id = relic.id if "id" in relic else ""
+		if relic_id and SaveManager:
+			var is_new = SaveManager.discover_relic(relic_id)
+			if is_new:
+				print("[RunManager] NEW RELIC DISCOVERED: %s" % relic_id)
+
 		var relic_display_name = relic.relic_name if "relic_name" in relic else relic.id
 		print("[RunManager] Relic collected: %s" % relic_display_name)
 
@@ -179,6 +289,20 @@ func recalculate_stats():
 	# Add relic bonuses
 	for relic in run_data.collected_relics:
 		_apply_item_stats(relic)
+
+	# Apply weapon scaling bonuses (Arsenal Mastery)
+	var arsenal_bonus = SaveManager.get_training_bonus("arsenal_mastery") if SaveManager else 0.0
+	if arsenal_bonus > 0 and run_data.weapons_collected > 0:
+		run_data.calculated_stats.damage_multiplier += arsenal_bonus * run_data.weapons_collected
+
+	# Apply relic scaling bonuses (Relic Attunement)
+	var relic_bonus = SaveManager.get_training_bonus("relic_attunement") if SaveManager else 0.0
+	if relic_bonus > 0 and run_data.collected_relics.size() > 0:
+		run_data.calculated_stats.damage_multiplier += relic_bonus * run_data.collected_relics.size()
+
+	# Apply ticket pouch bonus (extra ticket chance)
+	var ticket_pouch_bonus = SaveManager.get_training_bonus("ticket_pouch") if SaveManager else 0.0
+	run_data.calculated_stats.ticket_bonus = ticket_pouch_bonus
 
 	# Apply bloodlust bonuses
 	if run_data.bloodlust_stacks > 0:

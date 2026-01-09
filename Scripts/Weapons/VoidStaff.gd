@@ -198,7 +198,7 @@ func _spawn_void_spark(pos: Vector2):
 # BLACK HOLE SKILL - Pull enemies and deal damage
 # ============================================
 func _perform_skill() -> bool:
-	if not player_reference:
+	if not player_reference or not player_reference.stats:
 		return false
 
 	var target_pos = player_reference.get_global_mouse_position()

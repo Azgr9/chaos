@@ -16,51 +16,108 @@ var arena_center: Vector2 = Vector2(1280, 720)  # Fallback
 var arena_half_width: float = 1200.0  # Fallback
 var arena_half_height: float = 680.0  # Fallback
 
-# Enemy definitions with unlock requirements and weights
-const ENEMY_TYPES = {
+# ============================================
+# ARENA TIER SYSTEM (1-4 arenas, each with 10 waves)
+# ============================================
+var current_arena_tier: int = 1  # 1 = Normal, 2 = Hard, 3 = Very Hard, 4 = Nightmare
+
+# Arena scaling multipliers
+const ARENA_SCALING = {
+	1: {"health_mult": 1.0, "damage_mult": 1.0, "points_mult": 1.0, "elite_bonus": 0.0, "gold_mult": 1.0},
+	2: {"health_mult": 1.3, "damage_mult": 1.25, "points_mult": 1.2, "elite_bonus": 0.05, "gold_mult": 1.3},
+	3: {"health_mult": 1.6, "damage_mult": 1.5, "points_mult": 1.4, "elite_bonus": 0.10, "gold_mult": 1.6},
+	4: {"health_mult": 2.0, "damage_mult": 1.75, "points_mult": 1.6, "elite_bonus": 0.15, "gold_mult": 2.0}
+}
+
+# Arena names for UI
+const ARENA_NAMES = {
+	1: "The Pit",
+	2: "Crimson Arena",
+	3: "Shadow Colosseum",
+	4: "Chaos Throne"
+}
+
+# Enemy definitions with point costs and weights
+# Point-based system: Each wave has a point budget, enemies spawn randomly based on weights
+# ALL enemies available from wave 1 (except boss) - variety from the start!
+const ENEMY_TYPES_BASE = {
 	"goblin_dual": {
 		"scene": preload("res://Scenes/Enemies/GoblinDual.tscn"),
 		"cost": 1,
 		"unlocks_at_wave": 1,
-		"base_weight": 3.0,
-		"max_alive": 15
+		"base_weight": 3.0,  # Most common - cheap fodder
+		"max_alive": 12
 	},
 	"slime": {
 		"scene": preload("res://Scenes/Enemies/Slime.tscn"),
 		"cost": 2,
-		"unlocks_at_wave": 1,
-		"base_weight": 2.0,
-		"max_alive": 10
+		"unlocks_at_wave": 1,  # Available from wave 1
+		"base_weight": 2.5,
+		"max_alive": 6
 	},
 	"goblin_archer": {
 		"scene": preload("res://Scenes/Enemies/GoblinArcher.tscn"),
 		"cost": 3,
-		"unlocks_at_wave": 2,
+		"unlocks_at_wave": 1,  # Available from wave 1
+		"base_weight": 1.5,
+		"max_alive": 5
+	},
+	"goblin_mage": {
+		"scene": preload("res://Scenes/Enemies/GoblinMage.tscn"),
+		"cost": 4,
+		"unlocks_at_wave": 1,  # Available from wave 1
 		"base_weight": 1.0,
-		"max_alive": 6
+		"max_alive": 3
 	},
 	"healer": {
 		"scene": preload("res://Scenes/Enemies/Healer.tscn"),
-		"cost": 4,
-		"unlocks_at_wave": 4,
+		"cost": 5,
+		"unlocks_at_wave": 1,  # Available from wave 1
 		"base_weight": 0.8,
 		"max_alive": 2
 	},
 	"spawner": {
 		"scene": preload("res://Scenes/Enemies/Spawner.tscn"),
 		"cost": 6,
-		"unlocks_at_wave": 5,
-		"base_weight": 0.4,
+		"unlocks_at_wave": 1,  # Available from wave 1
+		"base_weight": 0.5,
+		"max_alive": 2
+	},
+	"golem": {
+		"scene": preload("res://Scenes/Enemies/Golem.tscn"),
+		"cost": 8,
+		"unlocks_at_wave": 1,  # Available from wave 1
+		"base_weight": 0.6,
 		"max_alive": 2
 	},
 	"boss": {
 		"scene": preload("res://Scenes/Enemies/Boss.tscn"),
 		"cost": 50,
-		"unlocks_at_wave": 5,
-		"base_weight": 0.0,  # Never spawns randomly - use spawn_boss()
+		"unlocks_at_wave": 10,  # Boss only on wave 10
+		"base_weight": 0.0,  # Never spawns randomly
 		"max_alive": 1
 	}
 }
+
+# Arena 2+ enemies (additional enemies for higher arenas)
+# These get added to base enemies in later arenas
+const ENEMY_TYPES_ADVANCED = {
+	# Arena 2+ will have new enemy types here
+	# For now, base enemies scale with arena difficulty
+}
+
+# Active enemy types (merged based on arena tier)
+var ENEMY_TYPES: Dictionary = {}
+
+func _init_enemy_types():
+	# Start with base enemies
+	ENEMY_TYPES = ENEMY_TYPES_BASE.duplicate(true)
+
+	# Add advanced enemies if arena tier is high enough
+	for enemy_type in ENEMY_TYPES_ADVANCED:
+		var enemy_data = ENEMY_TYPES_ADVANCED[enemy_type]
+		if current_arena_tier >= enemy_data.get("unlocks_at_arena", 1):
+			ENEMY_TYPES[enemy_type] = enemy_data.duplicate(true)
 
 # Hazard Manager reference
 var hazard_manager: HazardManager = null
@@ -72,8 +129,11 @@ var points_spawned: int = 0
 var points_remaining: int = 0
 var enemies_alive: int = 0
 var enemies_alive_by_type: Dictionary = {}
+var elite_enemies_alive: int = 0
 var wave_active: bool = false
 var player_reference: Node2D = null
+var in_breather: bool = false
+var breather_time_remaining: float = 0.0
 
 # Spawn timing
 var spawn_timer: float = 0.0
@@ -88,11 +148,19 @@ signal wave_started(wave_number: int)
 signal wave_completed(wave_number: int)
 signal enemy_spawned(enemy: Enemy)
 signal all_waves_completed()
+signal arena_completed(arena_tier: int)  # Emitted when all 10 waves of an arena are done
 signal enemy_killed(enemies_remaining: int)
+signal wave_progress_changed(spawned: int, total: int)
+signal enemies_updated(alive: int, by_type: Dictionary, elite_count: int)
+signal in_breather_changed(is_breather: bool, time_remaining: float)
+signal arena_tier_changed(new_tier: int, arena_name: String)
 
 func _ready():
 	# Add to group for easy lookup
 	add_to_group("wave_manager")
+
+	# Initialize enemy types based on arena tier
+	_init_enemy_types()
 
 	# Find arena reference and get bounds
 	_find_arena()
@@ -115,6 +183,22 @@ func _ready():
 	# Wait a moment before starting
 	await get_tree().create_timer(1.0).timeout
 	start_next_wave()
+
+# Set arena tier (call before waves start or between arenas)
+func set_arena_tier(tier: int):
+	current_arena_tier = clamp(tier, 1, 4)
+	_init_enemy_types()
+	# Reinitialize enemy counters for new enemy types
+	enemies_alive_by_type.clear()
+	for enemy_type in ENEMY_TYPES.keys():
+		enemies_alive_by_type[enemy_type] = 0
+	print("[WaveManager] Arena tier set to %d: %s" % [current_arena_tier, ARENA_NAMES[current_arena_tier]])
+
+func get_arena_name() -> String:
+	return ARENA_NAMES.get(current_arena_tier, "Unknown Arena")
+
+func get_arena_scaling() -> Dictionary:
+	return ARENA_SCALING.get(current_arena_tier, ARENA_SCALING[1])
 
 func _find_arena():
 	# Find arena in scene and get its bounds
@@ -162,12 +246,24 @@ func _process(delta):
 		return
 
 	spawn_timer -= delta
+
+	# Update breather time remaining for UI
+	if in_breather:
+		breather_time_remaining = spawn_timer
+		in_breather_changed.emit(true, breather_time_remaining)
+		if spawn_timer <= 0:
+			in_breather = false
+			in_breather_changed.emit(false, 0.0)
+
 	if spawn_timer <= 0:
 		# SAFEGUARD 2: Check for breather before spawning
 		var breather = _check_for_breather()
 		if breather > 0:
 			spawn_timer = breather
+			in_breather = true
+			breather_time_remaining = breather
 			breather_started.emit(breather)
+			in_breather_changed.emit(true, breather)
 			return
 
 		_spawn_batch()
@@ -175,21 +271,37 @@ func _process(delta):
 func start_next_wave():
 	current_wave += 1
 
-	# Wave 5 is the BOSS WAVE
-	if current_wave == 5:
+	# Wave 10 is the BOSS WAVE
+	if current_wave == 10:
 		_start_boss_wave()
 		return
 
-	# Calculate wave point pool: (wave² × 2) + (wave × 2) + 2
-	total_points = (current_wave * current_wave * 2) + (current_wave * 2) + 2
+	# Calculate wave point pool (balanced for roguelike progression)
+	# Early waves (1-3): Learning phase, few enemies
+	# Mid waves (4-6): Challenge ramps up
+	# Late waves (7-9): High intensity, high reward
+	# Wave 10: Boss only
+	#
+	# Formula: wave × 4 + 8 gives:
+	# Wave 1: 12, Wave 3: 20, Wave 5: 28, Wave 7: 36, Wave 9: 44
+	var scaling = get_arena_scaling()
+	var base_points = (current_wave * 4) + 8
+	total_points = int(base_points * scaling.points_mult)
 	points_remaining = total_points
 	points_spawned = 0
 	enemies_alive = 0
+	elite_enemies_alive = 0
+	in_breather = false
+	breather_time_remaining = 0.0
 	wave_active = true
 
 	# Reset enemy type counters
 	for enemy_type in ENEMY_TYPES.keys():
 		enemies_alive_by_type[enemy_type] = 0
+
+	# Emit initial state for UI
+	_emit_wave_progress()
+	_emit_enemies_updated()
 
 	# Reset safeguards
 	_reset_checkpoints()
@@ -305,7 +417,8 @@ func _calculate_batch_points(remaining_points: int, wave: int) -> int:
 
 func _get_spawn_interval(wave: int, progress: float) -> float:
 	# Accelerating pressure - intervals get shorter as wave progresses
-	var base_interval = max(1.5, 4.0 - (wave * 0.3))
+	# Adjusted for 10 waves: starts at 3.5s, reaches minimum 1.5s at wave 10
+	var base_interval = max(1.5, 3.5 - (wave * 0.2))
 	var pressure_multiplier = 1.0 - (sin(progress * PI * 0.5) * 0.6)
 	var randomness = randf_range(0.8, 1.2)
 
@@ -434,6 +547,9 @@ func _spawn_enemy_of_type(enemy_type: String):
 	get_parent().add_child(enemy)
 	enemy.global_position = spawn_pos
 
+	# Apply arena tier scaling to enemy stats
+	_apply_arena_scaling_to_enemy(enemy)
+
 	# Connect enemy signals IMMEDIATELY
 	if enemy.has_signal("enemy_died"):
 		enemy.enemy_died.connect(_on_enemy_died.bind(enemy_type))
@@ -442,7 +558,7 @@ func _spawn_enemy_of_type(enemy_type: String):
 	if enemy.has_method("set_player_reference") and player_reference:
 		enemy.set_player_reference(player_reference)
 
-	# Check for elite spawn (chance increases with wave)
+	# Check for elite spawn (chance increases with wave + arena tier)
 	_try_make_elite(enemy)
 
 	# Update counters IMMEDIATELY (before activation delay)
@@ -452,6 +568,8 @@ func _spawn_enemy_of_type(enemy_type: String):
 	points_remaining -= enemy_data["cost"]
 
 	enemy_spawned.emit(enemy)
+	_emit_wave_progress()
+	_emit_enemies_updated()
 
 	# Freeze enemy for activation time (visual polish)
 	enemy.set_physics_process(false)
@@ -464,18 +582,55 @@ func _spawn_enemy_of_type(enemy_type: String):
 	if is_instance_valid(enemy):
 		enemy.set_physics_process(true)
 
-# Elite spawn chance: 5% base + 3% per wave (Wave 1: 8%, Wave 5: 20%)
-const ELITE_BASE_CHANCE: float = 0.05
-const ELITE_WAVE_BONUS: float = 0.03
+# Wave-based gold multiplier - late waves give more gold
+# Wave 1-3: x1.0, Wave 4-6: x1.3, Wave 7-9: x1.8
+func _get_wave_gold_multiplier() -> float:
+	if current_wave <= 3:
+		return 1.0
+	elif current_wave <= 6:
+		return 1.3
+	else:
+		return 1.8
+
+# Apply arena tier scaling to spawned enemy
+func _apply_arena_scaling_to_enemy(enemy: Node2D):
+	var scaling = get_arena_scaling()
+	var wave_gold_mult = _get_wave_gold_multiplier()
+
+	# Scale health
+	if "max_health" in enemy:
+		enemy.max_health *= scaling.health_mult
+		if "current_health" in enemy:
+			enemy.current_health = enemy.max_health
+
+	# Scale damage
+	if "damage" in enemy:
+		enemy.damage *= scaling.damage_mult
+
+	# Scale gold drops (arena scaling + wave bonus)
+	var total_gold_mult = scaling.gold_mult * wave_gold_mult
+	if "gold_drop_min" in enemy:
+		enemy.gold_drop_min = int(enemy.gold_drop_min * total_gold_mult)
+	if "gold_drop_max" in enemy:
+		enemy.gold_drop_max = int(enemy.gold_drop_max * total_gold_mult)
+
+# Elite spawn chance: 3% base + 2% per wave (Wave 1: 5%, Wave 5: 13%, Wave 9: 21%)
+# Balanced for 10 waves - elites are dangerous, keep them rare early
+# Arena tier adds bonus elite chance
+const ELITE_BASE_CHANCE: float = 0.03
+const ELITE_WAVE_BONUS: float = 0.02
 
 func _try_make_elite(enemy: Node2D):
 	if not enemy.has_method("make_random_elite"):
 		return
 
-	var elite_chance = ELITE_BASE_CHANCE + (current_wave * ELITE_WAVE_BONUS)
+	var scaling = get_arena_scaling()
+	var elite_chance = ELITE_BASE_CHANCE + (current_wave * ELITE_WAVE_BONUS) + scaling.elite_bonus
 
 	if randf() < elite_chance:
 		enemy.make_random_elite()
+		elite_enemies_alive += 1
+		_emit_enemies_updated()
 
 func _get_spawn_position() -> Vector2:
 	# Generate random position inside rectangle arena
@@ -519,30 +674,46 @@ func _check_for_breather() -> float:
 
 func _get_breather_duration(wave: int) -> float:
 	# Shorter breathers in later waves (still chaotic!)
-	return max(1.5, 3.0 - (wave * 0.2))
-	# Wave 1: 2.8s, Wave 3: 2.4s, Wave 5: 2.0s, Wave 10: 1.5s
+	# Adjusted for 10 waves
+	return max(1.0, 2.5 - (wave * 0.15))
+	# Wave 1: 2.35s, Wave 5: 1.75s, Wave 9: 1.15s
 
 func _get_progress() -> float:
 	if total_points == 0:
 		return 0.0
 	return float(points_spawned) / float(total_points)
 
-func _on_enemy_died(_enemy: Enemy, enemy_type: String):
+func _on_enemy_died(enemy: Enemy, enemy_type: String):
 	enemies_alive -= 1
 	enemies_alive_by_type[enemy_type] = max(0, enemies_alive_by_type[enemy_type] - 1)
+
+	# Track elite deaths
+	if enemy.is_elite:
+		elite_enemies_alive = max(0, elite_enemies_alive - 1)
+
 	enemy_killed.emit(enemies_alive)
+	_emit_enemies_updated()
 
 	# Check if wave is complete: all points spawned AND all enemies dead
 	if points_remaining <= 0 and enemies_alive <= 0:
 		_complete_wave()
 
+# Helper function to emit enemies updated signal
+func _emit_enemies_updated():
+	enemies_updated.emit(enemies_alive, enemies_alive_by_type.duplicate(), elite_enemies_alive)
+
+# Helper function to emit wave progress
+func _emit_wave_progress():
+	wave_progress_changed.emit(points_spawned, total_points)
+
 func _complete_wave():
 	wave_active = false
 	wave_completed.emit(current_wave)
 
-	# Check if this was the final wave
-	if current_wave >= 5:
+	# Check if this was the final wave of this arena (wave 10 = boss wave)
+	if current_wave >= 10:
 		all_waves_completed.emit()
+		arena_completed.emit(current_arena_tier)
 		return
 
 	# Portal system now handles wave transitions
@@ -550,6 +721,20 @@ func _complete_wave():
 	# -> GameManager calls start_next_wave() if portal destroyed
 	# -> or opens UpgradeMenu, then start_next_wave() on menu close
 	# DON'T auto-start next wave here anymore
+
+# Advance to next arena (call after arena is completed)
+func advance_to_next_arena():
+	if current_arena_tier < 4:
+		current_arena_tier += 1
+		_init_enemy_types()
+		current_wave = 0
+		enemies_alive_by_type.clear()
+		for enemy_type in ENEMY_TYPES.keys():
+			enemies_alive_by_type[enemy_type] = 0
+		arena_tier_changed.emit(current_arena_tier, get_arena_name())
+		print("[WaveManager] Advanced to Arena %d: %s" % [current_arena_tier, get_arena_name()])
+		return true
+	return false  # Already at max arena
 
 func _show_wave_notification():
 	# Create a simple wave notification

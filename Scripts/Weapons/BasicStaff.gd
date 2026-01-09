@@ -36,7 +36,7 @@ func _weapon_ready():
 	beam_width = 32.0
 
 func _perform_skill() -> bool:
-	if not player_reference:
+	if not player_reference or not player_reference.stats:
 		return false
 
 	var skill_origin = get_skill_spawn_position()

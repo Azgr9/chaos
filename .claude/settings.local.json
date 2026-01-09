@@ -30,7 +30,13 @@
       "Bash(powershell -Command \"Get-ChildItem -Path . -Recurse | Where-Object {$_PSIsContainer} | Select-Object -Property FullName\")",
       "Bash(git -C \"C:/Users/alizg/OneDrive/Desktop/chaos\" status)",
       "Bash(dir /s /b \"C:\\\\Users\\\\alizg\\\\OneDrive\\\\Desktop\\\\chaos\\\\Assets\\\\Sprites\")",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(tree:*)",
+      "Bash(del \"C:\\\\Users\\\\alizg\\\\OneDrive\\\\Desktop\\\\chaos\\\\Scripts\\\\Ui\\\\WeaponShop.gd\")",
+      "Bash(while read file)",
+      "Bash(do wc -l \"$file\")",
+      "Bash(done)",
+      "Bash(move:*)"
     ],
     "deny": [],
     "ask": []

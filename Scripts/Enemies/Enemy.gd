@@ -25,11 +25,16 @@ const HIT_FLASH_DURATION: float = 0.04  # Quick flash (was 0.12)
 const HIT_SQUASH_SCALE: Vector2 = Vector2(1.2, 0.8)  # Squash on hit
 const HIT_SQUASH_DURATION: float = 0.08  # Quick squash recovery (was 0.25)
 
-# Death animation settings - SNAPPY timing
-const DEATH_FADE_DURATION: float = 0.12  # Quick death fade
-const DEATH_PARTICLE_DURATION: float = 0.15  # Quick particle fade
-const DEATH_PARTICLE_DISTANCE: float = 60.0  # Shorter particle travel
+# Death animation settings - Enhanced effects
+const DEATH_FADE_DURATION: float = 0.2  # Death fade
+const DEATH_PARTICLE_DURATION: float = 0.35  # Particle fade
+const DEATH_PARTICLE_DISTANCE: float = 80.0  # Particle travel
 const HEALTH_BAR_FADE_DURATION: float = 0.1  # Quick health bar fade
+
+# Enhanced death particle settings
+const DEATH_SPARK_COUNT: int = 8  # Number of spark particles
+const DEATH_SMOKE_COUNT: int = 4  # Number of smoke puffs
+const DEATH_RING_ENABLED: bool = true  # Whether to show death ring
 
 # ============================================
 # EXPORTED STATS
@@ -49,8 +54,11 @@ const HEALTH_BAR_FADE_DURATION: float = 0.1  # Quick health bar fade
 @export var crystal_drop_chance: float = 0.7
 @export var min_crystals: int = 1
 @export var max_crystals: int = 3
-@export var gold_drop_min: int = 2
-@export var gold_drop_max: int = 5
+# Gold drops - base values, scaled by WaveManager based on wave/arena
+# Economy target: ~450-600 gold for full 10-wave clear (wave 3 death ~80 gold)
+# Shop weapons cost 25-90 gold, so players can afford ~1-2 weapons mid-run
+@export var gold_drop_min: int = 3
+@export var gold_drop_max: int = 6
 
 @export_group("Visual")
 @export var health_bar_width: float = 80.0
@@ -309,8 +317,17 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO, knockback
 	if elite_modifier and is_elite:
 		final_damage = elite_modifier.on_take_damage(amount, attacker)
 
+	# Apply relic damage multipliers (berserker, void vulnerability, etc.)
+	if RelicEffectManager:
+		final_damage *= RelicEffectManager.get_damage_multiplier()
+		final_damage *= RelicEffectManager.apply_void_vulnerability(self)
+
 	current_health -= final_damage
 	health_changed.emit(current_health, max_health)
+
+	# Apply relic on-hit effects (burn, chill, etc.)
+	if RelicEffectManager and attacker and attacker.is_in_group("player"):
+		RelicEffectManager.on_enemy_hit(self, from_position)
 
 	# Check for death first - don't apply hitstun to dead enemies
 	if current_health <= 0:
@@ -398,23 +415,126 @@ func die():
 func _create_death_particles():
 	var particle_count = _get_death_particle_count()
 	var particle_color = _get_death_particle_color()
+	var scene = get_tree().current_scene
+	if not scene:
+		return
 
+	# Main death burst ring
+	if DEATH_RING_ENABLED:
+		_create_death_ring(scene, particle_color)
+
+	# Core particles (chunks)
 	for i in range(particle_count):
 		var particle = ColorRect.new()
-		particle.size = Vector2(12, 12)  # Slightly smaller
-		particle.position = Vector2(randf_range(-20, 20), randf_range(-20, 20))
+		var size = randf_range(8, 16)
+		particle.size = Vector2(size, size)
+		particle.pivot_offset = particle.size / 2
 		particle.color = particle_color
-		add_child(particle)
+		scene.add_child(particle)
+		particle.global_position = global_position + Vector2(randf_range(-15, 15), randf_range(-15, 15))
 
 		var particle_tween = TweenHelper.new_tween()
-		var random_dir = Vector2(randf_range(-1, 1), randf_range(-1, 1)).normalized()
-		particle_tween.tween_property(particle, "position", particle.position + random_dir * DEATH_PARTICLE_DISTANCE, DEATH_PARTICLE_DURATION)\
+		var angle = randf() * TAU
+		var distance = randf_range(DEATH_PARTICLE_DISTANCE * 0.5, DEATH_PARTICLE_DISTANCE)
+		var end_pos = particle.global_position + Vector2.from_angle(angle) * distance
+
+		particle_tween.set_parallel(true)
+		particle_tween.tween_property(particle, "global_position", end_pos, DEATH_PARTICLE_DURATION)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		particle_tween.parallel().tween_property(particle, "modulate:a", 0.0, DEATH_PARTICLE_DURATION)
+		particle_tween.tween_property(particle, "global_position:y", end_pos.y + 30, DEATH_PARTICLE_DURATION)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		particle_tween.tween_property(particle, "rotation", randf_range(-PI, PI), DEATH_PARTICLE_DURATION)
+		particle_tween.tween_property(particle, "scale", Vector2(0.2, 0.2), DEATH_PARTICLE_DURATION)
+		particle_tween.tween_property(particle, "modulate:a", 0.0, DEATH_PARTICLE_DURATION)
+		particle_tween.tween_callback(particle.queue_free)
+
+	# Spark particles (bright white/yellow)
+	_create_death_sparks(scene, particle_color)
+
+	# Smoke puffs
+	_create_death_smoke(scene)
+
+func _create_death_ring(scene: Node, base_color: Color):
+	# Expanding ring on death
+	var ring = ColorRect.new()
+	ring.size = Vector2(30, 30)
+	ring.pivot_offset = Vector2(15, 15)
+	ring.color = Color(base_color.r, base_color.g, base_color.b, 0.6)
+	scene.add_child(ring)
+	ring.global_position = global_position - Vector2(15, 15)
+
+	var tween = TweenHelper.new_tween()
+	tween.set_parallel(true)
+	tween.tween_property(ring, "scale", Vector2(5, 5), 0.25)
+	tween.tween_property(ring, "modulate:a", 0.0, 0.25)
+	tween.tween_callback(ring.queue_free)
+
+	# Inner bright flash
+	var flash = ColorRect.new()
+	flash.size = Vector2(50, 50)
+	flash.pivot_offset = Vector2(25, 25)
+	flash.color = Color(1.0, 1.0, 1.0, 0.8)
+	scene.add_child(flash)
+	flash.global_position = global_position - Vector2(25, 25)
+
+	var flash_tween = TweenHelper.new_tween()
+	flash_tween.set_parallel(true)
+	flash_tween.tween_property(flash, "scale", Vector2(2, 2), 0.1)
+	flash_tween.tween_property(flash, "modulate:a", 0.0, 0.15)
+	flash_tween.tween_callback(flash.queue_free)
+
+func _create_death_sparks(scene: Node, base_color: Color):
+	# Bright spark particles
+	for i in range(DEATH_SPARK_COUNT):
+		var spark = ColorRect.new()
+		spark.size = Vector2(4, 12)  # Elongated sparks
+		spark.pivot_offset = Vector2(2, 6)
+		# Mix base color with white for brighter sparks
+		spark.color = base_color.lerp(Color.WHITE, 0.6)
+		scene.add_child(spark)
+		spark.global_position = global_position
+
+		var angle = randf() * TAU
+		var speed = randf_range(150, 250)
+		var end_pos = global_position + Vector2.from_angle(angle) * speed * 0.3
+
+		spark.rotation = angle + PI / 2  # Point in direction of travel
+
+		var tween = TweenHelper.new_tween()
+		tween.set_parallel(true)
+		tween.tween_property(spark, "global_position", end_pos, 0.2)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(spark, "scale", Vector2(0.1, 0.1), 0.2)
+		tween.tween_property(spark, "modulate:a", 0.0, 0.2)
+		tween.tween_callback(spark.queue_free)
+
+func _create_death_smoke(scene: Node):
+	# Smoke puff particles
+	for i in range(DEATH_SMOKE_COUNT):
+		var smoke = ColorRect.new()
+		var size = randf_range(20, 35)
+		smoke.size = Vector2(size, size)
+		smoke.pivot_offset = smoke.size / 2
+		smoke.color = Color(0.3, 0.3, 0.3, 0.5)  # Gray smoke
+		scene.add_child(smoke)
+		smoke.global_position = global_position + Vector2(randf_range(-20, 20), randf_range(-10, 10))
+
+		var tween = TweenHelper.new_tween()
+		tween.set_parallel(true)
+		# Smoke rises and expands
+		tween.tween_property(smoke, "global_position:y", smoke.global_position.y - randf_range(40, 70), 0.5)
+		tween.tween_property(smoke, "scale", Vector2(2, 2), 0.5)
+		tween.tween_property(smoke, "modulate:a", 0.0, 0.5)
+		tween.tween_callback(smoke.queue_free)
 
 func _drop_gold():
 	if RunManager:
-		var gold_amount = randi_range(gold_drop_min, gold_drop_max)
+		var base_gold = randi_range(gold_drop_min, gold_drop_max)
+		# Apply fortune training bonus from SaveManager
+		var fortune_mult = 1.0
+		if SaveManager:
+			fortune_mult = SaveManager.get_fortune_gold_multiplier()
+		var gold_amount = int(base_gold * fortune_mult)
 		RunManager.add_gold(gold_amount)
 
 func _spawn_crystals():

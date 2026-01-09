@@ -22,17 +22,21 @@ var hazard_scenes: Dictionary = {}
 @export var warning_duration: float = 1.5
 
 # ============================================
-# WAVE SCALING
+# WAVE SCALING (Balanced for 10 waves)
 # ============================================
 var hazards_per_wave: Dictionary = {
-	1: {"count": 2, "types": ["fire_grate"]},
-	2: {"count": 3, "types": ["fire_grate", "floor_spikes"]},
-	3: {"count": 4, "types": ["fire_grate", "floor_spikes", "spike_wall"]},
-	4: {"count": 5, "types": ["fire_grate", "floor_spikes", "spike_wall", "crusher"]},
-	5: {"count": 6, "types": ["fire_grate", "floor_spikes", "spike_wall", "crusher"]}
+	1: {"count": 1, "types": ["fire_grate"]},
+	2: {"count": 2, "types": ["fire_grate"]},
+	3: {"count": 2, "types": ["fire_grate", "floor_spikes"]},
+	4: {"count": 3, "types": ["fire_grate", "floor_spikes"]},
+	5: {"count": 3, "types": ["fire_grate", "floor_spikes", "spike_wall"]},
+	6: {"count": 4, "types": ["fire_grate", "floor_spikes", "spike_wall"]},
+	7: {"count": 4, "types": ["fire_grate", "floor_spikes", "spike_wall", "crusher"]},
+	8: {"count": 5, "types": ["fire_grate", "floor_spikes", "spike_wall", "crusher"]},
+	9: {"count": 6, "types": ["fire_grate", "floor_spikes", "spike_wall", "crusher"]}
 }
 
-# Default config for waves beyond 5
+# Default config for waves beyond 9 (boss wave has no hazards)
 var default_wave_config: Dictionary = {
 	"count": 6,
 	"types": ["fire_grate", "floor_spikes", "spike_wall", "crusher"]
@@ -198,6 +202,10 @@ func _draw_debug() -> void:
 		pass
 
 func get_hazard_count() -> int:
+	return active_hazards.size()
+
+func get_active_hazard_count() -> int:
+	# Alias for WaveHUD compatibility
 	return active_hazards.size()
 
 func get_hazards_of_type(hazard_type: Hazard.HazardType) -> Array[Hazard]:

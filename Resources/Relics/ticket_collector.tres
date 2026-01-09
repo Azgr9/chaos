@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = "thiefs_anklet"
-relic_name = "Thief's Anklet"
-emoji = "👟"
-rarity = 0
-flavor_text = "Previous owner didn't run fast enough."
-effect_description = "+12% Movement Speed"
+id = "ticket_collector"
+relic_name = "Ticket Collector"
+emoji = "🎟️"
+rarity = 3
+flavor_text = "The crowd cheers for you."
+effect_description = "+1 Coliseum Ticket on shop entry"
 unlock_cost = 0
-speed_percent = 0.12
+special_effect = "ticket_collector"

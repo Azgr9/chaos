@@ -52,10 +52,20 @@ custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 text = "RESUME"
 
+[node name="SettingsButton" type="Button" parent="Control/Container"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "SETTINGS"
+
 [node name="RestartButton" type="Button" parent="Control/Container"]
 custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 text = "RESTART"
+
+[node name="MainMenuButton" type="Button" parent="Control/Container"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "MAIN MENU"
 
 [node name="QuitButton" type="Button" parent="Control/Container"]
 custom_minimum_size = Vector2(150, 40)

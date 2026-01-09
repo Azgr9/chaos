@@ -131,6 +131,12 @@ const SPEED_BOOST_PER_HIT: float = 0.1
 var _is_in_active_frames: bool = false
 var _current_attack_data: Dictionary = {}
 
+# Hitbox scanning optimization - cache nearby enemies
+var _cached_enemies: Array = []
+var _cached_targetables: Array = []
+var _cache_timer: float = 0.0
+const CACHE_UPDATE_INTERVAL: float = 0.1  # Update cache every 0.1s
+
 # Walk animation state
 var _walk_anim_time: float = 0.0
 var _last_player_pos: Vector2 = Vector2.ZERO
@@ -138,7 +144,6 @@ var _is_player_moving: bool = false
 
 # Sprite flip correction state
 var _last_flip_state: bool = false
-var _flip_initialized: bool = false
 
 # ============================================
 # SIGNALS
@@ -194,11 +199,50 @@ func _exit_tree():
 func _process(delta):
 	_update_combo_timer(delta)
 	_update_skill_cooldown(delta)
+	_update_enemy_cache(delta)  # Update cached enemy list periodically
 	_scan_cone_hitbox()  # Active cone scanning each frame when attacking
 	_update_swing_trail()  # Update weapon trail
 	_update_walk_animation(delta)  # Weapon bob/sway while walking
 	_correct_sprite_flip()  # Fix sprite orientation when pivot is flipped
 	_weapon_process(delta)
+
+func _update_enemy_cache(delta: float):
+	# Only update cache periodically and during attacks
+	if not _is_in_active_frames:
+		return
+
+	_cache_timer += delta
+	if _cache_timer < CACHE_UPDATE_INTERVAL:
+		return
+
+	_cache_timer = 0.0
+
+	# Get player position for distance filtering
+	if not player_reference or not is_instance_valid(player_reference):
+		return
+
+	var player_pos = player_reference.global_position
+	var max_range = attack_range + 50.0  # Add buffer for moving enemies
+
+	# Cache nearby enemies only
+	_cached_enemies.clear()
+	var all_enemies = get_tree().get_nodes_in_group("enemies")
+	for enemy in all_enemies:
+		if not is_instance_valid(enemy):
+			continue
+		var dist = player_pos.distance_to(enemy.global_position)
+		if dist <= max_range:
+			_cached_enemies.append(enemy)
+
+	# Cache nearby targetables
+	_cached_targetables.clear()
+	var all_targetables = get_tree().get_nodes_in_group("targetable")
+	for target in all_targetables:
+		if not is_instance_valid(target):
+			continue
+		var dist = player_pos.distance_to(target.global_position)
+		if dist <= max_range:
+			_cached_targetables.append(target)
 
 # ============================================
 # VIRTUAL METHODS - Override in subclasses
@@ -716,6 +760,7 @@ func _on_attack_cooldown_finished():
 # ============================================
 
 ## Active cone scanning - called every frame during attack
+## Uses cached enemy list for better performance
 func _scan_cone_hitbox():
 	# Only scan when hitbox is active (during attack active frames)
 	if not _is_in_active_frames:
@@ -724,9 +769,12 @@ func _scan_cone_hitbox():
 	if not player_reference or not is_instance_valid(player_reference):
 		return
 
-	# Scan all enemies in range
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	for enemy in enemies:
+	# On first frame of attack, do immediate cache update
+	if _cached_enemies.is_empty() and _cached_targetables.is_empty():
+		_cache_timer = CACHE_UPDATE_INTERVAL  # Force cache update
+
+	# Scan cached enemies (already filtered by distance)
+	for enemy in _cached_enemies:
 		if not is_instance_valid(enemy):
 			continue
 		if enemy in hits_this_swing:
@@ -738,9 +786,8 @@ func _scan_cone_hitbox():
 		if _is_in_attack_cone(enemy.global_position):
 			_process_hit(enemy)
 
-	# Also scan for targetable objects (portals, destructibles, etc.)
-	var targetables = get_tree().get_nodes_in_group("targetable")
-	for target in targetables:
+	# Scan cached targetables (portals, destructibles, etc.)
+	for target in _cached_targetables:
 		if not is_instance_valid(target):
 			continue
 		if target in hits_this_swing:

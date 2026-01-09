@@ -1,7 +1,7 @@
 # SCRIPT: Base.gd
 # ATTACH TO: Base (Control) root node in Base.tscn
 # LOCATION: res://Scripts/Ui/Base.gd
-# PURPOSE: Hub scene controller with tabbed interface
+# PURPOSE: Hub scene controller with modern tabbed interface
 
 extends Control
 
@@ -17,28 +17,41 @@ var training_rows: Dictionary = {}
 var all_relics: Array = []
 
 # Dynamic UI containers
-var content_container: VBoxContainer = null
+var content_container: PanelContainer = null
 var tab_button_container: HBoxContainer = null
 var gold_display_label: Label = null
 var stats_preview_label: Label = null
+var enter_arena_btn: Button = null
+
+# Animation
+var _pulse_tween: Tween = null
 
 # Training stat info (matches SaveManager.TRAINING_BONUSES)
 const TRAINING_INFO = {
-	"vitality": {"display_name": "Vitality", "color": Color(0.8, 0.3, 0.3), "bonus": "+15 HP"},
-	"strength": {"display_name": "Strength", "color": Color(0.9, 0.5, 0.2), "bonus": "+6% Dmg"},
-	"agility": {"display_name": "Agility", "color": Color(0.3, 0.8, 0.4), "bonus": "+5% Spd"},
-	"reflexes": {"display_name": "Reflexes", "color": Color(0.3, 0.6, 0.9), "bonus": "-4% CD"},
-	"fortune": {"display_name": "Fortune", "color": Color(0.9, 0.8, 0.2), "bonus": "+10 Gold"}
+	"vitality": {"display_name": "Vitality", "color": Color(0.9, 0.35, 0.35), "icon": "HP", "bonus": "+15 HP"},
+	"strength": {"display_name": "Strength", "color": Color(1.0, 0.6, 0.2), "icon": "DMG", "bonus": "+6% Dmg"},
+	"agility": {"display_name": "Agility", "color": Color(0.35, 0.9, 0.5), "icon": "SPD", "bonus": "+5% Spd"},
+	"reflexes": {"display_name": "Reflexes", "color": Color(0.4, 0.7, 1.0), "icon": "CD", "bonus": "-4% CD"},
+	"fortune": {"display_name": "Fortune", "color": Color(1.0, 0.85, 0.3), "icon": "GOLD", "bonus": "+10 Gold"}
 }
 
 # Enemy info for bestiary
 const ENEMY_INFO = {
-	"slime": {"emoji": "🟢", "color": Color(0.0, 1.0, 0.0), "name": "Slime"},
-	"goblin_archer": {"emoji": "🏹", "color": Color(0.18, 0.31, 0.09), "name": "Goblin Archer"},
-	"healer": {"emoji": "✚", "color": Color(0.2, 0.8, 0.4), "name": "Healer"},
-	"spawner": {"emoji": "👁️", "color": Color(0.5, 0.2, 0.6), "name": "Spawner"},
-	"unknown": {"emoji": "❓", "color": Color.GRAY, "name": "Unknown"}
+	"slime": {"emoji": "", "color": Color(0.3, 0.9, 0.4), "name": "Slime", "desc": "Basic enemy"},
+	"goblin_dual": {"emoji": "", "color": Color(0.6, 0.4, 0.3), "name": "Goblin Warrior", "desc": "Melee fighter"},
+	"goblin_archer": {"emoji": "", "color": Color(0.5, 0.6, 0.3), "name": "Goblin Archer", "desc": "Ranged attacker"},
+	"healer": {"emoji": "", "color": Color(0.3, 0.9, 0.6), "name": "Healer", "desc": "Heals allies"},
+	"spawner": {"emoji": "", "color": Color(0.6, 0.3, 0.7), "name": "Spawner", "desc": "Summons minions"},
+	"boss": {"emoji": "", "color": Color(0.9, 0.2, 0.2), "name": "Chaos Champion", "desc": "Arena boss"},
+	"unknown": {"emoji": "?", "color": Color.GRAY, "name": "Unknown", "desc": "???"}
 }
+
+# Colors
+const BG_COLOR = Color(0.06, 0.05, 0.09)
+const PANEL_BG = Color(0.09, 0.07, 0.12)
+const PANEL_BORDER = Color(0.25, 0.2, 0.35)
+const ACCENT_COLOR = Color(0.9, 0.7, 0.3)
+const TEXT_DIM = Color(0.5, 0.5, 0.55)
 
 func _ready():
 	# Connect signals
@@ -49,6 +62,9 @@ func _ready():
 
 	# Build the entire UI dynamically
 	_build_hub_ui()
+
+	# Start pulse animation for enter button
+	_start_enter_button_pulse()
 
 func _load_all_relics():
 	var dir = DirAccess.open("res://Resources/Relics")
@@ -72,23 +88,26 @@ func _build_hub_ui():
 	for child in get_children():
 		child.queue_free()
 
-	# Background
+	# Background with gradient effect
 	var bg = ColorRect.new()
-	bg.color = Color(0.08, 0.06, 0.12, 1)
+	bg.color = BG_COLOR
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+
+	# Add subtle background particles
+	_add_background_effects()
 
 	# Main margin container
 	var margin = MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 40)
-	margin.add_theme_constant_override("margin_right", 40)
-	margin.add_theme_constant_override("margin_top", 20)
-	margin.add_theme_constant_override("margin_bottom", 20)
+	margin.add_theme_constant_override("margin_left", 50)
+	margin.add_theme_constant_override("margin_right", 50)
+	margin.add_theme_constant_override("margin_top", 25)
+	margin.add_theme_constant_override("margin_bottom", 25)
 	add_child(margin)
 
 	var main_vbox = VBoxContainer.new()
-	main_vbox.add_theme_constant_override("separation", 15)
+	main_vbox.add_theme_constant_override("separation", 20)
 	margin.add_child(main_vbox)
 
 	# === HEADER ===
@@ -100,75 +119,212 @@ func _build_hub_ui():
 	main_vbox.add_child(tab_button_container)
 
 	# === CONTENT AREA ===
-	content_container = VBoxContainer.new()
+	content_container = PanelContainer.new()
 	content_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var content_style = _create_panel_style(PANEL_BG, PANEL_BORDER, 12)
+	content_container.add_theme_stylebox_override("panel", content_style)
 	main_vbox.add_child(content_container)
 
-	# === BOTTOM BAR (Enter Arena) ===
+	# === BOTTOM BAR ===
 	var bottom = _create_bottom_bar()
 	main_vbox.add_child(bottom)
 
 	# Show main tab by default
 	_switch_tab("main")
 
+func _add_background_effects():
+	# Floating particles for atmosphere
+	var particle_container = Control.new()
+	particle_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	particle_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(particle_container)
+
+	for i in range(15):
+		var particle = ColorRect.new()
+		particle.size = Vector2(3, 3)
+		particle.color = Color(ACCENT_COLOR.r, ACCENT_COLOR.g, ACCENT_COLOR.b, randf_range(0.05, 0.15))
+		particle.position = Vector2(randf_range(0, 1280), randf_range(0, 720))
+		particle_container.add_child(particle)
+		_animate_bg_particle(particle)
+
+func _animate_bg_particle(particle: ColorRect):
+	var duration = randf_range(10, 18)
+	var tween = create_tween().set_loops()
+	tween.tween_property(particle, "position:y", particle.position.y - 150, duration)
+	tween.tween_property(particle, "position:y", particle.position.y, duration)
+
+func _create_panel_style(bg_color: Color, border_color: Color, corner_radius: int = 8) -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = bg_color
+	style.border_color = border_color
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(corner_radius)
+	style.content_margin_left = 20
+	style.content_margin_right = 20
+	style.content_margin_top = 15
+	style.content_margin_bottom = 15
+	return style
+
 func _create_header() -> HBoxContainer:
 	var header = HBoxContainer.new()
 	header.add_theme_constant_override("separation", 20)
 
+	# Left side - Title with decoration
+	var title_container = HBoxContainer.new()
+	title_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_container.add_theme_constant_override("separation", 15)
+	header.add_child(title_container)
+
+	# Decorative line left
+	var line_left = ColorRect.new()
+	line_left.custom_minimum_size = Vector2(40, 3)
+	line_left.color = ACCENT_COLOR
+	line_left.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	title_container.add_child(line_left)
+
 	# Title
 	var title = Label.new()
 	title.text = "THE BASE"
-	title.add_theme_color_override("font_color", Color(0.9, 0.8, 0.6))
-	title.add_theme_font_size_override("font_size", 36)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(title)
+	title.add_theme_color_override("font_color", ACCENT_COLOR)
+	title.add_theme_font_size_override("font_size", 42)
+	title_container.add_child(title)
 
-	# Gold display
+	# Decorative line right
+	var line_right = ColorRect.new()
+	line_right.custom_minimum_size = Vector2(40, 3)
+	line_right.color = ACCENT_COLOR
+	line_right.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	title_container.add_child(line_right)
+
+	# Right side - Gold display panel
+	var gold_panel = PanelContainer.new()
+	var gold_style = _create_panel_style(Color(0.12, 0.1, 0.08), Color(0.8, 0.65, 0.2), 8)
+	gold_style.content_margin_left = 15
+	gold_style.content_margin_right = 15
+	gold_style.content_margin_top = 8
+	gold_style.content_margin_bottom = 8
+	gold_panel.add_theme_stylebox_override("panel", gold_style)
+	header.add_child(gold_panel)
+
+	var gold_hbox = HBoxContainer.new()
+	gold_hbox.add_theme_constant_override("separation", 8)
+	gold_panel.add_child(gold_hbox)
+
+	var gold_icon = Label.new()
+	gold_icon.text = "GOLD"
+	gold_icon.add_theme_font_size_override("font_size", 14)
+	gold_icon.add_theme_color_override("font_color", Color(0.7, 0.55, 0.2))
+	gold_hbox.add_child(gold_icon)
+
 	gold_display_label = Label.new()
 	gold_display_label.name = "GoldDisplay"
-	gold_display_label.text = "💰 %d" % SaveManager.get_gold()
+	gold_display_label.text = "%d" % SaveManager.get_gold()
 	gold_display_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
-	gold_display_label.add_theme_font_size_override("font_size", 24)
-	header.add_child(gold_display_label)
+	gold_display_label.add_theme_font_size_override("font_size", 28)
+	gold_hbox.add_child(gold_display_label)
 
 	return header
 
 func _create_tab_buttons() -> HBoxContainer:
+	var outer_container = HBoxContainer.new()
+	outer_container.alignment = BoxContainer.ALIGNMENT_CENTER
+
 	var container = HBoxContainer.new()
-	container.add_theme_constant_override("separation", 10)
-	container.alignment = BoxContainer.ALIGNMENT_CENTER
+	container.add_theme_constant_override("separation", 8)
+	outer_container.add_child(container)
 
 	var tabs = [
-		{"id": "main", "text": "🏠 Main", "color": Color(0.9, 0.8, 0.6)},
-		{"id": "training", "text": "⚔️ Training", "color": Color(0.9, 0.5, 0.2)},
-		{"id": "relics", "text": "💎 Relics", "color": Color(0.6, 0.4, 0.9)},
-		{"id": "bestiary", "text": "📖 Bestiary", "color": Color(0.9, 0.4, 0.4)},
-		{"id": "stats", "text": "📊 Stats", "color": Color(0.4, 0.7, 0.9)}
+		{"id": "main", "text": "Overview", "color": ACCENT_COLOR},
+		{"id": "training", "text": "Training", "color": Color(1.0, 0.5, 0.2)},
+		{"id": "relics", "text": "Relics", "color": Color(0.7, 0.4, 1.0)},
+		{"id": "bestiary", "text": "Bestiary", "color": Color(0.9, 0.35, 0.35)},
+		{"id": "stats", "text": "Statistics", "color": Color(0.4, 0.75, 1.0)}
 	]
 
 	for tab_data in tabs:
 		var btn = Button.new()
 		btn.text = tab_data.text
-		btn.custom_minimum_size = Vector2(120, 40)
-		btn.add_theme_font_size_override("font_size", 16)
+		btn.custom_minimum_size = Vector2(130, 45)
+		btn.add_theme_font_size_override("font_size", 17)
+
+		# Custom button style
+		var normal_style = StyleBoxFlat.new()
+		normal_style.bg_color = Color(0.12, 0.1, 0.15)
+		normal_style.border_color = Color(0.25, 0.22, 0.3)
+		normal_style.set_border_width_all(1)
+		normal_style.set_corner_radius_all(6)
+		btn.add_theme_stylebox_override("normal", normal_style)
+
+		var hover_style = normal_style.duplicate()
+		hover_style.bg_color = Color(0.18, 0.15, 0.22)
+		hover_style.border_color = tab_data.color
+		btn.add_theme_stylebox_override("hover", hover_style)
+
 		btn.pressed.connect(_switch_tab.bind(tab_data.id))
 		container.add_child(btn)
-		tab_buttons[tab_data.id] = {"button": btn, "color": tab_data.color}
+		tab_buttons[tab_data.id] = {"button": btn, "color": tab_data.color, "normal_style": normal_style}
 
-	return container
+	return outer_container
 
 func _create_bottom_bar() -> HBoxContainer:
 	var bar = HBoxContainer.new()
 	bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	bar.add_theme_constant_override("separation", 40)
 
-	var enter_btn = Button.new()
-	enter_btn.text = "⚔️  ENTER ARENA  ⚔️"
-	enter_btn.custom_minimum_size = Vector2(250, 60)
-	enter_btn.add_theme_font_size_override("font_size", 22)
-	enter_btn.pressed.connect(_on_enter_arena_pressed)
-	bar.add_child(enter_btn)
+	# Back to Main Menu button
+	var back_btn = Button.new()
+	back_btn.text = "< Main Menu"
+	back_btn.custom_minimum_size = Vector2(160, 55)
+	back_btn.add_theme_font_size_override("font_size", 18)
+
+	var back_style = StyleBoxFlat.new()
+	back_style.bg_color = Color(0.15, 0.12, 0.18)
+	back_style.border_color = Color(0.4, 0.35, 0.5)
+	back_style.set_border_width_all(2)
+	back_style.set_corner_radius_all(8)
+	back_btn.add_theme_stylebox_override("normal", back_style)
+
+	var back_hover = back_style.duplicate()
+	back_hover.bg_color = Color(0.2, 0.17, 0.25)
+	back_hover.border_color = Color(0.6, 0.5, 0.7)
+	back_btn.add_theme_stylebox_override("hover", back_hover)
+
+	back_btn.pressed.connect(_on_back_to_menu_pressed)
+	bar.add_child(back_btn)
+
+	# Enter Arena button - Main CTA
+	enter_arena_btn = Button.new()
+	enter_arena_btn.text = "ENTER ARENA"
+	enter_arena_btn.custom_minimum_size = Vector2(280, 65)
+	enter_arena_btn.add_theme_font_size_override("font_size", 26)
+
+	var enter_style = StyleBoxFlat.new()
+	enter_style.bg_color = Color(0.7, 0.25, 0.2)
+	enter_style.border_color = Color(1.0, 0.5, 0.3)
+	enter_style.set_border_width_all(3)
+	enter_style.set_corner_radius_all(10)
+	enter_arena_btn.add_theme_stylebox_override("normal", enter_style)
+
+	var enter_hover = enter_style.duplicate()
+	enter_hover.bg_color = Color(0.85, 0.3, 0.25)
+	enter_hover.border_color = Color(1.0, 0.7, 0.4)
+	enter_arena_btn.add_theme_stylebox_override("hover", enter_hover)
+
+	enter_arena_btn.add_theme_color_override("font_color", Color.WHITE)
+	enter_arena_btn.pressed.connect(_on_enter_arena_pressed)
+	bar.add_child(enter_arena_btn)
 
 	return bar
+
+func _start_enter_button_pulse():
+	if not enter_arena_btn:
+		return
+	_pulse_tween = create_tween().set_loops()
+	_pulse_tween.tween_property(enter_arena_btn, "modulate", Color(1.1, 1.1, 1.1), 0.8).set_ease(Tween.EASE_IN_OUT)
+	_pulse_tween.tween_property(enter_arena_btn, "modulate", Color(1.0, 1.0, 1.0), 0.8).set_ease(Tween.EASE_IN_OUT)
+
+func _on_back_to_menu_pressed():
+	get_tree().change_scene_to_file("res://Scenes/Main/MainMenu.tscn")
 
 # ============================================
 # TAB SWITCHING
@@ -179,11 +335,21 @@ func _switch_tab(tab_id: String):
 
 	# Update button styles
 	for id in tab_buttons:
-		var btn = tab_buttons[id].button
+		var btn_data = tab_buttons[id]
+		var btn = btn_data.button
 		if id == tab_id:
-			btn.modulate = tab_buttons[id].color
+			# Active tab style
+			var active_style = StyleBoxFlat.new()
+			active_style.bg_color = Color(btn_data.color.r * 0.25, btn_data.color.g * 0.25, btn_data.color.b * 0.25)
+			active_style.border_color = btn_data.color
+			active_style.set_border_width_all(2)
+			active_style.set_corner_radius_all(6)
+			btn.add_theme_stylebox_override("normal", active_style)
+			btn.add_theme_color_override("font_color", btn_data.color)
 		else:
-			btn.modulate = Color(0.6, 0.6, 0.6)
+			# Inactive tab style
+			btn.add_theme_stylebox_override("normal", btn_data.normal_style)
+			btn.add_theme_color_override("font_color", TEXT_DIM)
 
 	# Clear old references before freeing nodes
 	training_rows.clear()
@@ -214,66 +380,140 @@ func _switch_tab(tab_id: String):
 # ============================================
 
 func _build_main_tab():
-	var panel = PanelContainer.new()
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content_container.add_child(panel)
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_container.add_child(scroll)
 
 	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 20)
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	panel.add_child(vbox)
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_theme_constant_override("separation", 25)
+	scroll.add_child(vbox)
 
-	# Welcome message
-	var welcome = Label.new()
-	welcome.text = "Welcome, Warrior!"
-	welcome.add_theme_font_size_override("font_size", 28)
-	welcome.add_theme_color_override("font_color", Color(0.9, 0.8, 0.6))
-	welcome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(welcome)
+	# Welcome section
+	var welcome_panel = _create_section_panel("Welcome, Warrior!", ACCENT_COLOR)
+	vbox.add_child(welcome_panel)
 
-	# Quick stats
+	var welcome_content = welcome_panel.get_child(0)
 	var stats = SaveManager.get_statistics()
 
-	var stats_text = Label.new()
-	stats_text.text = "Highest Wave: %d  |  Total Runs: %d  |  Total Kills: %d" % [
-		stats.highest_wave, stats.total_runs, stats.total_kills
-	]
-	stats_text.add_theme_font_size_override("font_size", 16)
-	stats_text.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	stats_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(stats_text)
+	# Quick stats in a horizontal layout
+	var quick_stats = HBoxContainer.new()
+	quick_stats.alignment = BoxContainer.ALIGNMENT_CENTER
+	quick_stats.add_theme_constant_override("separation", 50)
+	welcome_content.add_child(quick_stats)
 
-	# Starting stats preview
-	var sep = HSeparator.new()
-	vbox.add_child(sep)
+	_add_stat_display(quick_stats, "Highest Wave", str(stats.highest_wave), Color(0.9, 0.75, 0.3))
+	_add_stat_display(quick_stats, "Total Runs", str(stats.total_runs), Color(0.6, 0.6, 0.7))
+	_add_stat_display(quick_stats, "Total Kills", str(stats.total_kills), Color(0.9, 0.4, 0.4))
 
-	var starting_title = Label.new()
-	starting_title.text = "Your Starting Stats:"
-	starting_title.add_theme_font_size_override("font_size", 18)
-	starting_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(starting_title)
+	# Starting stats section
+	var starting_panel = _create_section_panel("Your Starting Stats", Color(0.5, 0.8, 0.5))
+	vbox.add_child(starting_panel)
+
+	var starting_content = starting_panel.get_child(0)
 
 	var base_health = 100 + SaveManager.get_training_bonus("vitality")
 	var damage_bonus = SaveManager.get_training_bonus("strength") * 100
 	var speed_bonus = SaveManager.get_training_bonus("agility") * 100
+	var cd_reduction = SaveManager.get_training_bonus("reflexes") * 100
 	var starting_gold = int(SaveManager.get_training_bonus("fortune"))
 
-	var starting_stats = Label.new()
-	starting_stats.text = "❤️ %d HP  |  ⚔️ +%d%% Dmg  |  👟 +%d%% Spd  |  💰 %d Gold" % [
-		base_health, damage_bonus, speed_bonus, starting_gold
-	]
-	starting_stats.add_theme_font_size_override("font_size", 16)
-	starting_stats.add_theme_color_override("font_color", Color(0.5, 0.8, 0.5))
-	starting_stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(starting_stats)
+	var stats_grid = HBoxContainer.new()
+	stats_grid.alignment = BoxContainer.ALIGNMENT_CENTER
+	stats_grid.add_theme_constant_override("separation", 40)
+	starting_content.add_child(stats_grid)
 
-	# Tip
-	var tip = Label.new()
-	tip.text = "\nUse the tabs above to train stats, unlock relics, or view your bestiary!"
-	tip.add_theme_font_size_override("font_size", 14)
-	tip.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(tip)
+	_add_stat_badge(stats_grid, "HP", str(int(base_health)), TRAINING_INFO.vitality.color)
+	_add_stat_badge(stats_grid, "DMG", "+%.0f%%" % damage_bonus, TRAINING_INFO.strength.color)
+	_add_stat_badge(stats_grid, "SPD", "+%.0f%%" % speed_bonus, TRAINING_INFO.agility.color)
+	_add_stat_badge(stats_grid, "CD", "-%.0f%%" % cd_reduction, TRAINING_INFO.reflexes.color)
+	_add_stat_badge(stats_grid, "GOLD", str(starting_gold), TRAINING_INFO.fortune.color)
+
+	# Tips section
+	var tip_label = Label.new()
+	tip_label.text = "Use the tabs above to train stats, unlock relics, or view your bestiary."
+	tip_label.add_theme_font_size_override("font_size", 15)
+	tip_label.add_theme_color_override("font_color", TEXT_DIM)
+	tip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(tip_label)
+
+func _add_stat_display(parent: Control, label_text: String, value_text: String, color: Color):
+	var container = VBoxContainer.new()
+	container.add_theme_constant_override("separation", 5)
+	parent.add_child(container)
+
+	var value = Label.new()
+	value.text = value_text
+	value.add_theme_font_size_override("font_size", 36)
+	value.add_theme_color_override("font_color", color)
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	container.add_child(value)
+
+	var label = Label.new()
+	label.text = label_text
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", TEXT_DIM)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	container.add_child(label)
+
+func _add_stat_badge(parent: Control, label_text: String, value_text: String, color: Color):
+	var badge = PanelContainer.new()
+	var badge_style = StyleBoxFlat.new()
+	badge_style.bg_color = Color(color.r * 0.15, color.g * 0.15, color.b * 0.15)
+	badge_style.border_color = color
+	badge_style.set_border_width_all(2)
+	badge_style.set_corner_radius_all(8)
+	badge_style.content_margin_left = 15
+	badge_style.content_margin_right = 15
+	badge_style.content_margin_top = 10
+	badge_style.content_margin_bottom = 10
+	badge.add_theme_stylebox_override("panel", badge_style)
+	parent.add_child(badge)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 2)
+	badge.add_child(vbox)
+
+	var label = Label.new()
+	label.text = label_text
+	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_color_override("font_color", color)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(label)
+
+	var value = Label.new()
+	value.text = value_text
+	value.add_theme_font_size_override("font_size", 22)
+	value.add_theme_color_override("font_color", Color.WHITE)
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(value)
+
+func _create_section_panel(title_text: String, title_color: Color) -> PanelContainer:
+	var panel = PanelContainer.new()
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.07, 0.06, 0.1)
+	style.border_color = Color(title_color.r * 0.5, title_color.g * 0.5, title_color.b * 0.5)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 20
+	style.content_margin_right = 20
+	style.content_margin_top = 15
+	style.content_margin_bottom = 15
+	panel.add_theme_stylebox_override("panel", style)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 15)
+	panel.add_child(vbox)
+
+	var title = Label.new()
+	title.text = title_text
+	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_color_override("font_color", title_color)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title)
+
+	return panel
 
 # ============================================
 # TRAINING TAB
@@ -282,96 +522,208 @@ func _build_main_tab():
 func _build_training_tab():
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_container.add_child(scroll)
 
 	var vbox = VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", 10)
+	vbox.add_theme_constant_override("separation", 15)
 	scroll.add_child(vbox)
 
-	# Title
+	# Header
+	var header = HBoxContainer.new()
+	header.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_child(header)
+
 	var title = Label.new()
 	title.text = "TRAINING GROUNDS"
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", Color(0.9, 0.5, 0.2))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(title)
+	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", Color(1.0, 0.5, 0.2))
+	header.add_child(title)
 
 	var subtitle = Label.new()
-	subtitle.text = "Spend gold to permanently increase your starting stats"
-	subtitle.add_theme_font_size_override("font_size", 14)
-	subtitle.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	subtitle.text = "Permanently increase your starting stats with gold"
+	subtitle.add_theme_font_size_override("font_size", 15)
+	subtitle.add_theme_color_override("font_color", TEXT_DIM)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(subtitle)
 
-	vbox.add_child(HSeparator.new())
-
-	# Current stats preview panel
-	var stats_panel = PanelContainer.new()
-	var stats_style = StyleBoxFlat.new()
-	stats_style.bg_color = Color(0.12, 0.1, 0.15)
-	stats_style.border_color = Color(0.3, 0.25, 0.4)
-	stats_style.set_border_width_all(1)
-	stats_style.set_corner_radius_all(6)
-	stats_style.content_margin_left = 15
-	stats_style.content_margin_right = 15
-	stats_style.content_margin_top = 10
-	stats_style.content_margin_bottom = 10
-	stats_panel.add_theme_stylebox_override("panel", stats_style)
-	vbox.add_child(stats_panel)
-
-	var stats_vbox = VBoxContainer.new()
-	stats_vbox.add_theme_constant_override("separation", 5)
-	stats_panel.add_child(stats_vbox)
-
-	var stats_title = Label.new()
-	stats_title.text = "Your Starting Stats"
-	stats_title.add_theme_font_size_override("font_size", 16)
-	stats_title.add_theme_color_override("font_color", Color(0.8, 0.7, 0.5))
-	stats_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stats_vbox.add_child(stats_title)
+	# Stats preview panel
+	var preview_panel = PanelContainer.new()
+	var preview_style = StyleBoxFlat.new()
+	preview_style.bg_color = Color(0.08, 0.07, 0.11)
+	preview_style.border_color = Color(0.4, 0.35, 0.5)
+	preview_style.set_border_width_all(1)
+	preview_style.set_corner_radius_all(8)
+	preview_style.content_margin_left = 20
+	preview_style.content_margin_right = 20
+	preview_style.content_margin_top = 12
+	preview_style.content_margin_bottom = 12
+	preview_panel.add_theme_stylebox_override("panel", preview_style)
+	vbox.add_child(preview_panel)
 
 	stats_preview_label = Label.new()
 	stats_preview_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stats_preview_label.add_theme_font_size_override("font_size", 15)
+	stats_preview_label.add_theme_font_size_override("font_size", 16)
 	stats_preview_label.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6))
-	stats_vbox.add_child(stats_preview_label)
+	preview_panel.add_child(stats_preview_label)
 	_update_stats_preview()
 
-	vbox.add_child(HSeparator.new())
+	# Separator
+	var sep = HSeparator.new()
+	sep.add_theme_color_override("separation", Color(0.2, 0.18, 0.25))
+	vbox.add_child(sep)
 
-	# Training rows
+	# Training cards
 	training_rows.clear()
 	for stat_name in ["vitality", "strength", "agility", "reflexes", "fortune"]:
-		var row = _create_training_row(stat_name)
-		vbox.add_child(row)
-		training_rows[stat_name] = row
+		var card = _create_training_card(stat_name)
+		vbox.add_child(card)
+		training_rows[stat_name] = card
 
-	vbox.add_child(HSeparator.new())
-
-	# Reset Training Button
+	# Reset button
 	var reset_container = HBoxContainer.new()
 	reset_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(reset_container)
 
 	var reset_btn = Button.new()
-	reset_btn.text = "Reset Training & Refund Gold"
-	reset_btn.custom_minimum_size = Vector2(250, 40)
+	reset_btn.text = "Reset All & Refund Gold"
+	reset_btn.custom_minimum_size = Vector2(220, 45)
+	reset_btn.add_theme_font_size_override("font_size", 16)
+
+	var reset_style = StyleBoxFlat.new()
+	reset_style.bg_color = Color(0.35, 0.1, 0.1)
+	reset_style.border_color = Color(0.7, 0.25, 0.2)
+	reset_style.set_border_width_all(2)
+	reset_style.set_corner_radius_all(6)
+	reset_btn.add_theme_stylebox_override("normal", reset_style)
+
+	var reset_hover = reset_style.duplicate()
+	reset_hover.bg_color = Color(0.5, 0.15, 0.12)
+	reset_btn.add_theme_stylebox_override("hover", reset_hover)
+
 	reset_btn.pressed.connect(_on_reset_training_pressed)
-
-	# Style it red to indicate caution
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.4, 0.1, 0.1)
-	style.border_color = Color(0.8, 0.2, 0.2)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
-	reset_btn.add_theme_stylebox_override("normal", style)
-
-	var hover_style = style.duplicate()
-	hover_style.bg_color = Color(0.6, 0.15, 0.15)
-	reset_btn.add_theme_stylebox_override("hover", hover_style)
-
 	reset_container.add_child(reset_btn)
+
+func _create_training_card(stat_name: String) -> PanelContainer:
+	var info = TRAINING_INFO[stat_name]
+	var level = SaveManager.get_training_level(stat_name)
+	var cost = SaveManager.get_training_cost(stat_name)
+
+	var card = PanelContainer.new()
+	var card_style = StyleBoxFlat.new()
+	card_style.bg_color = Color(info.color.r * 0.08, info.color.g * 0.08, info.color.b * 0.08)
+	card_style.border_color = Color(info.color.r * 0.4, info.color.g * 0.4, info.color.b * 0.4)
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(10)
+	card_style.content_margin_left = 20
+	card_style.content_margin_right = 20
+	card_style.content_margin_top = 12
+	card_style.content_margin_bottom = 12
+	card.add_theme_stylebox_override("panel", card_style)
+
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 20)
+	card.add_child(hbox)
+
+	# Icon/indicator
+	var icon_panel = PanelContainer.new()
+	var icon_style = StyleBoxFlat.new()
+	icon_style.bg_color = info.color
+	icon_style.set_corner_radius_all(6)
+	icon_style.content_margin_left = 10
+	icon_style.content_margin_right = 10
+	icon_style.content_margin_top = 8
+	icon_style.content_margin_bottom = 8
+	icon_panel.add_theme_stylebox_override("panel", icon_style)
+	hbox.add_child(icon_panel)
+
+	var icon_label = Label.new()
+	icon_label.text = info.icon
+	icon_label.add_theme_font_size_override("font_size", 14)
+	icon_label.add_theme_color_override("font_color", Color.WHITE)
+	icon_panel.add_child(icon_label)
+
+	# Stat info
+	var info_vbox = VBoxContainer.new()
+	info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_vbox.add_theme_constant_override("separation", 3)
+	hbox.add_child(info_vbox)
+
+	var name_label = Label.new()
+	name_label.text = info.display_name
+	name_label.add_theme_color_override("font_color", info.color)
+	name_label.add_theme_font_size_override("font_size", 20)
+	info_vbox.add_child(name_label)
+
+	var bonus_label = Label.new()
+	bonus_label.text = "%s per level" % info.bonus
+	bonus_label.add_theme_font_size_override("font_size", 14)
+	bonus_label.add_theme_color_override("font_color", TEXT_DIM)
+	info_vbox.add_child(bonus_label)
+
+	# Level progress
+	var level_container = VBoxContainer.new()
+	level_container.add_theme_constant_override("separation", 5)
+	hbox.add_child(level_container)
+
+	var level_label = Label.new()
+	level_label.name = "Level"
+	level_label.text = "Level %d / 5" % level
+	level_label.add_theme_font_size_override("font_size", 16)
+	level_label.add_theme_color_override("font_color", Color.WHITE)
+	level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	level_container.add_child(level_label)
+
+	# Level dots
+	var dots_container = HBoxContainer.new()
+	dots_container.add_theme_constant_override("separation", 5)
+	dots_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	level_container.add_child(dots_container)
+
+	for i in range(5):
+		var dot = ColorRect.new()
+		dot.custom_minimum_size = Vector2(12, 12)
+		if i < level:
+			dot.color = info.color
+		else:
+			dot.color = Color(0.2, 0.18, 0.25)
+		dots_container.add_child(dot)
+
+	# Upgrade button
+	var btn = Button.new()
+	btn.name = "UpgradeBtn"
+	btn.custom_minimum_size = Vector2(110, 45)
+	btn.add_theme_font_size_override("font_size", 16)
+
+	if cost < 0:
+		btn.text = "MAX"
+		btn.disabled = true
+		var max_style = StyleBoxFlat.new()
+		max_style.bg_color = Color(0.15, 0.15, 0.15)
+		max_style.border_color = Color(0.3, 0.3, 0.3)
+		max_style.set_border_width_all(1)
+		max_style.set_corner_radius_all(6)
+		btn.add_theme_stylebox_override("disabled", max_style)
+	else:
+		btn.text = "%d G" % cost
+		btn.disabled = SaveManager.get_gold() < cost
+
+		var btn_style = StyleBoxFlat.new()
+		btn_style.bg_color = Color(0.2, 0.18, 0.12)
+		btn_style.border_color = Color(0.7, 0.6, 0.3)
+		btn_style.set_border_width_all(2)
+		btn_style.set_corner_radius_all(6)
+		btn.add_theme_stylebox_override("normal", btn_style)
+
+		var btn_hover = btn_style.duplicate()
+		btn_hover.bg_color = Color(0.3, 0.25, 0.15)
+		btn.add_theme_stylebox_override("hover", btn_hover)
+
+	btn.pressed.connect(_on_training_upgrade.bind(stat_name))
+	hbox.add_child(btn)
+
+	return card
 
 func _update_stats_preview():
 	if not stats_preview_label or not is_instance_valid(stats_preview_label):
@@ -382,106 +734,39 @@ func _update_stats_preview():
 	var cd_reduction = SaveManager.get_training_bonus("reflexes") * 100
 	var starting_gold = int(SaveManager.get_training_bonus("fortune"))
 
-	stats_preview_label.text = "❤️ %d HP  |  ⚔️ +%.0f%% Dmg  |  👟 +%.0f%% Spd  |  ⏱️ -%.0f%% CD  |  💰 %d Gold" % [
+	stats_preview_label.text = "Starting: %d HP | +%.0f%% Damage | +%.0f%% Speed | -%.0f%% Cooldown | %d Gold" % [
 		base_health, damage_bonus, speed_bonus, cd_reduction, starting_gold
 	]
 
-func _create_training_row(stat_name: String) -> HBoxContainer:
-	var info = TRAINING_INFO[stat_name]
-	var level = SaveManager.get_training_level(stat_name)
-	var cost = SaveManager.get_training_cost(stat_name)
-
-	var row = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 15)
-
-	# Stat name
-	var name_label = Label.new()
-	name_label.text = info.display_name
-	name_label.add_theme_color_override("font_color", info.color)
-	name_label.add_theme_font_size_override("font_size", 18)
-	name_label.custom_minimum_size.x = 120
-	row.add_child(name_label)
-
-	# Bonus description
-	var bonus_label = Label.new()
-	bonus_label.text = "(%s per level)" % info.bonus
-	bonus_label.add_theme_font_size_override("font_size", 14)
-	bonus_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
-	bonus_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(bonus_label)
-
-	# Level display
-	var level_label = Label.new()
-	level_label.name = "Level"
-	level_label.text = "Lv. %d/5" % level
-	level_label.add_theme_font_size_override("font_size", 16)
-	level_label.custom_minimum_size.x = 80
-	row.add_child(level_label)
-
-	# Upgrade button
-	var btn = Button.new()
-	btn.name = "UpgradeBtn"
-	btn.custom_minimum_size = Vector2(100, 35)
-	if cost < 0:
-		btn.text = "MAX"
-		btn.disabled = true
-	else:
-		btn.text = "%d 💰" % cost
-		btn.disabled = SaveManager.get_gold() < cost
-	btn.pressed.connect(_on_training_upgrade.bind(stat_name))
-	row.add_child(btn)
-
-	return row
-
 func _on_training_upgrade(stat_name: String):
 	if SaveManager.upgrade_training(stat_name):
-		_update_training_row(stat_name)
-		_update_stats_preview()
+		# Rebuild the training tab to update visuals
+		_switch_tab("training")
 
 func _on_reset_training_pressed():
 	var refund = SaveManager.reset_training_and_refund()
 	if refund > 0:
 		print("[Base] Reset training, refunded %d gold" % refund)
-	# Update all training rows
-	for stat in training_rows:
-		_update_training_row(stat)
-	_update_stats_preview()
-
-func _update_training_row(stat_name: String):
-	if not training_rows.has(stat_name):
-		return
-	var row = training_rows[stat_name]
-	if not is_instance_valid(row):
-		return
-
-	var level = SaveManager.get_training_level(stat_name)
-	var cost = SaveManager.get_training_cost(stat_name)
-
-	var level_label = row.get_node_or_null("Level")
-	if level_label and is_instance_valid(level_label):
-		level_label.text = "Lv. %d/5" % level
-
-	var btn = row.get_node_or_null("UpgradeBtn")
-	if btn and is_instance_valid(btn):
-		if cost < 0:
-			btn.text = "MAX"
-			btn.disabled = true
-		else:
-			btn.text = "%d 💰" % cost
-			btn.disabled = SaveManager.get_gold() < cost
+	_switch_tab("training")
 
 func _update_training_buttons():
-	# Only update button enabled states based on gold
-	# Check if we're on the training tab and nodes are valid
 	if current_tab != "training" or training_rows.is_empty():
 		return
 
 	for stat_name in training_rows:
-		var row = training_rows[stat_name]
-		if not is_instance_valid(row):
+		var card = training_rows[stat_name]
+		if not is_instance_valid(card):
 			continue
 		var cost = SaveManager.get_training_cost(stat_name)
-		var btn = row.get_node_or_null("UpgradeBtn")
+		var btn = card.get_node_or_null("HBoxContainer/UpgradeBtn") if card.has_node("HBoxContainer/UpgradeBtn") else null
+		if not btn:
+			# Try to find button in the card
+			for child in card.get_children():
+				if child is HBoxContainer:
+					for subchild in child.get_children():
+						if subchild.name == "UpgradeBtn":
+							btn = subchild
+							break
 		if btn and is_instance_valid(btn) and cost >= 0:
 			btn.disabled = SaveManager.get_gold() < cost
 
@@ -492,35 +777,50 @@ func _update_training_buttons():
 func _build_relics_tab():
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_container.add_child(scroll)
 
 	var vbox = VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", 10)
+	vbox.add_theme_constant_override("separation", 15)
 	scroll.add_child(vbox)
 
-	# Title
+	# Header
 	var title = Label.new()
 	title.text = "RELIC SHRINE"
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", Color(0.6, 0.4, 0.9))
+	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", Color(0.7, 0.4, 1.0))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
 
 	var subtitle = Label.new()
 	subtitle.text = "Unlock relics to find them during your runs"
-	subtitle.add_theme_font_size_override("font_size", 14)
-	subtitle.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	subtitle.add_theme_font_size_override("font_size", 15)
+	subtitle.add_theme_color_override("font_color", TEXT_DIM)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(subtitle)
 
-	vbox.add_child(HSeparator.new())
+	# Relic count
+	var unlocked_count = 0
+	for relic in all_relics:
+		if SaveManager.is_relic_unlocked(relic.id) or relic.unlock_cost == 0:
+			unlocked_count += 1
+
+	var count_label = Label.new()
+	count_label.text = "Unlocked: %d / %d" % [unlocked_count, all_relics.size()]
+	count_label.add_theme_font_size_override("font_size", 16)
+	count_label.add_theme_color_override("font_color", Color(0.6, 0.5, 0.8))
+	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(count_label)
+
+	var sep = HSeparator.new()
+	vbox.add_child(sep)
 
 	# Relic grid
 	var grid = GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 15)
-	grid.add_theme_constant_override("v_separation", 15)
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
 	vbox.add_child(grid)
 
 	for relic in all_relics:
@@ -528,58 +828,78 @@ func _build_relics_tab():
 		grid.add_child(card)
 
 func _create_relic_card(relic: Resource) -> PanelContainer:
+	var is_unlocked = SaveManager.is_relic_unlocked(relic.id) or relic.unlock_cost == 0
+
 	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(280, 100)
+	card.custom_minimum_size = Vector2(200, 0)
 
-	var hbox = HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 10)
-	card.add_child(hbox)
+	var card_style = StyleBoxFlat.new()
+	if is_unlocked:
+		card_style.bg_color = Color(0.1, 0.08, 0.15)
+		card_style.border_color = Color(0.5, 0.4, 0.7)
+	else:
+		card_style.bg_color = Color(0.06, 0.05, 0.08)
+		card_style.border_color = Color(0.25, 0.22, 0.3)
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(8)
+	card_style.content_margin_left = 12
+	card_style.content_margin_right = 12
+	card_style.content_margin_top = 10
+	card_style.content_margin_bottom = 10
+	card.add_theme_stylebox_override("panel", card_style)
 
-	# Emoji icon
-	var emoji = Label.new()
-	emoji.text = relic.emoji
-	emoji.add_theme_font_size_override("font_size", 32)
-	hbox.add_child(emoji)
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	card.add_child(vbox)
 
-	var info_vbox = VBoxContainer.new()
-	info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hbox.add_child(info_vbox)
+	# Name row
+	var name_row = HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 8)
+	vbox.add_child(name_row)
 
-	# Name
+	var emoji_label = Label.new()
+	emoji_label.text = relic.emoji if relic.emoji != "" else "?"
+	emoji_label.add_theme_font_size_override("font_size", 24)
+	name_row.add_child(emoji_label)
+
 	var name_label = Label.new()
 	name_label.text = relic.relic_name if relic.relic_name else relic.id
-	name_label.add_theme_color_override("font_color", relic.get_rarity_color() if relic.has_method("get_rarity_color") else Color.WHITE)
-	name_label.add_theme_font_size_override("font_size", 16)
-	info_vbox.add_child(name_label)
+	var relic_color = relic.get_rarity_color() if relic.has_method("get_rarity_color") else Color.WHITE
+	if not is_unlocked:
+		relic_color = relic_color.darkened(0.5)
+	name_label.add_theme_color_override("font_color", relic_color)
+	name_label.add_theme_font_size_override("font_size", 15)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_row.add_child(name_label)
 
-	# Effect
+	# Effect description
 	var effect = Label.new()
-	effect.text = relic.effect_description
+	effect.text = relic.effect_description if is_unlocked else "???"
 	effect.add_theme_font_size_override("font_size", 12)
-	effect.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	info_vbox.add_child(effect)
+	effect.add_theme_color_override("font_color", TEXT_DIM if is_unlocked else Color(0.3, 0.3, 0.35))
+	effect.autowrap_mode = TextServer.AUTOWRAP_WORD
+	vbox.add_child(effect)
 
-	# Status/Button
-	var is_unlocked = SaveManager.is_relic_unlocked(relic.id)
-	if is_unlocked or relic.unlock_cost == 0:
+	# Status or unlock button
+	if is_unlocked:
 		var status = Label.new()
-		status.text = "✓ UNLOCKED" if is_unlocked else "✓ FREE"
-		status.add_theme_color_override("font_color", Color.GREEN)
+		status.text = "UNLOCKED"
+		status.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))
 		status.add_theme_font_size_override("font_size", 12)
-		info_vbox.add_child(status)
+		vbox.add_child(status)
 	else:
 		var btn = Button.new()
-		btn.text = "Unlock: %d 💰" % relic.unlock_cost
+		btn.text = "Unlock: %d G" % relic.unlock_cost
 		btn.disabled = SaveManager.get_gold() < relic.unlock_cost
+		btn.add_theme_font_size_override("font_size", 13)
 		btn.pressed.connect(_on_unlock_relic.bind(relic))
-		info_vbox.add_child(btn)
+		vbox.add_child(btn)
 
 	return card
 
 func _on_unlock_relic(relic: Resource):
 	if SaveManager.spend_gold(relic.unlock_cost):
 		SaveManager.unlock_relic(relic.id)
-		# Rebuild the relics tab properly through switch_tab
 		_switch_tab("relics")
 
 # ============================================
@@ -589,40 +909,64 @@ func _on_unlock_relic(relic: Resource):
 func _build_bestiary_tab():
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_container.add_child(scroll)
 
 	var vbox = VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", 10)
+	vbox.add_theme_constant_override("separation", 15)
 	scroll.add_child(vbox)
 
-	# Title
+	# Header
 	var title = Label.new()
 	title.text = "BESTIARY"
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))
+	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", Color(0.9, 0.35, 0.35))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
 
 	var subtitle = Label.new()
-	subtitle.text = "Enemies you have slain"
-	subtitle.add_theme_font_size_override("font_size", 14)
-	subtitle.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	subtitle.text = "Creatures you have defeated"
+	subtitle.add_theme_font_size_override("font_size", 15)
+	subtitle.add_theme_color_override("font_color", TEXT_DIM)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(subtitle)
-
-	vbox.add_child(HSeparator.new())
 
 	var bestiary = SaveManager.get_bestiary()
 
 	if bestiary.is_empty():
 		var placeholder = Label.new()
-		placeholder.text = "\n\nNo enemies slain yet.\n\nEnter the arena to fill your bestiary!"
-		placeholder.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		placeholder.text = "\n\nNo enemies defeated yet.\n\nEnter the arena to begin your hunt!"
+		placeholder.add_theme_color_override("font_color", TEXT_DIM)
 		placeholder.add_theme_font_size_override("font_size", 16)
 		placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vbox.add_child(placeholder)
 		return
+
+	# Total kills
+	var total = SaveManager.get_total_bestiary_kills()
+	var total_panel = PanelContainer.new()
+	var total_style = StyleBoxFlat.new()
+	total_style.bg_color = Color(0.12, 0.08, 0.08)
+	total_style.border_color = Color(0.6, 0.3, 0.3)
+	total_style.set_border_width_all(1)
+	total_style.set_corner_radius_all(8)
+	total_style.content_margin_left = 20
+	total_style.content_margin_right = 20
+	total_style.content_margin_top = 10
+	total_style.content_margin_bottom = 10
+	total_panel.add_theme_stylebox_override("panel", total_style)
+	vbox.add_child(total_panel)
+
+	var total_label = Label.new()
+	total_label.text = "Total Kills: %d" % total
+	total_label.add_theme_font_size_override("font_size", 22)
+	total_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
+	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	total_panel.add_child(total_label)
+
+	var sep = HSeparator.new()
+	vbox.add_child(sep)
 
 	# Sort by kills
 	var sorted_enemies: Array = []
@@ -630,124 +974,190 @@ func _build_bestiary_tab():
 		sorted_enemies.append({"type": enemy_type, "kills": bestiary[enemy_type]})
 	sorted_enemies.sort_custom(func(a, b): return a.kills > b.kills)
 
-	# Enemy entries
+	# Enemy cards
 	for entry in sorted_enemies:
-		var row = _create_bestiary_row(entry.type, entry.kills)
-		vbox.add_child(row)
+		var card = _create_bestiary_card(entry.type, entry.kills)
+		vbox.add_child(card)
 
-	vbox.add_child(HSeparator.new())
-
-	# Total
-	var total = Label.new()
-	total.text = "Total Kills: %d" % SaveManager.get_total_bestiary_kills()
-	total.add_theme_font_size_override("font_size", 18)
-	total.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
-	total.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(total)
-
-func _create_bestiary_row(enemy_type: String, kills: int) -> HBoxContainer:
+func _create_bestiary_card(enemy_type: String, kills: int) -> PanelContainer:
 	var info = ENEMY_INFO.get(enemy_type, ENEMY_INFO["unknown"])
 
-	var row = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 15)
+	var card = PanelContainer.new()
+	var card_style = StyleBoxFlat.new()
+	card_style.bg_color = Color(info.color.r * 0.1, info.color.g * 0.1, info.color.b * 0.1)
+	card_style.border_color = Color(info.color.r * 0.5, info.color.g * 0.5, info.color.b * 0.5)
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(8)
+	card_style.content_margin_left = 15
+	card_style.content_margin_right = 15
+	card_style.content_margin_top = 10
+	card_style.content_margin_bottom = 10
+	card.add_theme_stylebox_override("panel", card_style)
 
-	# Emoji
-	var emoji = Label.new()
-	emoji.text = info.emoji
-	emoji.add_theme_font_size_override("font_size", 28)
-	emoji.custom_minimum_size.x = 50
-	row.add_child(emoji)
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 15)
+	card.add_child(hbox)
 
-	# Name
+	# Color indicator
+	var indicator = ColorRect.new()
+	indicator.custom_minimum_size = Vector2(8, 40)
+	indicator.color = info.color
+	hbox.add_child(indicator)
+
+	# Info
+	var info_vbox = VBoxContainer.new()
+	info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_vbox.add_theme_constant_override("separation", 2)
+	hbox.add_child(info_vbox)
+
 	var name_label = Label.new()
 	name_label.text = info.name
 	name_label.add_theme_color_override("font_color", info.color)
 	name_label.add_theme_font_size_override("font_size", 18)
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(name_label)
+	info_vbox.add_child(name_label)
+
+	var desc_label = Label.new()
+	desc_label.text = info.desc
+	desc_label.add_theme_font_size_override("font_size", 13)
+	desc_label.add_theme_color_override("font_color", TEXT_DIM)
+	info_vbox.add_child(desc_label)
 
 	# Kill count
-	var count = Label.new()
-	count.text = "x%d" % kills
-	count.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
-	count.add_theme_font_size_override("font_size", 18)
-	row.add_child(count)
+	var count_container = VBoxContainer.new()
+	count_container.add_theme_constant_override("separation", 2)
+	hbox.add_child(count_container)
 
-	return row
+	var kills_label = Label.new()
+	kills_label.text = str(kills)
+	kills_label.add_theme_font_size_override("font_size", 28)
+	kills_label.add_theme_color_override("font_color", Color(1, 0.85, 0.4))
+	kills_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	count_container.add_child(kills_label)
+
+	var kills_text = Label.new()
+	kills_text.text = "kills"
+	kills_text.add_theme_font_size_override("font_size", 12)
+	kills_text.add_theme_color_override("font_color", TEXT_DIM)
+	kills_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	count_container.add_child(kills_text)
+
+	return card
 
 # ============================================
 # STATS TAB
 # ============================================
 
 func _build_stats_tab():
-	var panel = PanelContainer.new()
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content_container.add_child(panel)
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_container.add_child(scroll)
 
 	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 15)
-	panel.add_child(vbox)
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_theme_constant_override("separation", 20)
+	scroll.add_child(vbox)
 
-	# Title
+	# Header
 	var title = Label.new()
 	title.text = "STATISTICS"
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", Color(0.4, 0.7, 0.9))
+	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", Color(0.4, 0.75, 1.0))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
 
-	vbox.add_child(HSeparator.new())
-
 	var stats = SaveManager.get_statistics()
 
-	var stats_data = [
-		{"label": "Highest Wave Reached", "value": str(stats.highest_wave), "color": Color(0.9, 0.8, 0.2)},
-		{"label": "Total Runs", "value": str(stats.total_runs), "color": Color(0.7, 0.7, 0.7)},
-		{"label": "Total Kills", "value": str(stats.total_kills), "color": Color(0.9, 0.4, 0.4)},
-		{"label": "Total Gold Earned", "value": str(stats.total_gold_earned), "color": Color(1, 0.85, 0.4)},
-		{"label": "Current Gold", "value": str(SaveManager.get_gold()), "color": Color(1, 0.85, 0.4)}
-	]
+	# Main stats grid
+	var stats_grid = HBoxContainer.new()
+	stats_grid.alignment = BoxContainer.ALIGNMENT_CENTER
+	stats_grid.add_theme_constant_override("separation", 30)
+	vbox.add_child(stats_grid)
 
-	for data in stats_data:
-		var row = HBoxContainer.new()
+	_create_stat_card(stats_grid, "Highest Wave", str(stats.highest_wave), Color(0.9, 0.75, 0.3))
+	_create_stat_card(stats_grid, "Total Runs", str(stats.total_runs), Color(0.5, 0.6, 0.8))
+	_create_stat_card(stats_grid, "Total Kills", str(stats.total_kills), Color(0.9, 0.4, 0.4))
+	_create_stat_card(stats_grid, "Gold Earned", str(stats.total_gold_earned), Color(1, 0.85, 0.4))
 
-		var label = Label.new()
-		label.text = data.label
-		label.add_theme_font_size_override("font_size", 16)
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(label)
+	var sep = HSeparator.new()
+	vbox.add_child(sep)
 
-		var value = Label.new()
-		value.text = data.value
-		value.add_theme_font_size_override("font_size", 18)
-		value.add_theme_color_override("font_color", data.color)
-		row.add_child(value)
-
-		vbox.add_child(row)
-
-	# Training summary
-	vbox.add_child(HSeparator.new())
-
+	# Training levels section
 	var training_title = Label.new()
-	training_title.text = "Training Levels"
-	training_title.add_theme_font_size_override("font_size", 18)
+	training_title.text = "Training Progress"
+	training_title.add_theme_font_size_override("font_size", 20)
+	training_title.add_theme_color_override("font_color", Color(0.7, 0.6, 0.5))
 	training_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(training_title)
 
-	var training_row = HBoxContainer.new()
-	training_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	training_row.add_theme_constant_override("separation", 20)
-	vbox.add_child(training_row)
+	var training_grid = HBoxContainer.new()
+	training_grid.alignment = BoxContainer.ALIGNMENT_CENTER
+	training_grid.add_theme_constant_override("separation", 20)
+	vbox.add_child(training_grid)
 
 	for stat_name in TRAINING_INFO:
 		var info = TRAINING_INFO[stat_name]
 		var level = SaveManager.get_training_level(stat_name)
+		_create_training_stat_display(training_grid, info.display_name, level, info.color)
 
-		var stat_label = Label.new()
-		stat_label.text = "%s: %d" % [info.display_name, level]
-		stat_label.add_theme_color_override("font_color", info.color)
-		stat_label.add_theme_font_size_override("font_size", 14)
-		training_row.add_child(stat_label)
+func _create_stat_card(parent: Control, label_text: String, value_text: String, color: Color):
+	var card = PanelContainer.new()
+	var card_style = StyleBoxFlat.new()
+	card_style.bg_color = Color(color.r * 0.1, color.g * 0.1, color.b * 0.1)
+	card_style.border_color = Color(color.r * 0.5, color.g * 0.5, color.b * 0.5)
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(10)
+	card_style.content_margin_left = 25
+	card_style.content_margin_right = 25
+	card_style.content_margin_top = 15
+	card_style.content_margin_bottom = 15
+	card.add_theme_stylebox_override("panel", card_style)
+	parent.add_child(card)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 5)
+	card.add_child(vbox)
+
+	var value = Label.new()
+	value.text = value_text
+	value.add_theme_font_size_override("font_size", 36)
+	value.add_theme_color_override("font_color", color)
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(value)
+
+	var label = Label.new()
+	label.text = label_text
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", TEXT_DIM)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(label)
+
+func _create_training_stat_display(parent: Control, stat_name: String, level: int, color: Color):
+	var container = VBoxContainer.new()
+	container.add_theme_constant_override("separation", 5)
+	parent.add_child(container)
+
+	var name_label = Label.new()
+	name_label.text = stat_name
+	name_label.add_theme_font_size_override("font_size", 14)
+	name_label.add_theme_color_override("font_color", color)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	container.add_child(name_label)
+
+	# Level dots
+	var dots = HBoxContainer.new()
+	dots.alignment = BoxContainer.ALIGNMENT_CENTER
+	dots.add_theme_constant_override("separation", 4)
+	container.add_child(dots)
+
+	for i in range(5):
+		var dot = ColorRect.new()
+		dot.custom_minimum_size = Vector2(14, 14)
+		if i < level:
+			dot.color = color
+		else:
+			dot.color = Color(0.2, 0.18, 0.22)
+		dots.add_child(dot)
 
 # ============================================
 # EVENT HANDLERS
@@ -756,7 +1166,12 @@ func _build_stats_tab():
 func _on_gold_changed(new_amount: int):
 	# Update gold display in header
 	if gold_display_label and is_instance_valid(gold_display_label):
-		gold_display_label.text = "💰 %d" % new_amount
+		gold_display_label.text = "%d" % new_amount
+
+		# Flash animation
+		var tween = create_tween()
+		tween.tween_property(gold_display_label, "modulate", Color(1.5, 1.2, 0.8), 0.1)
+		tween.tween_property(gold_display_label, "modulate", Color.WHITE, 0.2)
 
 	# Update training button states without full rebuild
 	_update_training_buttons()
@@ -764,7 +1179,17 @@ func _on_gold_changed(new_amount: int):
 func _on_enter_arena_pressed():
 	RunManager.start_new_run()
 	_give_random_starting_relic()
-	get_tree().change_scene_to_file("res://Scenes/Game/Game.tscn")
+
+	# Transition effect
+	var overlay = ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0)
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.z_index = 100
+	add_child(overlay)
+
+	var tween = create_tween()
+	tween.tween_property(overlay, "color:a", 1.0, 0.3)
+	tween.tween_callback(func(): get_tree().change_scene_to_file("res://Scenes/Game/Game.tscn"))
 
 func _give_random_starting_relic():
 	var unlocked_relics: Array = []

@@ -166,7 +166,7 @@ func _weapon_process(_delta):
 func _perform_skill() -> bool:
 	# Override for weapon-specific skill
 	# Default: fire beam from skill spawn point
-	if not player_reference:
+	if not player_reference or not player_reference.stats:
 		return false
 
 	var skill_origin = get_skill_spawn_position()
@@ -769,5 +769,3 @@ func _correct_projectile_spawn():
 	# No correction needed - staff pivot only uses scale.x flip, no rotation
 	# This keeps projectile_spawn.global_position calculations correct
 	pass
-
-

@@ -1,0 +1,273 @@
+[gd_scene load_steps=2 format=3 uid="uid://bwaveshop1234"]
+
+[ext_resource type="Script" path="res://Scripts/Ui/WaveShop.gd" id="1_script"]
+
+[node name="WaveShop" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.85)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="MainContainer" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/MainContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.4, 1, 1)
+theme_override_font_sizes/font_size = 36
+text = "CHAOS ARMORY"
+horizontal_alignment = 1
+
+[node name="TicketsLabel" type="Label" parent="CenterContainer/MainContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.7, 0.2, 1)
+theme_override_font_sizes/font_size = 24
+text = "Coliseum Tickets: 0"
+horizontal_alignment = 1
+
+[node name="Spacer1" type="Control" parent="CenterContainer/MainContainer"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+
+[node name="ChoiceContainer" type="HBoxContainer" parent="CenterContainer/MainContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Choice0" type="PanelContainer" parent="CenterContainer/MainContainer/ChoiceContainer"]
+custom_minimum_size = Vector2(220, 280)
+layout_mode = 2
+mouse_filter = 0
+
+[node name="VBox" type="VBoxContainer" parent="CenterContainer/MainContainer/ChoiceContainer/Choice0"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="RarityBar" type="ColorRect" parent="CenterContainer/MainContainer/ChoiceContainer/Choice0/VBox"]
+custom_minimum_size = Vector2(190, 5)
+layout_mode = 2
+color = Color(1, 1, 1, 1)
+
+[node name="IconLabel" type="Label" parent="CenterContainer/MainContainer/ChoiceContainer/Choice0/VBox"]
+custom_minimum_size = Vector2(190, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="CenterContainer/MainContainer/ChoiceContainer/Choice0/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="TypeLabel" type="Label" parent="CenterContainer/MainContainer/ChoiceContainer/Choice0/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+
+[node name="DescLabel" type="Label" parent="CenterContainer/MainContainer/ChoiceContainer/Choice0/VBox"]
+custom_minimum_size = Vector2(190, 45)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Spacer" type="Control" parent="CenterContainer/MainContainer/ChoiceContainer/Choice0/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BuyButton" type="Button" parent="CenterContainer/MainContainer/ChoiceContainer/Choice0/VBox"]
+custom_minimum_size = Vector2(190, 40)
+layout_mode = 2
+mouse_filter = 0
+text = "BUY"
+
+[node name="Choice1" type="PanelContainer" parent="CenterContainer/MainContainer/ChoiceContainer"]
+custom_minimum_size = Vector2(220, 280)
+layout_mode = 2
+mouse_filter = 0
+
+[node name="VBox" type="VBoxContainer" parent="CenterContainer/MainContainer/ChoiceContainer/Choice1"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="RarityBar" type="ColorRect" parent="CenterContainer/MainContainer/ChoiceContainer/Choice1/VBox"]
+custom_minimum_size = Vector2(190, 5)
+layout_mode = 2
+color = Color(1, 1, 1, 1)
+
+[node name="IconLabel" type="Label" parent="CenterContainer/MainContainer/ChoiceContainer/Choice1/VBox"]
+custom_minimum_size = Vector2(190, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="CenterContainer/MainContainer/ChoiceContainer/Choice1/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="TypeLabel" type="Label" parent="CenterContainer/MainContainer/ChoiceContainer/Choice1/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+
+[node name="DescLabel" type="Label" parent="CenterContainer/MainContainer/ChoiceContainer/Choice1/VBox"]
+custom_minimum_size = Vector2(190, 45)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Spacer" type="Control" parent="CenterContainer/MainContainer/ChoiceContainer/Choice1/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BuyButton" type="Button" parent="CenterContainer/MainContainer/ChoiceContainer/Choice1/VBox"]
+custom_minimum_size = Vector2(190, 40)
+layout_mode = 2
+mouse_filter = 0
+text = "BUY"
+
+[node name="Choice2" type="PanelContainer" parent="CenterContainer/MainContainer/ChoiceContainer"]
+custom_minimum_size = Vector2(220, 280)
+layout_mode = 2
+mouse_filter = 0
+
+[node name="VBox" type="VBoxContainer" parent="CenterContainer/MainContainer/ChoiceContainer/Choice2"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="RarityBar" type="ColorRect" parent="CenterContainer/MainContainer/ChoiceContainer/Choice2/VBox"]
+custom_minimum_size = Vector2(190, 5)
+layout_mode = 2
+color = Color(1, 1, 1, 1)
+
+[node name="IconLabel" type="Label" parent="CenterContainer/MainContainer/ChoiceContainer/Choice2/VBox"]
+custom_minimum_size = Vector2(190, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="CenterContainer/MainContainer/ChoiceContainer/Choice2/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="TypeLabel" type="Label" parent="CenterContainer/MainContainer/ChoiceContainer/Choice2/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+
+[node name="DescLabel" type="Label" parent="CenterContainer/MainContainer/ChoiceContainer/Choice2/VBox"]
+custom_minimum_size = Vector2(190, 45)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Spacer" type="Control" parent="CenterContainer/MainContainer/ChoiceContainer/Choice2/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BuyButton" type="Button" parent="CenterContainer/MainContainer/ChoiceContainer/Choice2/VBox"]
+custom_minimum_size = Vector2(190, 40)
+layout_mode = 2
+mouse_filter = 0
+text = "BUY"
+
+[node name="Spacer2" type="Control" parent="CenterContainer/MainContainer"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+
+[node name="HealerSection" type="PanelContainer" parent="CenterContainer/MainContainer"]
+custom_minimum_size = Vector2(700, 80)
+layout_mode = 2
+
+[node name="HealerHBox" type="HBoxContainer" parent="CenterContainer/MainContainer/HealerSection"]
+layout_mode = 2
+theme_override_constants/separation = 30
+alignment = 1
+
+[node name="HealthDisplay" type="VBoxContainer" parent="CenterContainer/MainContainer/HealerSection/HealerHBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="HealerTitle" type="Label" parent="CenterContainer/MainContainer/HealerSection/HealerHBox/HealthDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 1, 0.4, 1)
+theme_override_font_sizes/font_size = 18
+text = "HEALER"
+horizontal_alignment = 1
+
+[node name="HealthLabel" type="Label" parent="CenterContainer/MainContainer/HealerSection/HealerHBox/HealthDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 16
+text = "HP: 100 / 100"
+horizontal_alignment = 1
+
+[node name="FreeHealButton" type="Button" parent="CenterContainer/MainContainer/HealerSection/HealerHBox"]
+custom_minimum_size = Vector2(180, 50)
+layout_mode = 2
+mouse_filter = 0
+text = "Free Heal (30%)"
+
+[node name="FullHealButton" type="Button" parent="CenterContainer/MainContainer/HealerSection/HealerHBox"]
+custom_minimum_size = Vector2(180, 50)
+layout_mode = 2
+mouse_filter = 0
+text = "Full Heal (2 Tickets)"
+
+[node name="Spacer3" type="Control" parent="CenterContainer/MainContainer"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+
+[node name="BottomContainer" type="HBoxContainer" parent="CenterContainer/MainContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="RerollButton" type="Button" parent="CenterContainer/MainContainer/BottomContainer"]
+custom_minimum_size = Vector2(180, 45)
+layout_mode = 2
+mouse_filter = 0
+text = "REROLL (1 Ticket)"
+
+[node name="ContinueButton" type="Button" parent="CenterContainer/MainContainer/BottomContainer"]
+custom_minimum_size = Vector2(180, 45)
+layout_mode = 2
+mouse_filter = 0
+text = "CONTINUE"

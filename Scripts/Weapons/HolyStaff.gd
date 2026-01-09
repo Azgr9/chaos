@@ -31,6 +31,16 @@ var heal_timer: float = 0.0
 const HEAL_INTERVAL: float = 3.0
 const HEAL_AMOUNT: float = 2.0
 
+# Divine Shield (temporary shield that absorbs damage)
+var shield_amount: float = 0.0
+const MAX_SHIELD: float = 30.0
+const SHIELD_DECAY_RATE: float = 2.0  # Shield decays over time
+const SHIELD_ON_HIT_GAIN: float = 3.0  # Shield gained per enemy hit
+
+# Burst Heal (on skill - heals nearby allies and player)
+const BURST_HEAL_AMOUNT: float = 25.0
+const BURST_HEAL_RADIUS: float = 200.0
+
 func _weapon_ready():
 	projectile_scene = PROJECTILE_SCENE_PATH
 
@@ -62,6 +72,13 @@ func _weapon_process(delta):
 	if heal_timer >= HEAL_INTERVAL:
 		heal_timer = 0.0
 		_apply_healing_aura()
+
+	# Shield decay over time
+	if shield_amount > 0:
+		shield_amount -= SHIELD_DECAY_RATE * delta
+		if shield_amount < 0:
+			shield_amount = 0
+		_update_shield_visual()
 
 func _spawn_holy_particle():
 	var particle = ColorRect.new()
@@ -114,13 +131,151 @@ func _create_heal_effect():
 		tween.tween_callback(sparkle.queue_free)
 
 func _perform_skill() -> bool:
-	# DIVINE STORM - Massive holy storm from the heavens!
+	# DIVINE BLESSING - Heal and Shield combo!
 	if not player_reference:
 		return false
 
+	# First: Burst heal the player
+	_execute_burst_heal()
+
+	# Then: Execute divine storm for offense
 	_execute_divine_storm()
 	_play_skill_animation()
 	return true
+
+func _execute_burst_heal():
+	if not player_reference or not is_instance_valid(player_reference):
+		return
+
+	# Heal the player
+	if player_reference.has_method("heal"):
+		player_reference.heal(BURST_HEAL_AMOUNT)
+		# Show heal damage number
+		DamageNumberManager.spawn(player_reference.global_position, BURST_HEAL_AMOUNT, DamageTypes.Type.HEAL)
+
+	# Grant divine shield
+	shield_amount = min(shield_amount + MAX_SHIELD, MAX_SHIELD)
+	_create_shield_effect()
+
+	# Create healing burst visual
+	_create_burst_heal_effect()
+
+func _create_burst_heal_effect():
+	if not player_reference:
+		return
+
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Expanding golden ring
+	var ring = ColorRect.new()
+	ring.size = Vector2(50, 50)
+	ring.pivot_offset = Vector2(25, 25)
+	ring.color = Color(1.0, 0.95, 0.7, 0.6)
+	scene.add_child(ring)
+	ring.global_position = player_reference.global_position - Vector2(25, 25)
+
+	var tween = TweenHelper.new_tween()
+	tween.set_parallel(true)
+	tween.tween_property(ring, "scale", Vector2(8, 8), 0.4)
+	tween.tween_property(ring, "modulate:a", 0.0, 0.4)
+	tween.tween_callback(ring.queue_free)
+
+	# Rising holy sparkles
+	for i in range(8):
+		var sparkle = ColorRect.new()
+		sparkle.size = Vector2(8, 8)
+		sparkle.pivot_offset = Vector2(4, 4)
+		sparkle.color = HOLY_GLOW
+		scene.add_child(sparkle)
+
+		var angle = (TAU / 8) * i
+		var start_pos = player_reference.global_position + Vector2.from_angle(angle) * 30
+		sparkle.global_position = start_pos
+
+		var s_tween = TweenHelper.new_tween()
+		s_tween.set_parallel(true)
+		s_tween.tween_property(sparkle, "global_position:y", start_pos.y - 60, 0.5)
+		s_tween.tween_property(sparkle, "modulate:a", 0.0, 0.5)
+		s_tween.tween_callback(sparkle.queue_free)
+
+func _create_shield_effect():
+	if not player_reference:
+		return
+
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Glowing shield circle around player
+	var shield_visual = ColorRect.new()
+	shield_visual.name = "HolyShieldVisual"
+	shield_visual.size = Vector2(80, 80)
+	shield_visual.pivot_offset = Vector2(40, 40)
+	shield_visual.color = Color(1.0, 0.95, 0.8, 0.3)
+	player_reference.add_child(shield_visual)
+	shield_visual.position = Vector2(-40, -40)
+
+	# Pulsing animation
+	var tween = TweenHelper.new_tween()
+	tween.set_loops()
+	tween.tween_property(shield_visual, "scale", Vector2(1.1, 1.1), 0.5)
+	tween.tween_property(shield_visual, "scale", Vector2(1.0, 1.0), 0.5)
+
+func _update_shield_visual():
+	if not player_reference or not is_instance_valid(player_reference):
+		return
+
+	var shield_visual = player_reference.get_node_or_null("HolyShieldVisual")
+	if shield_visual:
+		if shield_amount <= 0:
+			shield_visual.queue_free()
+		else:
+			# Update shield opacity based on amount
+			shield_visual.modulate.a = (shield_amount / MAX_SHIELD) * 0.5
+
+# Called when player would take damage - absorb with shield first
+func absorb_damage(amount: float) -> float:
+	if shield_amount <= 0:
+		return amount
+
+	var absorbed = min(amount, shield_amount)
+	shield_amount -= absorbed
+	_update_shield_visual()
+
+	# Visual feedback for absorption
+	_create_shield_absorb_effect()
+
+	return amount - absorbed
+
+func _create_shield_absorb_effect():
+	if not player_reference:
+		return
+
+	var scene = get_tree().current_scene
+	if not scene:
+		return
+
+	# Flash effect when shield absorbs
+	var flash = ColorRect.new()
+	flash.size = Vector2(100, 100)
+	flash.pivot_offset = Vector2(50, 50)
+	flash.color = Color(1.0, 1.0, 0.8, 0.5)
+	scene.add_child(flash)
+	flash.global_position = player_reference.global_position - Vector2(50, 50)
+
+	var tween = TweenHelper.new_tween()
+	tween.tween_property(flash, "modulate:a", 0.0, 0.15)
+	tween.tween_callback(flash.queue_free)
+
+# Gain shield when hitting enemies with projectiles
+func on_enemy_hit():
+	shield_amount = min(shield_amount + SHIELD_ON_HIT_GAIN, MAX_SHIELD)
+	if shield_amount > 0 and player_reference:
+		var shield_visual = player_reference.get_node_or_null("HolyShieldVisual")
+		if not shield_visual:
+			_create_shield_effect()
 
 func _execute_divine_storm():
 	var player = player_reference

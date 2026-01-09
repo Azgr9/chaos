@@ -18,14 +18,16 @@ enum Type {
 }
 
 # Color mapping for each damage type
+# Updated colors based on user request:
+# crit = red, heal = green, poison = purple, electric = blue
 const COLORS = {
 	Type.PHYSICAL: Color.WHITE,
-	Type.FIRE: Color(1.0, 0.5, 0.1, 1.0),      # Orange
-	Type.ICE: Color(0.6, 0.85, 1.0, 1.0),      # Light blue
-	Type.POISON: Color(0.4, 0.9, 0.2, 1.0),    # Green
-	Type.ELECTRIC: Color(0.3, 0.8, 1.0, 1.0),  # Cyan
-	Type.SPIKE: Color(0.7, 0.7, 0.7, 1.0),     # Gray
-	Type.CRIT: Color(1.0, 0.9, 0.2, 1.0),      # Yellow
-	Type.HEAL: Color(0.2, 1.0, 0.4, 1.0),      # Bright green
-	Type.BLEED: Color(0.8, 0.1, 0.1, 1.0)      # Dark red
+	Type.FIRE: Color(1.0, 0.5, 0.1, 1.0),      # Orange - fire damage
+	Type.ICE: Color(0.6, 0.85, 1.0, 1.0),      # Light blue - ice/freeze
+	Type.POISON: Color(0.7, 0.2, 0.9, 1.0),    # PURPLE - poison (updated)
+	Type.ELECTRIC: Color(0.2, 0.6, 1.0, 1.0),  # BLUE - electric (updated)
+	Type.SPIKE: Color(0.7, 0.7, 0.7, 1.0),     # Gray - spikes
+	Type.CRIT: Color(1.0, 0.2, 0.2, 1.0),      # RED - critical hits (updated)
+	Type.HEAL: Color(0.2, 1.0, 0.4, 1.0),      # GREEN - healing (kept)
+	Type.BLEED: Color(0.8, 0.1, 0.1, 1.0)      # Dark red - bleed
 }

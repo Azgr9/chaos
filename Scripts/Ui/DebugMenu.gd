@@ -13,6 +13,8 @@ const ENEMY_SCENES = {
 	"Slime": preload("res://Scenes/Enemies/Slime.tscn"),
 	"GoblinArcher": preload("res://Scenes/Enemies/GoblinArcher.tscn"),
 	"GoblinDual": preload("res://Scenes/Enemies/GoblinDual.tscn"),
+	"GoblinMage": preload("res://Scenes/Enemies/GoblinMage.tscn"),
+	"Golem": preload("res://Scenes/Enemies/Golem.tscn"),
 	"Healer": preload("res://Scenes/Enemies/Healer.tscn"),
 	"Spawner": preload("res://Scenes/Enemies/Spawner.tscn"),
 	"Boss": preload("res://Scenes/Enemies/Boss.tscn")
@@ -360,6 +362,8 @@ func _build_debug_ui():
 		"Slime": Color(0.0, 0.8, 0.0),
 		"GoblinArcher": Color(0.3, 0.5, 0.2),
 		"GoblinDual": Color(0.5, 0.4, 0.2),
+		"GoblinMage": Color(0.3, 0.8, 0.3),
+		"Golem": Color(0.5, 0.4, 0.35),
 		"Healer": Color(0.2, 0.8, 0.4),
 		"Spawner": Color(0.6, 0.3, 0.8),
 		"Boss": Color(0.9, 0.1, 0.1)

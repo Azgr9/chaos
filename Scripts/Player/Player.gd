@@ -43,6 +43,11 @@ var current_staff_index: int = 0
 # Pixel-perfect movement
 var accumulated_movement: Vector2 = Vector2.ZERO
 
+# Gamepad aiming
+var gamepad_aim_direction: Vector2 = Vector2.ZERO
+var using_gamepad: bool = false
+const GAMEPAD_AIM_DEADZONE: float = 0.3
+
 # Dash mechanic
 var is_dashing: bool = false
 var dash_direction: Vector2 = Vector2.ZERO
@@ -191,18 +196,21 @@ func handle_input():
 	if (not is_attacking or can_move_during_attack) and not is_movement_locked:
 		input_vector.x = Input.get_axis("move_left", "move_right")
 		input_vector.y = Input.get_axis("move_up", "move_down")
-		
+
 		# Normalize diagonal movement
 		if input_vector.length() > 1.0:
 			input_vector = input_vector.normalized()
-		
+
 		# Track last direction for aiming
 		if input_vector.length() > 0:
 			last_direction = input_vector.normalized()
 			is_moving = true
 		else:
 			is_moving = false
-	
+
+	# Gamepad aiming (right stick)
+	_update_gamepad_aim()
+
 	# Attack inputs - CHECK THESE ARE CORRECT
 	if Input.is_action_just_pressed("melee_attack") and not is_attacking:
 		# Register input with AttackSpeedSystem for timing bonus
@@ -221,7 +229,7 @@ func handle_input():
 			AttackSpeedSystem.register_input()
 		perform_magic_attack()
 		return
-	
+
 	# Dash input
 	if Input.is_action_just_pressed("dash") and not is_dashing and not is_attacking and dash_cooldown_timer <= 0:
 		perform_dash()
@@ -236,6 +244,43 @@ func handle_input():
 			current_staff.use_skill()
 
 	# Debug mode is now handled by DebugMenu (press O to open)
+
+func _update_gamepad_aim():
+	# Read right stick for aiming
+	var aim_x = Input.get_axis("aim_left", "aim_right")
+	var aim_y = Input.get_axis("aim_up", "aim_down")
+	var aim_input = Vector2(aim_x, aim_y)
+
+	# Check if using gamepad based on right stick input
+	if aim_input.length() > GAMEPAD_AIM_DEADZONE:
+		using_gamepad = true
+		gamepad_aim_direction = aim_input.normalized()
+
+func _input(event):
+	# Detect input method change
+	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		using_gamepad = true
+	elif event is InputEventMouseMotion or event is InputEventMouseButton or event is InputEventKey:
+		using_gamepad = false
+
+	# Mouse wheel weapon/staff switching (only when not attacking)
+	if event is InputEventMouseButton and not is_attacking:
+		if event.pressed:
+			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+				# Scroll up = cycle weapons
+				_cycle_weapon(1)
+			elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+				# Scroll down = cycle staffs
+				_cycle_staff(1)
+
+func get_aim_direction() -> Vector2:
+	# Returns aim direction based on input method
+	if using_gamepad and gamepad_aim_direction.length() > GAMEPAD_AIM_DEADZONE:
+		return gamepad_aim_direction
+	else:
+		# Mouse aiming
+		var mouse_pos = get_global_mouse_position()
+		return (mouse_pos - global_position).normalized()
 
 func move_player_pixel_perfect(delta):
 	# Calculate intended movement
@@ -347,9 +392,11 @@ func update_animation():
 func perform_melee_attack():
 	# Make sure we're using current_weapon, NOT current_staff
 	if current_weapon and is_instance_valid(current_weapon) and current_weapon.has_method("attack") and not is_attacking:
-		# Get attack direction from mouse
-		var mouse_pos = get_global_mouse_position()
-		var attack_direction = (mouse_pos - global_position).normalized()
+		# Get attack direction (gamepad or mouse)
+		var attack_direction = get_aim_direction()
+		# Fallback to last direction if no aim input
+		if attack_direction.length() < 0.1:
+			attack_direction = last_direction
 
 		# Connect to attack finished signal BEFORE calling attack
 		# This prevents race condition where fast attacks complete before signal is connected
@@ -376,6 +423,7 @@ func perform_melee_attack():
 			_start_attack_safety_timeout()
 
 var _attack_safety_timer: SceneTreeTimer = null
+const ATTACK_SAFETY_BUFFER: float = 0.3  # Extra time buffer for safety timeout
 
 func _start_attack_safety_timeout():
 	# Disconnect previous timer if it exists to prevent memory leak
@@ -384,8 +432,17 @@ func _start_attack_safety_timeout():
 			_attack_safety_timer.timeout.disconnect(_on_attack_safety_timeout)
 		_attack_safety_timer = null
 
+	# Calculate dynamic timeout based on weapon's attack duration
+	var timeout_duration = 0.6  # Default fallback
+	if current_weapon and is_instance_valid(current_weapon):
+		# Try to get attack_duration from weapon
+		if "attack_duration" in current_weapon:
+			timeout_duration = current_weapon.attack_duration + ATTACK_SAFETY_BUFFER
+		elif "attack_cooldown" in current_weapon:
+			timeout_duration = current_weapon.attack_cooldown + ATTACK_SAFETY_BUFFER
+
 	# Safety timeout to force reset if attack_finished signal never fires
-	_attack_safety_timer = get_tree().create_timer(0.6)
+	_attack_safety_timer = get_tree().create_timer(timeout_duration)
 	_attack_safety_timer.timeout.connect(_on_attack_safety_timeout)
 
 func _on_attack_safety_timeout():
@@ -407,9 +464,11 @@ func _on_attack_finished():
 func perform_magic_attack():
 	# Make sure we're using current_staff, NOT current_weapon
 	if current_staff and is_instance_valid(current_staff) and current_staff.has_method("attack") and not is_attacking:
-		# Get attack direction from mouse
-		var mouse_pos = get_global_mouse_position()
-		var attack_direction = (mouse_pos - global_position).normalized()
+		# Get attack direction (gamepad or mouse)
+		var attack_direction = get_aim_direction()
+		# Fallback to last direction if no aim input
+		if attack_direction.length() < 0.1:
+			attack_direction = last_direction
 
 		# Lock player during attack
 		is_attacking = true
@@ -456,17 +515,6 @@ func _spawn_and_equip_weapon(weapon_scene: PackedScene):
 		weapon_inventory.append(weapon_instance)
 	
 	weapon_switched.emit(weapon_instance)
-
-func _input(event):
-	# Mouse wheel weapon/staff switching (only when not attacking)
-	if event is InputEventMouseButton and not is_attacking:
-		if event.pressed:
-			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-				# Scroll up = cycle weapons
-				_cycle_weapon(1)
-			elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-				# Scroll down = cycle staffs
-				_cycle_staff(1)
 
 func _cycle_weapon(direction: int):
 	if weapon_inventory.size() == 0:
@@ -606,7 +654,11 @@ func take_damage(amount: float, from_position: Vector2 = Vector2.ZERO) -> bool:
 	_play_hit_effect()
 
 	if is_dead:
-		# Check for Phoenix Feather revive
+		# Check for Guardian Angel save (once per wave)
+		if RelicEffectManager and RelicEffectManager.try_guardian_angel_save():
+			return true
+
+		# Check for Phoenix Feather revive (once per run)
 		if _try_phoenix_revive():
 			return true
 

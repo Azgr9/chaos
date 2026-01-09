@@ -242,7 +242,7 @@ func _create_frost_effect(pos: Vector2):
 # BLIZZARD SKILL - AoE slow zone
 # ============================================
 func _perform_skill() -> bool:
-	if not player_reference:
+	if not player_reference or not player_reference.stats:
 		return false
 
 	var target_pos = player_reference.get_global_mouse_position()

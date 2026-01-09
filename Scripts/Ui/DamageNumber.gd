@@ -38,13 +38,22 @@ func setup(damage_amount: float, damage_type: DamageTypes.Type = DamageTypes.Typ
 		elif damage_amount >= 25:
 			base_color = Color.ORANGE
 
-	# For crits, make them bigger
+	# For crits, make them bigger and add "!" suffix
 	if damage_type == DamageTypes.Type.CRIT:
-		label.scale = Vector2(1.3, 1.3)
+		label.scale = Vector2(1.5, 1.5)
+		label.text = str(display_amount) + "!"
 
 	# For heals, show + prefix
 	if damage_type == DamageTypes.Type.HEAL:
 		label.text = "+" + str(display_amount)
+
+	# For poison, add skull emoji
+	if damage_type == DamageTypes.Type.POISON:
+		label.text = str(display_amount) + "☠"
+
+	# For electric, add lightning emoji
+	if damage_type == DamageTypes.Type.ELECTRIC:
+		label.text = "⚡" + str(display_amount)
 
 	label.add_theme_color_override("font_color", base_color)
 
@@ -60,10 +69,11 @@ func _animate():
 	tween.tween_property(label, "modulate:a", 0.0, fade_duration)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
-	# Scale effect (slightly grow then shrink)
-	tween.tween_property(label, "scale", Vector2(1.2, 1.2), fade_duration * 0.2)\
+	# Scale effect (slightly grow then shrink) - preserve initial scale
+	var initial_scale = label.scale
+	tween.tween_property(label, "scale", initial_scale * 1.2, fade_duration * 0.2)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.chain().tween_property(label, "scale", Vector2(0.8, 0.8), fade_duration * 0.8)\
+	tween.chain().tween_property(label, "scale", initial_scale * 0.8, fade_duration * 0.8)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 	# Remove after animation

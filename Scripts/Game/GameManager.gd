@@ -6,7 +6,7 @@ class_name GameManager
 extends Node
 
 # Constants
-const MAX_WAVES: int = 5
+const MAX_WAVES: int = 10
 const GAME_OVER_DELAY: float = 1.0
 const UPGRADE_MENU_DELAY: float = 0.5
 const PORTAL_SPAWN_DELAY: float = 1.5  # Time before portal spawns after wave clear
@@ -18,6 +18,10 @@ const PORTAL_SCENE = preload("res://Scenes/Game/QuartersPortal.tscn")
 # Game state
 enum GameState { MENU, PLAYING, PAUSED, UPGRADE, GAME_OVER, VICTORY }
 var current_state: GameState = GameState.PLAYING
+
+# Portal state machine to prevent race conditions
+enum PortalState { NONE, SPAWNING, ACTIVE, ENTERED, DESTROYED }
+var _portal_state: PortalState = PortalState.NONE
 
 # Stats tracking
 var waves_completed: int = 0
@@ -38,6 +42,7 @@ var pause_menu: PauseMenu = null
 var debug_menu: DebugMenu = null
 var current_portal: QuartersPortal = null
 var wave_clear_ui: CanvasLayer = null
+var wave_shop: WaveShop = null  # Random weapon/item shop between waves
 
 # Signals
 signal game_started()
@@ -61,11 +66,12 @@ func _ready():
 	# Add to game_manager group so crystals can find us
 	add_to_group("game_manager")
 
-	# Create game over screen, pause menu, and debug menu
+	# Create game over screen, pause menu, debug menu, and wave shop
 	await _create_game_over_screen()
 	await _create_pause_menu()
 	await _create_debug_menu()
 	_create_wave_clear_ui()
+	_create_wave_shop()
 
 	# Start game
 	start_game()
@@ -177,34 +183,26 @@ func _on_player_damaged(current_health: float, _max_health: float):
 		damage_taken += delta
 	last_player_health = current_health
 
-func _show_upgrade_menu():
-	# Get upgrade menu (it's a sibling in the Game scene)
-	var upgrade_menu = get_node_or_null("../UpgradeMenu")
+func _show_wave_shop():
+	if wave_shop and player_reference:
+		# Use RunManager's gold (the authoritative gold source for runs)
+		var current_run_gold = 0
+		if RunManager:
+			current_run_gold = RunManager.get_gold()
+		else:
+			current_run_gold = gold
+		wave_shop.open_shop(player_reference, current_run_gold)
+		print("[GameManager] Wave shop opened with %d gold" % current_run_gold)
 
-	if not upgrade_menu:
-		# Load and instance upgrade menu if it doesn't exist
-		var menu_scene = load("res://Scenes/Ui/UpgradeMenu.tscn")
-		upgrade_menu = menu_scene.instantiate()
-		get_parent().add_child(upgrade_menu)
-		print("Created new UpgradeMenu instance")
-	else:
-		print("Found existing UpgradeMenu")
-
-	# Connect to menu closed signal
-	if upgrade_menu and not upgrade_menu.menu_closed.is_connected(_on_upgrade_menu_closed):
-		upgrade_menu.menu_closed.connect(_on_upgrade_menu_closed)
-
-	# Show upgrades
-	if upgrade_menu and upgrade_menu.has_method("show_upgrades"):
-		print("Calling show_upgrades on menu")
-		upgrade_menu.show_upgrades(player_reference)
-	else:
-		print("ERROR: Could not show upgrades - menu or method missing")
-
-func _on_upgrade_menu_closed():
+func _on_wave_shop_closed():
+	print("[GameManager] Wave shop closed - starting next wave")
+	# Shop now includes healer, so go directly to next wave
 	current_state = GameState.PLAYING
 
-	# Start next wave after menu closes
+	# Reset portal state for next wave
+	_portal_state = PortalState.NONE
+
+	# Start next wave after shop closes
 	if wave_manager:
 		wave_manager.start_next_wave()
 
@@ -225,8 +223,9 @@ func _show_victory_screen():
 
 func _check_achievements():
 	# Check for various achievements
-	if waves_completed == 1 and player_reference.stats.current_health == player_reference.stats.max_health:
-		_unlock_achievement("Untouchable Wave 1")
+	if waves_completed == 1 and player_reference and player_reference.stats:
+		if player_reference.stats.current_health == player_reference.stats.max_health:
+			_unlock_achievement("Untouchable Wave 1")
 
 	if enemies_killed_total >= 50:
 		_unlock_achievement("Slime Slayer")
@@ -269,8 +268,16 @@ func get_gold() -> int:
 # ============================================
 
 func _spawn_quarters_portal():
+	# State machine guard - prevent spawning if already in progress
+	if _portal_state != PortalState.NONE:
+		print("[GameManager] Portal spawn blocked - state is %s" % PortalState.keys()[_portal_state])
+		return
+
+	_portal_state = PortalState.SPAWNING
+
 	if current_portal and is_instance_valid(current_portal):
 		current_portal.queue_free()
+		current_portal = null
 
 	# Spawn portal at arena center
 	var portal_pos = Vector2(1280, 720)  # Arena center
@@ -285,30 +292,45 @@ func _spawn_quarters_portal():
 	current_portal.portal_entered.connect(_on_portal_entered)
 	current_portal.portal_destroyed.connect(_on_portal_destroyed)
 
+	_portal_state = PortalState.ACTIVE
 	print("[GameManager] Quarters portal spawned at %s" % portal_pos)
 
 func _on_portal_entered():
-	print("[GameManager] Player entered portal - opening Quarters")
+	# State machine guard - only process if portal is active
+	if _portal_state != PortalState.ACTIVE:
+		print("[GameManager] Portal enter blocked - state is %s" % PortalState.keys()[_portal_state])
+		return
+
+	_portal_state = PortalState.ENTERED
+	print("[GameManager] Player entered portal - opening Armory Shop")
 	current_portal = null
 
-	# Clear bloodlust when entering quarters (player chose safety)
+	# Award wave tickets and clear bloodlust when entering quarters
 	if RunManager:
+		var is_boss = (RunManager.get_current_wave() % 5 == 0)  # Every 5 waves is boss
+		RunManager.award_wave_tickets(is_boss)
 		RunManager.clear_bloodlust()
 
 	# Reset healer for new visit
-	var upgrade_menu = get_node_or_null("../UpgradeMenu")
-	if upgrade_menu and upgrade_menu.has_method("reset_healer_for_new_wave"):
-		upgrade_menu.reset_healer_for_new_wave()
+	if wave_shop and wave_shop.has_method("reset_healer_for_new_wave"):
+		wave_shop.reset_healer_for_new_wave()
 
-	# Show upgrade menu (Quarters)
-	_show_upgrade_menu()
+	# Show wave shop first (random weapons/items), then upgrade menu
+	_show_wave_shop()
 
 func _on_portal_destroyed():
+	# State machine guard - only process if portal is active
+	if _portal_state != PortalState.ACTIVE:
+		print("[GameManager] Portal destroy blocked - state is %s" % PortalState.keys()[_portal_state])
+		return
+
+	_portal_state = PortalState.DESTROYED
 	print("[GameManager] Portal destroyed - BLOODLUST ACTIVATED!")
 	current_portal = null
 
-	# Activate bloodlust
+	# Activate bloodlust and mark portal destroyed (no shards this wave)
 	if RunManager:
+		RunManager.mark_portal_destroyed()
 		RunManager.activate_bloodlust()
 
 	# Show bloodlust activation feedback
@@ -323,6 +345,10 @@ func _on_portal_destroyed():
 
 	# Start next wave immediately
 	current_state = GameState.PLAYING
+
+	# Reset portal state for next wave
+	_portal_state = PortalState.NONE
+
 	if wave_manager:
 		wave_manager.start_next_wave()
 
@@ -334,6 +360,20 @@ func _create_wave_clear_ui():
 	wave_clear_ui = CanvasLayer.new()
 	wave_clear_ui.layer = 10
 	add_child(wave_clear_ui)
+
+func _create_wave_shop():
+	# Load WaveShop from scene file
+	var shop_scene = load("res://Scenes/Ui/WaveShop.tscn")
+	wave_shop = shop_scene.instantiate()
+
+	# Add to a CanvasLayer for proper UI rendering
+	var shop_layer = CanvasLayer.new()
+	shop_layer.layer = 15  # Above other UI
+	add_child(shop_layer)
+	shop_layer.add_child(wave_shop)
+
+	# Connect shop closed signal
+	wave_shop.shop_closed.connect(_on_wave_shop_closed)
 
 func _show_wave_complete_ui(wave_number: int):
 	if not wave_clear_ui:

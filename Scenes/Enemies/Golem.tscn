@@ -1,0 +1,96 @@
+[gd_scene load_steps=5 format=3 uid="uid://golem001"]
+
+[ext_resource type="Script" path="res://Scripts/Enemies/Golem.gd" id="1_golem"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_physics"]
+radius = 45.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hurtbox"]
+radius = 55.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_attackbox"]
+radius = 50.0
+
+[node name="Golem" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 9
+script = ExtResource("1_golem")
+enemy_type = "golem"
+enemy_display_name = "Stone Golem"
+max_health = 200.0
+move_speed = 80.0
+damage = 20.0
+knockback_resistance = 0.8
+experience_value = 30
+crystal_drop_chance = 0.9
+min_crystals = 3
+max_crystals = 6
+gold_drop_min = 8
+gold_drop_max = 15
+health_bar_width = 100.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_physics")
+
+[node name="VisualsPivot" type="Node2D" parent="."]
+
+[node name="Body" type="ColorRect" parent="VisualsPivot"]
+offset_left = -30.0
+offset_top = -80.0
+offset_right = 30.0
+offset_bottom = 0.0
+color = Color(0.4, 0.35, 0.3, 1)
+
+[node name="Head" type="ColorRect" parent="VisualsPivot"]
+offset_left = -20.0
+offset_top = -130.0
+offset_right = 20.0
+offset_bottom = -90.0
+color = Color(0.5, 0.45, 0.4, 1)
+
+[node name="LeftArm" type="ColorRect" parent="VisualsPivot"]
+offset_left = -55.0
+offset_top = -70.0
+offset_right = -30.0
+offset_bottom = -10.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="RightArm" type="ColorRect" parent="VisualsPivot"]
+offset_left = 30.0
+offset_top = -70.0
+offset_right = 55.0
+offset_bottom = -10.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="HurtBox" type="Area2D" parent="."]
+collision_layer = 16
+collision_mask = 96
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HurtBox"]
+shape = SubResource("CircleShape2D_hurtbox")
+
+[node name="AttackBox" type="Area2D" parent="."]
+collision_layer = 128
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackBox"]
+shape = SubResource("CircleShape2D_attackbox")
+
+[node name="HealthBar" type="Node2D" parent="."]
+visible = false
+
+[node name="Background" type="ColorRect" parent="HealthBar"]
+offset_left = -50.0
+offset_top = -150.0
+offset_right = 50.0
+offset_bottom = -138.0
+color = Color(0.2, 0, 0, 1)
+
+[node name="Fill" type="ColorRect" parent="HealthBar"]
+offset_left = -50.0
+offset_top = -150.0
+offset_right = 50.0
+offset_bottom = -138.0
+color = Color(1, 0, 0, 1)
